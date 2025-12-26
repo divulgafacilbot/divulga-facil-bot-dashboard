@@ -1,0 +1,21 @@
+{
+  "name": "posting-bot-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:api": "cd apps/api && npm run dev",
+    "dev": "npm run dev:api & npm run dev:web",
+    "build": "cd apps/web && npm run build && cd ../api && npm run build",
+    "test": "cd apps/api && npm test"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  }
+}

@@ -1,0 +1,678 @@
+═══════════════════════════════════════════════════════════════
+RAILWAY API DEPLOYMENT - COMPLETE GUIDE
+═══════════════════════════════════════════════════════════════
+
+Generated: 2025-12-24
+For project: Posting Bot SaaS
+
+This manual will guide you through deploying your Node.js API
+to Railway, including database connection, environment variables,
+and domain configuration.
+
+═══════════════════════════════════════════════════════════════
+OVERVIEW
+═══════════════════════════════════════════════════════════════
+
+What you will accomplish:
+- Deploy API to Railway
+- Connect PostgreSQL database
+- Configure environment variables
+- Set up custom domain (optional)
+- Run database migrations in production
+
+What you will need:
+- Railway account (free tier available)
+- GitHub repository with your code
+- All environment variables ready
+- 20-30 minutes of time
+
+Estimated time: 20-30 minutes
+
+═══════════════════════════════════════════════════════════════
+PREREQUISITES
+═══════════════════════════════════════════════════════════════
+
+Before starting, ensure:
+
+✓ Your code is committed to Git
+✓ You have a GitHub account
+✓ Code is pushed to GitHub repository
+✓ You have all environment variables ready
+✓ PostgreSQL database is created on Railway (see previous setup)
+
+═══════════════════════════════════════════════════════════════
+STEP 1: Push Code to GitHub
+═══════════════════════════════════════════════════════════════
+
+1.1 - Ensure all changes are committed:
+      cd /home/pedro/Desktop/Repositórios/5\ Freelances/Posting-bot/implementation
+      git status
+
+1.2 - If there are uncommitted changes:
+      git add .
+      git commit -m "Prepare for deployment"
+
+1.3 - Create GitHub repository:
+      - Go to: https://github.com/new
+      - Repository name: posting-bot-saas (or your choice)
+      - Set to Private (recommended for production code)
+      - Do NOT initialize with README (you already have one)
+      - Click "Create repository"
+
+1.4 - Link local repository to GitHub:
+      git remote add origin https://github.com/[your-username]/posting-bot-saas.git
+      git branch -M main
+      git push -u origin main
+
+1.5 - Verify code is on GitHub:
+      - Open: https://github.com/[your-username]/posting-bot-saas
+      - You should see your code
+
+EXPECTED RESULT: Code is pushed to GitHub
+
+TROUBLESHOOTING:
+- If git push fails: check GitHub credentials
+- If repository exists: use existing one or choose different name
+
+───────────────────────────────────────────────────────────────
+
+STEP 2: Create Railway Account (If Needed)
+
+2.1 - Go to: https://railway.app
+
+2.2 - Click "Start a New Project" or "Login"
+
+2.3 - Sign up with GitHub:
+      - Click "Login with GitHub"
+      - Authorize Railway to access GitHub
+      - You'll be redirected to Railway dashboard
+
+EXPECTED RESULT: You are logged into Railway
+
+NOTE: If you already have a Railway account from database setup,
+      use the same account. You already have PostgreSQL set up!
+
+───────────────────────────────────────────────────────────────
+
+STEP 3: Create New Project
+
+3.1 - In Railway dashboard, click "+ New Project"
+
+3.2 - You'll see options:
+      - Deploy from GitHub repo
+      - Provision PostgreSQL
+      - Empty Project
+      - Templates
+
+3.3 - Select "Deploy from GitHub repo"
+
+3.4 - Railway will show your GitHub repositories
+
+3.5 - Find and select: posting-bot-saas (or your repo name)
+
+3.6 - Railway will ask: "Which service to deploy?"
+
+3.7 - Select or specify: apps/api
+      (this is the API service path in your monorepo)
+
+3.8 - Click "Deploy"
+
+3.9 - Railway will start building and deploying automatically
+
+EXPECTED RESULT: Deployment started, build logs visible
+
+───────────────────────────────────────────────────────────────
+
+STEP 4: Configure Build Settings
+
+4.1 - While deployment is running, click on the service
+
+4.2 - Go to "Settings" tab
+
+4.3 - Find "Build" section
+
+4.4 - Set these values:
+
+      Root Directory: apps/api
+      (Railway will only look in this folder)
+
+      Build Command:
+      npm install && npm run build
+
+      Start Command:
+      npm start
+
+4.5 - Find "Deploy" section
+
+4.6 - Set:
+      Auto-Deploy: ON
+      (deploys automatically on git push)
+
+4.7 - Click "Save" if prompted
+
+EXPECTED RESULT: Build settings configured
+
+───────────────────────────────────────────────────────────────
+
+STEP 5: Connect PostgreSQL Database
+
+5.1 - In your Railway project, you should see:
+      - Your API service
+      - Your PostgreSQL database (from earlier setup)
+
+5.2 - Click on your API service
+
+5.3 - Go to "Variables" tab
+
+5.4 - Railway should automatically detect that you need DATABASE_URL
+
+5.5 - If not automatically connected:
+      - Click "+ New Variable"
+      - Click "Add Reference"
+      - Select: PostgreSQL → DATABASE_URL
+      - This creates a reference to your database
+
+5.6 - The DATABASE_URL will be automatically set to your PostgreSQL
+
+EXPECTED RESULT: DATABASE_URL variable linked to PostgreSQL
+
+───────────────────────────────────────────────────────────────
+
+STEP 6: Add All Environment Variables
+
+6.1 - Still in "Variables" tab of API service
+
+6.2 - Add each variable from your local .env file:
+
+      Click "+ New Variable" for each:
+
+      Variable 1:
+      Name: NODE_ENV
+      Value: production
+
+      Variable 2:
+      Name: PORT
+      Value: 4000
+
+      Variable 3:
+      Name: JWT_SECRET
+      Value: [your JWT secret from .env]
+
+      Variable 4:
+      Name: APP_BASE_URL
+      Value: https://[your-web-domain]
+      (Example: https://posting-bot-web.vercel.app)
+      (You'll update this after deploying web)
+
+      Variable 5:
+      Name: EMAIL_SMTP_HOST
+      Value: smtp.resend.com
+
+      Variable 6:
+      Name: EMAIL_SMTP_PORT
+      Value: 587
+
+      Variable 7:
+      Name: EMAIL_SMTP_USER
+      Value: resend
+
+      Variable 8:
+      Name: EMAIL_SMTP_PASS
+      Value: [your Resend API key]
+
+      Variable 9:
+      Name: EMAIL_FROM
+      Value: onboarding@resend.dev
+
+      Variable 10:
+      Name: TELEGRAM_BOT_ARTS_TOKEN
+      Value: [your Arts bot token]
+
+      Variable 11:
+      Name: TELEGRAM_BOT_DOWNLOAD_TOKEN
+      Value: [your Download bot token]
+
+      Variable 12:
+      Name: KIWIFY_WEBHOOK_SECRET
+      Value: [your Kiwify webhook secret]
+
+6.3 - Optional variables (add if needed):
+      - PLAYWRIGHT_BROWSERS_PATH
+      - REDIS_URL
+
+6.4 - After adding all variables, Railway will automatically redeploy
+
+EXPECTED RESULT: All environment variables configured
+
+TROUBLESHOOTING:
+- If deployment fails after adding variables: check logs for errors
+- If DATABASE_URL not working: verify PostgreSQL is in same project
+
+───────────────────────────────────────────────────────────────
+
+STEP 7: Wait for Deployment
+
+7.1 - Go to "Deployments" tab
+
+7.2 - You'll see the deployment progress:
+      - Building...
+      - Deploying...
+      - Success ✓
+
+7.3 - This may take 2-5 minutes
+
+7.4 - Watch the build logs for errors
+
+7.5 - If build succeeds, you'll see:
+      "Deployment successful"
+      "Your service is live at: [URL]"
+
+EXPECTED RESULT: Deployment successful
+
+TROUBLESHOOTING:
+- If build fails: check build logs for errors
+- Common issues: missing dependencies, TypeScript errors
+- Fix in your code, commit, push to trigger new deployment
+
+───────────────────────────────────────────────────────────────
+
+STEP 8: Get Your Public URL
+
+8.1 - After successful deployment, go to "Settings" tab
+
+8.2 - Find "Domains" section
+
+8.3 - You'll see a generated Railway domain:
+      Example: posting-bot-api-production-abc123.up.railway.app
+
+8.4 - Copy this URL (you'll need it for webhooks and frontend)
+
+8.5 - Test the URL:
+      - Open in browser: https://[your-railway-domain]/health
+      - You should see:
+        {
+          "status": "ok",
+          "timestamp": "2025-12-24T10:30:00.000Z",
+          "service": "Posting Bot API"
+        }
+
+EXPECTED RESULT: API is live and responding
+
+───────────────────────────────────────────────────────────────
+
+STEP 9: Run Database Migrations
+
+9.1 - Your database needs to be initialized with tables
+
+9.2 - Option A: Use Railway CLI (recommended)
+
+      Install Railway CLI:
+      npm install -g @railway/cli
+
+      Login to Railway:
+      railway login
+
+      Link to your project:
+      railway link
+
+      Run migrations:
+      railway run npm run migrate
+
+9.3 - Option B: Manual SQL execution
+
+      - Go to Railway dashboard
+      - Click on PostgreSQL database
+      - Go to "Data" tab
+      - Click "Query"
+      - Copy/paste migration SQL from:
+        apps/api/src/db/migrations/001_initial_schema.sql
+      - Click "Execute"
+
+9.4 - Verify tables created:
+      - In PostgreSQL "Data" tab
+      - You should see 10 tables:
+        - users
+        - password_reset_tokens
+        - plans
+        - subscriptions
+        - telegram_links
+        - telegram_bot_links
+        - user_brand_configs
+        - kiwify_events
+        - usage_counters
+        - telemetry_events
+
+EXPECTED RESULT: Database tables created
+
+───────────────────────────────────────────────────────────────
+
+STEP 10: Test API Endpoints
+
+10.1 - Test health check:
+       curl https://[your-railway-domain]/health
+
+       Should return: {"status":"ok",...}
+
+10.2 - Test CORS (from browser console):
+       fetch('https://[your-railway-domain]/health')
+         .then(r => r.json())
+         .then(console.log)
+
+       Should work without CORS errors
+
+10.3 - Check logs for any startup errors:
+       - Go to "Logs" tab in Railway
+       - Look for:
+         "🚀 API server running on..."
+         "✅ Database connected..."
+       - No errors should be present
+
+EXPECTED RESULT: API responding correctly
+
+═══════════════════════════════════════════════════════════════
+STEP 11: Configure Custom Domain (Optional)
+═══════════════════════════════════════════════════════════════
+
+If you want to use your own domain (e.g., api.yourdomain.com):
+
+11.1 - Go to "Settings" tab of your API service
+
+11.2 - Find "Domains" section
+
+11.3 - Click "+ Custom Domain"
+
+11.4 - Enter your domain:
+       api.yourdomain.com
+
+11.5 - Railway will show DNS records to add:
+       - Type: CNAME
+       - Name: api
+       - Value: [railway-domain]
+
+11.6 - Go to your domain registrar (GoDaddy, Namecheap, etc.)
+
+11.7 - Add the CNAME record exactly as shown
+
+11.8 - Wait for DNS propagation (5 minutes to 48 hours)
+
+11.9 - Railway will automatically verify and issue SSL certificate
+
+11.10 - Once verified, your API will be accessible at:
+        https://api.yourdomain.com
+
+EXPECTED RESULT: Custom domain working with SSL
+
+═══════════════════════════════════════════════════════════════
+STEP 12: Update Webhook URLs
+═══════════════════════════════════════════════════════════════
+
+After deployment, update webhook URLs in external services:
+
+12.1 - Kiwify Webhook URL:
+       https://[your-railway-domain]/api/webhooks/kiwify
+
+       - Go to Kiwify → Configurações → Webhooks
+       - Update URL
+       - Test webhook
+
+12.2 - Telegram Bot Webhooks (if using webhooks instead of polling):
+       - Set webhook for Arts Bot:
+         https://api.telegram.org/bot[ARTS_BOT_TOKEN]/setWebhook?url=https://[your-railway-domain]/api/webhooks/telegram-arts
+
+       - Set webhook for Download Bot:
+         https://api.telegram.org/bot[DOWNLOAD_BOT_TOKEN]/setWebhook?url=https://[your-railway-domain]/api/webhooks/telegram-download
+
+EXPECTED RESULT: Webhooks updated and working
+
+═══════════════════════════════════════════════════════════════
+VALIDATION CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+Before considering deployment complete, verify:
+
+✓ Code pushed to GitHub
+✓ Railway project created
+✓ API service deployed successfully
+✓ PostgreSQL database connected
+✓ All environment variables configured
+✓ DATABASE_URL linked to PostgreSQL
+✓ Build completes without errors
+✓ Deployment successful
+✓ Public URL accessible
+✓ /health endpoint returns OK
+✓ Database migrations ran successfully
+✓ 10 tables exist in database
+✓ No errors in Railway logs
+✓ CORS working (tested from browser)
+✓ Webhooks updated in Kiwify
+✓ Telegram bots can connect
+
+═══════════════════════════════════════════════════════════════
+MONITORING AND MAINTENANCE
+═══════════════════════════════════════════════════════════════
+
+After deployment, monitor your API:
+
+Daily:
+- Check Railway logs for errors
+- Monitor API response times
+- Check database connection status
+
+Weekly:
+- Review error rates
+- Check disk usage
+- Monitor bandwidth usage
+- Review webhook delivery success rates
+
+Monthly:
+- Review Railway usage and costs
+- Update dependencies (npm update)
+- Rotate secrets if needed
+- Check for security updates
+
+Set up alerts:
+- Railway can notify you of deployment failures
+- Set up email alerts for critical errors
+- Monitor database connection issues
+
+═══════════════════════════════════════════════════════════════
+UPDATING YOUR API (CONTINUOUS DEPLOYMENT)
+═══════════════════════════════════════════════════════════════
+
+When you make changes:
+
+1. Make changes in your local code
+
+2. Test locally:
+   cd apps/api
+   npm run dev
+
+3. Commit changes:
+   git add .
+   git commit -m "Description of changes"
+
+4. Push to GitHub:
+   git push origin main
+
+5. Railway automatically detects push and deploys:
+   - Builds new version
+   - Runs tests (if configured)
+   - Deploys if successful
+   - Rolls back if failed
+
+6. Monitor deployment:
+   - Check Railway dashboard
+   - Watch build logs
+   - Verify deployment success
+   - Test changes in production
+
+═══════════════════════════════════════════════════════════════
+REFERENCE
+═══════════════════════════════════════════════════════════════
+
+Your API URLs:
+- Railway Domain: https://[your-app].up.railway.app
+- Custom Domain: https://api.yourdomain.com (if configured)
+- Health Check: https://[domain]/health
+- Kiwify Webhook: https://[domain]/api/webhooks/kiwify
+
+Railway Resources:
+- Dashboard: https://railway.app/dashboard
+- Docs: https://docs.railway.app
+- Status: https://railway.app/status
+- Support: help@railway.app
+
+Common Commands:
+- View logs: railway logs
+- Run command in production: railway run [command]
+- SSH into container: railway shell
+- Link project: railway link
+
+Environment Variables:
+- NODE_ENV=production
+- PORT=4000
+- DATABASE_URL=[linked from PostgreSQL]
+- JWT_SECRET=[your secret]
+- All SMTP variables
+- All Telegram bot tokens
+- KIWIFY_WEBHOOK_SECRET
+
+Build Configuration:
+- Root Directory: apps/api
+- Build Command: npm install && npm run build
+- Start Command: npm start
+- Node Version: 20.x (auto-detected)
+
+═══════════════════════════════════════════════════════════════
+TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════
+
+Issue: Build fails with "Cannot find module"
+Solution:
+  - Check package.json has all dependencies
+  - Run npm install locally and commit package-lock.json
+  - Verify import paths are correct
+
+Issue: Database connection fails
+Solution:
+  - Verify DATABASE_URL is linked to PostgreSQL
+  - Check PostgreSQL is in the same Railway project
+  - Test connection locally with production DATABASE_URL
+
+Issue: Environment variable not working
+Solution:
+  - Check variable name spelling (case-sensitive)
+  - Verify variable is in Railway Variables tab
+  - Redeploy after adding/changing variables
+
+Issue: API returns 502 Bad Gateway
+Solution:
+  - Check logs for startup errors
+  - Verify PORT is set correctly (Railway uses $PORT)
+  - Ensure server is listening on 0.0.0.0, not localhost
+
+Issue: CORS errors from frontend
+Solution:
+  - Verify CORS is configured in server.ts
+  - Check APP_BASE_URL in environment variables
+  - Ensure origin is set correctly in cors config
+
+Issue: Migrations didn't run
+Solution:
+  - Manually run: railway run npm run migrate
+  - Or execute SQL directly in Railway PostgreSQL Data tab
+  - Check migration logs for errors
+
+Issue: Webhook not receiving events
+Solution:
+  - Verify webhook URL is correct and accessible
+  - Check HTTPS (not HTTP)
+  - Test with curl or Postman
+  - Review webhook logs in external service
+
+Issue: High response times
+Solution:
+  - Check database query performance
+  - Add database indexes if needed
+  - Upgrade Railway plan for more resources
+  - Implement caching (Redis)
+
+Issue: Out of memory
+Solution:
+  - Check for memory leaks in code
+  - Upgrade Railway plan
+  - Optimize database queries
+  - Implement pagination
+
+═══════════════════════════════════════════════════════════════
+SECURITY BEST PRACTICES
+═══════════════════════════════════════════════════════════════
+
+1. Never commit .env files
+   - Always in .gitignore
+   - Use Railway Variables instead
+
+2. Rotate secrets regularly
+   - JWT_SECRET every 6-12 months
+   - Webhook secrets after any breach
+   - API keys quarterly
+
+3. Use HTTPS only
+   - Railway provides SSL automatically
+   - Never disable SSL
+
+4. Implement rate limiting
+   - Prevent abuse
+   - Protect against DDoS
+
+5. Monitor access logs
+   - Watch for suspicious activity
+   - Set up alerts for anomalies
+
+6. Keep dependencies updated
+   - Run npm audit regularly
+   - Update packages with security fixes
+
+7. Use least privilege
+   - Database users should have minimal permissions
+   - API keys should have minimal scopes
+
+═══════════════════════════════════════════════════════════════
+COST OPTIMIZATION
+═══════════════════════════════════════════════════════════════
+
+Railway Free Tier:
+- $5 free credit per month
+- Enough for small projects
+- No credit card required
+
+To optimize costs:
+
+1. Start with free tier
+   - Monitor usage in Railway dashboard
+   - Upgrade when needed
+
+2. Optimize resource usage
+   - Efficient database queries
+   - Implement caching
+   - Use connection pooling
+
+3. Monitor bandwidth
+   - Compress responses
+   - Use CDN for static assets
+   - Implement pagination
+
+4. Scale gradually
+   - Start small
+   - Scale as users grow
+   - Use metrics to guide scaling
+
+5. Consider upgrading when:
+   - Free credit runs out mid-month
+   - Need more compute resources
+   - Need faster deployment times
+   - Need priority support
+
+═══════════════════════════════════════════════════════════════
+END OF MANUAL
+═══════════════════════════════════════════════════════════════
