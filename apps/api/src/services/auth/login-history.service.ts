@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import type { LoginHistory } from '@prisma/client';
 import { UAParser } from 'ua-parser-js';
 
 export interface LoginHistoryEntry {
@@ -69,7 +70,7 @@ export class LoginHistoryService {
       take: limit,
     });
 
-    return history.map(entry => ({
+    return history.map((entry: LoginHistory) => ({
       id: entry.id,
       userId: entry.userId,
       email: entry.email,
