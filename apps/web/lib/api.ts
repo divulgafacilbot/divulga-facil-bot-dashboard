@@ -1,7 +1,16 @@
 import type { User, ApiError, LoginHistoryResponse, LoginStats } from '@/types';
 import { HttpMethod, ApiEndpoint, ApiErrorCode } from './common-enums';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = configuredBaseUrl
+  ? configuredBaseUrl.startsWith('/')
+    ? configuredBaseUrl
+    : typeof window === 'undefined'
+      ? configuredBaseUrl
+      : '/api'
+  : typeof window === 'undefined'
+    ? 'http://localhost:4000'
+    : '/api';
 
 let isRefreshing = false;
 
