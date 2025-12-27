@@ -14,7 +14,18 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: process.env.APP_BASE_URL || 'http://localhost:3000',
+    origin: (() => {
+      const allowed = (process.env.APP_BASE_URLS || process.env.APP_BASE_URL || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (allowed.length > 0) {
+        return allowed;
+      }
+
+      return 'http://localhost:3000';
+    })(),
     credentials: true,
   })
 );
