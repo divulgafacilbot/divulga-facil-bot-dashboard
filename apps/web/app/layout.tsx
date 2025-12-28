@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body
-        className={`${inter.variable} antialiased min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)] flex justify-center`}
+        className={`${inter.variable} antialiased min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)] flex flex-col justify-center`}
       >
         <div className="w-full">{children}</div>
       </body>
