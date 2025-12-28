@@ -5,30 +5,39 @@ import { RefreshTokenService } from '../services/auth/refresh-token.service.js';
 import { LoginHistoryService } from '../services/auth/login-history.service.js';
 import { changePasswordSchema } from '../utils/validation.js';
 import { jwtConfig } from '../config/jwt.js';
+import { getUserById } from '../services/user/userService';
 
 export class UserController {
+  /**
+   * GET /me - Get current user data
+   *
+   * Returns the authenticated user's data with placeholders for future features.
+   *
+   * Security:
+   * - Uses userId from req.user (set by auth middleware)
+   * - NEVER accepts userId from client input
+   */
   static async getMe(req: Request, res: Response) {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.user!.userId },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          isActive: true,
-          emailVerified: true,
-          createdAt: true,
-        },
-      });
+      // CRITICAL: Get userId from session only
+      const userId = req.user?.id;
 
-      if (!user) {
-        return res.status(404).json({ error: 'Usuário não encontrado' });
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
       }
 
-      res.json(user);
+      // Fetch user data using service layer
+      const userData = await getUserById(userId);
+
+      if (!userData) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Return user DTO (includes subscription and telegram placeholders)
+      res.status(200).json(userData);
     } catch (error) {
       console.error('Get me error:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -37,7 +46,7 @@ export class UserController {
       const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
 
       const user = await prisma.user.findUnique({
-        where: { id: req.user!.userId },
+        where: { id: req.user!.id },
         select: { id: true, passwordHash: true },
       });
 
@@ -70,7 +79,7 @@ export class UserController {
   static async deleteAccount(req: Request, res: Response) {
     try {
       const user = await prisma.user.findUnique({
-        where: { id: req.user!.userId },
+        where: { id: req.user!.id },
         select: { id: true },
       });
 
@@ -91,7 +100,7 @@ export class UserController {
 
   static async revokeAllSessions(req: Request, res: Response) {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
 
       // Revoke all refresh tokens for this user
       await RefreshTokenService.revokeAllUserTokens(userId);
@@ -120,7 +129,7 @@ export class UserController {
 
   static async getLoginHistory(req: Request, res: Response) {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const limit = parseInt(req.query.limit as string) || 20;
 
       const history = await LoginHistoryService.getUserLoginHistory(userId, limit);
@@ -134,7 +143,7 @@ export class UserController {
 
   static async getLoginStats(req: Request, res: Response) {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
 
       const stats = await LoginHistoryService.getLoginStats(userId);
 

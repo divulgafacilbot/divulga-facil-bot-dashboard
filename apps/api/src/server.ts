@@ -36,8 +36,8 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/auth', authRoutes);
-app.use('/', userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api', userRoutes);
 
 // Error handling
 app.use(errorMiddleware);

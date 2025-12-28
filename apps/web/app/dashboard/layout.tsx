@@ -115,7 +115,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary text-base font-bold text-white shadow-[var(--shadow-primary)]">
               <Image
-                src="/logo.png"
+                src="/logo-v2.png"
                 alt="Posting Bot"
                 width={50}
                 height={50}

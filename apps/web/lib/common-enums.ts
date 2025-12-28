@@ -85,21 +85,21 @@ export enum DashboardRoute {
  */
 export enum ApiEndpoint {
   // Auth endpoints
-  AUTH_REGISTER = '/auth/register',
-  AUTH_LOGIN = '/auth/login',
-  AUTH_LOGOUT = '/auth/logout',
-  AUTH_FORGOT_PASSWORD = '/auth/forgot-password',
-  AUTH_RESET_PASSWORD = '/auth/reset-password',
-  AUTH_VERIFY_EMAIL = '/auth/verify-email',
-  AUTH_RESEND_VERIFICATION = '/auth/resend-verification',
-  AUTH_REFRESH = '/auth/refresh',
+  AUTH_REGISTER = '/api/auth/register',
+  AUTH_LOGIN = '/api/auth/login',
+  AUTH_LOGOUT = '/api/auth/logout',
+  AUTH_FORGOT_PASSWORD = '/api/auth/forgot-password',
+  AUTH_RESET_PASSWORD = '/api/auth/reset-password',
+  AUTH_VERIFY_EMAIL = '/api/auth/verify-email',
+  AUTH_RESEND_VERIFICATION = '/api/auth/resend-verification',
+  AUTH_REFRESH = '/api/auth/refresh',
 
   // User endpoints
-  USER_ME = '/me',
-  USER_CHANGE_PASSWORD = '/me/change-password',
-  USER_REVOKE_SESSIONS = '/me/revoke-sessions',
-  USER_LOGIN_HISTORY = '/me/login-history',
-  USER_LOGIN_STATS = '/me/login-stats',
+  USER_ME = '/api/me',
+  USER_CHANGE_PASSWORD = '/api/me/change-password',
+  USER_REVOKE_SESSIONS = '/api/me/revoke-sessions',
+  USER_LOGIN_HISTORY = '/api/me/login-history',
+  USER_LOGIN_STATS = '/api/me/login-stats',
 }
 
 /**

@@ -2,15 +2,13 @@ import type { User, ApiError, LoginHistoryResponse, LoginStats } from '@/types';
 import { HttpMethod, ApiEndpoint, ApiErrorCode } from './common-enums';
 
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-const API_BASE_URL = configuredBaseUrl
-  ? configuredBaseUrl.startsWith('/')
-    ? configuredBaseUrl
-    : typeof window === 'undefined'
-      ? configuredBaseUrl
-      : '/api'
-  : typeof window === 'undefined'
-    ? 'http://localhost:4000'
-    : '/api';
+const API_BASE_URL = configuredBaseUrl || 'http://localhost:4000';
+
+console.log('🔧 API Configuration:', {
+  configuredBaseUrl,
+  API_BASE_URL,
+  isClient: typeof window !== 'undefined',
+});
 
 let isRefreshing = false;
 
@@ -25,13 +23,28 @@ class ApiErrorWithCode extends Error {
 }
 
 async function fetchAPI<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  console.log('📡 API Request:', {
+    endpoint,
+    fullUrl,
+    method: options.method || 'GET',
+    hasBody: !!options.body,
+  });
+
+  const res = await fetch(fullUrl, {
     ...options,
     credentials: 'include', // Important for cookies
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+  console.log('📥 API Response:', {
+    endpoint,
+    status: res.status,
+    statusText: res.statusText,
+    ok: res.ok,
   });
 
   // Try to parse JSON response
