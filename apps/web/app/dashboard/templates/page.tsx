@@ -1,4 +1,22 @@
+"use client";
+
+import Image from "next/image";
+import { useState } from "react";
+
+const TEMPLATE_COLORS = [
+  "gray",
+  "black",
+  "blue",
+  "green",
+  "orange",
+  "pink",
+  "red",
+  "yellow",
+] as const;
+
 export default function TemplatesPage() {
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("gray");
+
   return (
     <>
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-[var(--shadow-sm)]">
@@ -17,21 +35,42 @@ export default function TemplatesPage() {
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
           <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
-            Template ativo
+            Definir background
           </h2>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Escolha o layout que define posição de imagem, preço, título e
             cupom.
           </p>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {["Template A", "Template B", "Template C"].map((label) => (
-              <button
-                key={label}
-                className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] px-4 py-6 text-center text-sm font-semibold text-[var(--color-text-main)] transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-                type="button"
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            {TEMPLATE_COLORS.map((color) => (
+              <div
+                key={color}
+                className="relative mx-auto w-full max-w-[100px]"
+                style={{ paddingBottom: "100%" }}
               >
-                {label}
-              </button>
+                <button
+                  onClick={() => setSelectedTemplate(color)}
+                  style={{
+                    borderWidth: selectedTemplate === color ? "4px" : "2px",
+                    borderColor:
+                      selectedTemplate === color
+                        ? "var(--color-primary)"
+                        : "var(--color-border)",
+                    borderStyle: "solid",
+                  }}
+                  className="absolute inset-0 h-full w-full overflow-hidden rounded-xl shadow-[var(--shadow-sm)] transition-all duration-200 hover:shadow-[var(--shadow-md)] max-w-[100px]"
+                  type="button"
+                  aria-label={`Selecionar template ${color}`}
+                >
+                  <Image
+                    src={`/templates/${color}-template-feed.png`}
+                    alt={`Template ${color}`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 100px) 50vw, (max-width: 100px) 33vw, 25vw"
+                  />
+                </button>
+              </div>
             ))}
           </div>
         </div>
