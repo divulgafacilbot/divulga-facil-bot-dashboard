@@ -3,6 +3,7 @@
 import { Button } from "@/components/forms/Button";
 import { api } from "@/lib/api";
 import { BOT_NAME } from "@/lib/constants";
+import type { User } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -15,9 +16,10 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     async function loadUser() {
@@ -110,8 +112,18 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)]">
-      <header className="border-b border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)]">
-        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-8 py-5">
+      <header
+        className="border-b border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)]"
+        style={{
+          height: '100px',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 40
+        }}
+      >
+        <div className="mx-auto flex h-full w-full items-center justify-between p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary text-base font-bold text-white shadow-[var(--shadow-primary)]">
               <Image
@@ -123,10 +135,10 @@ export default function DashboardLayout({
               />
             </div>
             <div className="leading-tight">
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--color-primary)]">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--color-primary)]" style={{ margin: 0 }}>
                 {BOT_NAME}
               </p>
-              <p className="text-xl font-bold">Seu painel</p>
+              <p className="text-xl font-bold" style={{ margin: 0 }}>Seu painel</p>
             </div>
           </div>
           <Button onClick={handleLogout} variant="ghost">
@@ -148,49 +160,95 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1200px] px-8 py-10">
-        <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-          <aside className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-md)] transition-all hover:shadow-[var(--shadow-lg)]">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">
-              Navegação
-            </p>
-            <nav className="mt-5 flex flex-col gap-2 text-sm">
-              {navItems.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href));
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-left font-semibold transition-all duration-200 ${
-                      isActive
-                        ? "bg-white text-[var(--color-primary)] shadow-[var(--shadow-sm)] border-2 border-[var(--color-primary)]"
-                        : "text-[var(--color-text-secondary)] hover:bg-[color:rgba(245,61,45,0.05)] hover:text-[var(--color-primary)]"
-                    }`}
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d={item.icon}
-                      />
-                    </svg>
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </nav>
-          </aside>
+      {/* Sidebar */}
+      <aside
+        style={{
+          width: sidebarCollapsed ? '50px' : '260px',
+          position: 'fixed',
+          left: 0,
+          top: '100px',
+          bottom: 0,
+          transition: 'width 300ms ease-in-out',
+        }}
+        className="border-r border-[var(--color-border)] bg-white shadow-[var(--shadow-md)] z-30 relative"
+      >
+        <nav className={`flex flex-col gap-2 text-sm ${sidebarCollapsed ? 'p-2' : 'p-6'}`}>
+          {navItems.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                title={sidebarCollapsed ? item.name : undefined}
+                className={`group flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-4'
+                  } rounded-xl py-3 text-left font-semibold transition-all duration-200 ${isActive
+                    ? "bg-white text-[var(--color-primary)] shadow-[var(--shadow-sm)] border-2 border-[var(--color-primary)]"
+                    : "text-[var(--color-text-secondary)] hover:bg-[color:rgba(245,61,45,0.05)] hover:text-[var(--color-primary)]"
+                  }`}
+              >
+                <svg
+                  className="h-5 w-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d={item.icon}
+                  />
+                </svg>
+                {!sidebarCollapsed && <span>{item.name}</span>}
+              </Link>
+            );
+          })}
+        </nav>
 
-          <section className="flex flex-col gap-8">{children}</section>
+        {/* Toggle Button */}
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          style={{
+            position: 'fixed',
+            left: sidebarCollapsed ? '34px' : '244px',
+            top: '124px',
+            zIndex: 50,
+            transition: 'left 300ms ease-in-out',
+          }}
+          className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--color-border)] bg-white text-[var(--color-text-secondary)] shadow-[var(--shadow-md)] transition-all duration-200 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:shadow-[var(--shadow-lg)]"
+          aria-label={sidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={sidebarCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
+            />
+          </svg>
+        </button>
+      </aside>
+
+      {/* Main Content */}
+      <main
+        style={{
+          marginLeft: sidebarCollapsed ? '50px' : '260px',
+          paddingTop: '100px',
+          transition: 'margin-left 300ms ease-in-out',
+        }}
+      >
+        <div className="px-8 py-10">
+          <section className="mx-auto w-full max-w-[1200px] flex flex-col gap-8">
+            {children}
+          </section>
         </div>
       </main>
     </div>
