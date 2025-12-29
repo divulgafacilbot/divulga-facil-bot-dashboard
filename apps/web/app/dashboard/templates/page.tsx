@@ -6,16 +6,14 @@ import { useMemo, useRef, useState } from "react";
 import { mockProduct } from "@/lib/mock-data";
 
 const TEMPLATES = [
-  "black",
   "blue",
   "degrade",
-  "gray",
   "green",
   "love",
   "orange",
   "pink",
+  "pink2",
   "promo",
-  "red",
   "yellow",
 ] as const;
 
@@ -296,11 +294,6 @@ export default function TemplatesPage() {
                     Informações do card
                   </p>
                   <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
-                    <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                      <span className="font-semibold text-[var(--color-text-main)]">
-                        Imagem (obrigatória)
-                      </span>
-                    </div>
                     <div className="flex w-full items-center gap-2">
                       <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
                         <span>Título</span>
@@ -614,29 +607,35 @@ export default function TemplatesPage() {
                           {mockProduct.title}
                         </p>
                       )}
-                      {cardDetails.description && <p>{mockProduct.description}</p>}
+                      {cardDetails.description && (
+                        <p style={{ color: feedColors.description }}>
+                          {mockProduct.description}
+                        </p>
+                      )}
                       {cardDetails.promotionalPrice && (
-                        <p>
-                          <span className="font-semibold text-[var(--color-text-main)]">
+                        <p style={{ color: feedColors.promotionalPrice }}>
+                          <span className="font-semibold">
                             Promoção:
                           </span>{" "}
                           {mockProduct.promotionalPrice}
                         </p>
                       )}
                       {cardDetails.fullPrice && (
-                        <p>
-                          <span className="font-semibold text-[var(--color-text-main)]">
+                        <p style={{ color: feedColors.fullPrice }}>
+                          <span className="font-semibold">
                             Preço cheio:
                           </span>{" "}
                           {mockProduct.fullPrice}
                         </p>
                       )}
                       {cardDetails.affiliateLink && (
-                        <p className="break-all">{mockProduct.affiliateLink}</p>
+                        <p className="break-all" style={{ color: feedColors.affiliateLink }}>
+                          {mockProduct.affiliateLink}
+                        </p>
                       )}
                       {cardDetails.coupon && (
-                        <p>
-                          <span className="font-semibold text-[var(--color-text-main)]">
+                        <p style={{ color: feedColors.coupon }}>
+                          <span className="font-semibold">
                             Cupom:
                           </span>{" "}
                           {mockProduct.coupon}
@@ -657,11 +656,6 @@ export default function TemplatesPage() {
                     Informações do story
                   </p>
                   <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
-                    <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                      <span className="font-semibold text-[var(--color-text-main)]">
-                        Imagem (obrigatória)
-                      </span>
-                    </div>
                     <div className="flex w-full items-center gap-2">
                       <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
                         <span>Título</span>
@@ -909,39 +903,49 @@ export default function TemplatesPage() {
                         className="object-contain"
                         sizes="225px"
                       />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                        <div className="relative mb-4 h-[150px] w-[150px]">
-                          <Image
-                            src={productImageSrc}
-                            alt={mockProduct.title}
-                            fill
-                            className="object-contain"
-                            sizes="150px"
-                          />
+                      <div className="absolute inset-0 flex flex-col">
+                        {/* 1/6 superior vazio */}
+                        <div style={{ height: 'calc(100% / 6)' }} />
+
+                        {/* 4/6 central com conteúdo principal */}
+                        <div className="flex flex-col items-center justify-center text-center" style={{ height: 'calc(100% * 4 / 6)', paddingLeft: '10%', paddingRight: '10%' }}>
+                          <div className="relative mb-2 h-[100px] w-[100px] flex-shrink-0">
+                            <Image
+                              src={productImageSrc}
+                              alt={mockProduct.title}
+                              fill
+                              className="object-contain"
+                              sizes="100px"
+                            />
+                          </div>
+                          <div className="space-y-1 flex-shrink min-h-0">
+                            {storyDetails.title && (
+                              <p className="text-sm font-bold leading-tight" style={{ color: storyColors.title }}>
+                                {mockProduct.title}
+                              </p>
+                            )}
+                            {storyDetails.promotionalPrice && (
+                              <p className="text-base font-bold" style={{ color: storyColors.promotionalPrice }}>
+                                {mockProduct.promotionalPrice}
+                              </p>
+                            )}
+                            {storyDetails.fullPrice && (
+                              <p className="text-xs line-through opacity-80" style={{ color: storyColors.fullPrice }}>
+                                {mockProduct.fullPrice}
+                              </p>
+                            )}
+                            {storyDetails.coupon && (
+                              <p className="rounded-lg bg-black/10 px-2 py-0.5 text-xs font-semibold" style={{ color: storyColors.coupon }}>
+                                {mockProduct.coupon}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-2 text-black">
-                          {storyDetails.title && (
-                            <p className="text-lg font-bold leading-tight">
-                              {mockProduct.title}
-                            </p>
-                          )}
-                          {storyDetails.promotionalPrice && (
-                            <p className="text-xl font-bold">
-                              {mockProduct.promotionalPrice}
-                            </p>
-                          )}
-                          {storyDetails.fullPrice && (
-                            <p className="text-sm line-through opacity-80">
-                              {mockProduct.fullPrice}
-                            </p>
-                          )}
-                          {storyDetails.coupon && (
-                            <p className="rounded-lg bg-black/10 px-3 py-1 text-sm font-semibold">
-                              {mockProduct.coupon}
-                            </p>
-                          )}
+
+                        {/* 1/6 inferior com link de afiliado */}
+                        <div className="flex items-center justify-center text-center px-3" style={{ height: 'calc(100% / 6)', marginTop: '-20px', marginLeft: '25px' }}>
                           {storyDetails.affiliateLink && (
-                            <p className="break-all text-xs">
+                            <p className="break-all text-[10px] leading-tight" style={{ color: storyColors.affiliateLink }}>
                               {mockProduct.affiliateLink}
                             </p>
                           )}
