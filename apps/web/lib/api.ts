@@ -152,21 +152,39 @@ export const api = {
       }),
 
     login: async (email: string, password: string, rememberMe: boolean = false): Promise<{ user: User }> => {
+      console.log('🔍 LOGIN DEBUG:', {
+        isProduction,
+        nodeEnv: process.env.NODE_ENV,
+        hasWindow: typeof window !== 'undefined'
+      });
+
       // PRODUCTION MODE: Only allow mock login
       if (isProduction) {
         const trimmedEmail = email.trim().toLowerCase();
         const trimmedPassword = password.trim();
 
         console.log('🏭 Production mode: Validating credentials...');
+        console.log('🏭 Email matches:', trimmedEmail === MOCK_CREDENTIALS.email.toLowerCase());
+        console.log('🏭 Password matches:', trimmedPassword === MOCK_CREDENTIALS.password);
 
         if (trimmedEmail === MOCK_CREDENTIALS.email.toLowerCase() && trimmedPassword === MOCK_CREDENTIALS.password) {
-          console.log('✅ Production mode: Login successful!');
+          console.log('✅ Production mode: Credentials valid!');
+
           if (typeof window !== 'undefined') {
+            console.log('✅ Setting prodAuth in sessionStorage...');
             sessionStorage.setItem('prodAuth', 'true');
+            const verify = sessionStorage.getItem('prodAuth');
+            console.log('✅ Verified prodAuth:', verify);
+          } else {
+            console.error('❌ Window is undefined!');
           }
+
+          console.log('✅ Returning mock user:', MOCK_USER.email);
           return { user: MOCK_USER };
         } else {
           console.log('❌ Production mode: Invalid credentials');
+          console.log('❌ Expected:', MOCK_CREDENTIALS.email, '/', MOCK_CREDENTIALS.password);
+          console.log('❌ Received:', trimmedEmail, '/', trimmedPassword);
           throw new ApiErrorWithCode(
             'Credenciais inválidas. Use: teste@divulgafacil.com.br / Divulga123',
             ApiErrorCode.INVALID_CREDENTIALS
@@ -230,22 +248,33 @@ export const api = {
 
   user: {
     getMe: async (): Promise<User> => {
+      console.log('🔍 GET_ME DEBUG:', {
+        isProduction,
+        nodeEnv: process.env.NODE_ENV,
+        hasWindow: typeof window !== 'undefined'
+      });
+
       // PRODUCTION MODE: Check session and return mock user
       if (isProduction) {
         console.log('🏭 Production mode: Checking session...');
-        if (typeof window !== 'undefined') {
-          const isAuthenticated = sessionStorage.getItem('prodAuth') === 'true';
-          console.log('🏭 Production mode: Authenticated:', isAuthenticated);
 
-          if (isAuthenticated) {
-            console.log('✅ Production mode: Returning mock user');
+        if (typeof window !== 'undefined') {
+          const prodAuth = sessionStorage.getItem('prodAuth');
+          console.log('🏭 SessionStorage prodAuth value:', prodAuth);
+          console.log('🏭 Is authenticated:', prodAuth === 'true');
+
+          if (prodAuth === 'true') {
+            console.log('✅ Production mode: Returning mock user:', MOCK_USER.email);
             return MOCK_USER;
           } else {
-            console.log('❌ Production mode: Not authenticated');
+            console.log('❌ Production mode: Not authenticated (prodAuth is not "true")');
+            console.log('❌ Throwing UNAUTHORIZED error');
             throw new ApiErrorWithCode('Não autenticado', ApiErrorCode.UNAUTHORIZED);
           }
+        } else {
+          console.error('❌ Window is undefined in getMe!');
+          throw new ApiErrorWithCode('Não autenticado', ApiErrorCode.UNAUTHORIZED);
         }
-        throw new ApiErrorWithCode('Não autenticado', ApiErrorCode.UNAUTHORIZED);
       }
 
       // DEVELOPMENT MODE: Use real API
