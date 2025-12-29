@@ -246,7 +246,7 @@ export default function DashboardLayout({
         }}
       >
         <div className="px-8 py-10">
-          <section className="mx-auto w-full max-w-[1200px] flex flex-col gap-8">
+          <section className="mx-auto w-full max-w-[1490px] flex flex-col gap-8">
             {children}
           </section>
         </div>
