@@ -4,9 +4,13 @@ import { HttpMethod, ApiEndpoint, ApiErrorCode, UserRole } from './common-enums'
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 const API_BASE_URL = configuredBaseUrl || 'http://localhost:4000';
 
+// Detect if we're in production mode (for mock login)
+const isProduction = process.env.NODE_ENV === 'production';
+
 console.log('🔧 API Configuration:', {
   configuredBaseUrl,
   API_BASE_URL,
+  isProduction,
   isClient: typeof window !== 'undefined',
 });
 
@@ -148,32 +152,30 @@ export const api = {
       }),
 
     login: async (email: string, password: string, rememberMe: boolean = false): Promise<{ user: User }> => {
-      // Check for mock credentials (trim to avoid whitespace issues)
-      const trimmedEmail = email.trim().toLowerCase();
-      const trimmedPassword = password.trim();
+      // PRODUCTION MODE: Only allow mock login
+      if (isProduction) {
+        const trimmedEmail = email.trim().toLowerCase();
+        const trimmedPassword = password.trim();
 
-      if (trimmedEmail === MOCK_CREDENTIALS.email.toLowerCase() && trimmedPassword === MOCK_CREDENTIALS.password) {
-        console.log('🎭 Mock login successful');
-        // Store mock session in both localStorage and sessionStorage for reliability
-        if (typeof window !== 'undefined') {
-          const mockUserStr = JSON.stringify(MOCK_USER);
-          localStorage.setItem('mockSession', 'true');
-          localStorage.setItem('mockUser', mockUserStr);
-          sessionStorage.setItem('mockSession', 'true');
-          sessionStorage.setItem('mockUser', mockUserStr);
+        console.log('🏭 Production mode: Validating credentials...');
 
-          // Verify storage
-          const stored = localStorage.getItem('mockSession');
-          console.log('🎭 Mock session stored:', {
-            localStorage: !!stored,
-            sessionStorage: !!sessionStorage.getItem('mockSession')
-          });
+        if (trimmedEmail === MOCK_CREDENTIALS.email.toLowerCase() && trimmedPassword === MOCK_CREDENTIALS.password) {
+          console.log('✅ Production mode: Login successful!');
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('prodAuth', 'true');
+          }
+          return { user: MOCK_USER };
+        } else {
+          console.log('❌ Production mode: Invalid credentials');
+          throw new ApiErrorWithCode(
+            'Credenciais inválidas. Use: teste@divulgafacil.com.br / Divulga123',
+            ApiErrorCode.INVALID_CREDENTIALS
+          );
         }
-        console.log('🎭 Mock user data:', MOCK_USER);
-        return { user: MOCK_USER };
       }
 
-      // Otherwise, proceed with normal API call
+      // DEVELOPMENT MODE: Use real API
+      console.log('🔧 Development mode: Calling API...');
       return fetchAPI<{ user: User }>(ApiEndpoint.AUTH_LOGIN, {
         method: HttpMethod.POST,
         body: JSON.stringify({ email, password, rememberMe }),
@@ -181,20 +183,16 @@ export const api = {
     },
 
     logout: async (): Promise<{ message: string }> => {
-      // Clear mock session if active
-      if (typeof window !== 'undefined') {
-        const isMockSession = localStorage.getItem('mockSession') || sessionStorage.getItem('mockSession');
-        if (isMockSession) {
-          console.log('🎭 Mock logout');
-          localStorage.removeItem('mockSession');
-          localStorage.removeItem('mockUser');
-          sessionStorage.removeItem('mockSession');
-          sessionStorage.removeItem('mockUser');
-          return { message: 'Logout realizado com sucesso' };
+      // PRODUCTION MODE: Clear session
+      if (isProduction) {
+        console.log('🏭 Production mode: Logout');
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('prodAuth');
         }
+        return { message: 'Logout realizado com sucesso' };
       }
 
-      // Otherwise, proceed with normal API call
+      // DEVELOPMENT MODE: Use real API
       return fetchAPI<{ message: string }>(ApiEndpoint.AUTH_LOGOUT, {
         method: HttpMethod.POST,
       });
@@ -232,49 +230,26 @@ export const api = {
 
   user: {
     getMe: async (): Promise<User> => {
-      console.log('🔍 getMe() called - checking for mock session...');
+      // PRODUCTION MODE: Check session and return mock user
+      if (isProduction) {
+        console.log('🏭 Production mode: Checking session...');
+        if (typeof window !== 'undefined') {
+          const isAuthenticated = sessionStorage.getItem('prodAuth') === 'true';
+          console.log('🏭 Production mode: Authenticated:', isAuthenticated);
 
-      // Check for mock session in both storages
-      if (typeof window !== 'undefined') {
-        console.log('🌐 Window is defined, checking localStorage...');
-
-        try {
-          const mockUserStrLocal = localStorage.getItem('mockUser');
-          const mockSessionLocal = localStorage.getItem('mockSession');
-          const mockUserStrSession = sessionStorage.getItem('mockUser');
-          const mockSessionSession = sessionStorage.getItem('mockSession');
-
-          console.log('📦 Storage check:', {
-            'localStorage.mockSession': mockSessionLocal,
-            'localStorage.mockUser': mockUserStrLocal ? 'EXISTS' : 'NULL',
-            'sessionStorage.mockSession': mockSessionSession,
-            'sessionStorage.mockUser': mockUserStrSession ? 'EXISTS' : 'NULL',
-          });
-
-          // Try localStorage first
-          if (mockUserStrLocal && mockSessionLocal === 'true') {
-            console.log('✅ Found mock session in localStorage');
-            const user = JSON.parse(mockUserStrLocal) as User;
-            console.log('✅ Mock user loaded:', user.email);
-            return user;
+          if (isAuthenticated) {
+            console.log('✅ Production mode: Returning mock user');
+            return MOCK_USER;
+          } else {
+            console.log('❌ Production mode: Not authenticated');
+            throw new ApiErrorWithCode('Não autenticado', ApiErrorCode.UNAUTHORIZED);
           }
-
-          // Fallback to sessionStorage
-          if (mockUserStrSession && mockSessionSession === 'true') {
-            console.log('✅ Found mock session in sessionStorage');
-            const user = JSON.parse(mockUserStrSession) as User;
-            console.log('✅ Mock user loaded:', user.email);
-            return user;
-          }
-
-          console.log('⚠️ No valid mock session found');
-        } catch (e) {
-          console.error('❌ Error reading mock session:', e);
         }
+        throw new ApiErrorWithCode('Não autenticado', ApiErrorCode.UNAUTHORIZED);
       }
 
-      // Otherwise, proceed with normal API call
-      console.log('📡 No mock session, calling real API...');
+      // DEVELOPMENT MODE: Use real API
+      console.log('🔧 Development mode: Calling API...');
       return fetchAPI<User>(ApiEndpoint.USER_ME);
     },
     changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>

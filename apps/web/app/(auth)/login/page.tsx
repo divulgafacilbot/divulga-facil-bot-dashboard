@@ -40,27 +40,17 @@ export default function LoginPage() {
       setError("");
       setLoading(true);
       setShowResendButton(false);
-      console.log('🔐 Login page: Attempting login...');
-      const result = await api.auth.login(data.email, data.password, data.rememberMe ?? false);
-      console.log('✅ Login page: Login successful!', result);
 
-      // Verify localStorage was set (for mock login)
-      if (typeof window !== 'undefined') {
-        const mockSession = localStorage.getItem('mockSession');
-        const mockUser = localStorage.getItem('mockUser');
-        console.log('📦 Login page: Storage verification:', {
-          mockSession,
-          mockUser: mockUser ? 'EXISTS' : 'NULL'
-        });
-      }
+      console.log('🔐 Login: Attempting login...');
+      await api.auth.login(data.email, data.password, data.rememberMe ?? false);
+      console.log('✅ Login: Success! Redirecting...');
 
       // Redirect to dashboard
-      console.log('🚀 Login page: Redirecting to dashboard...');
       window.location.href = DashboardRoute.HOME;
     } catch (err) {
-      console.error('❌ Login page: Login failed:', err);
-      // Check if error is related to email not verified
+      console.error('❌ Login: Failed:', err);
       const error = err as Error & { code?: string };
+
       if (error.message?.toLowerCase().includes('não verificado') || error.code === ApiErrorCode.EMAIL_NOT_VERIFIED) {
         setShowResendButton(true);
         setError('E-mail não verificado. Verifique sua caixa de entrada ou solicite um novo link.');
