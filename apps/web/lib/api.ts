@@ -154,17 +154,21 @@ export const api = {
 
       if (trimmedEmail === MOCK_CREDENTIALS.email.toLowerCase() && trimmedPassword === MOCK_CREDENTIALS.password) {
         console.log('🎭 Mock login successful');
-        // Store mock session in localStorage
+        // Store mock session in both localStorage and sessionStorage for reliability
         if (typeof window !== 'undefined') {
+          const mockUserStr = JSON.stringify(MOCK_USER);
           localStorage.setItem('mockSession', 'true');
-          localStorage.setItem('mockUser', JSON.stringify(MOCK_USER));
-          console.log('🎭 Mock session stored in localStorage:', {
-            mockSession: localStorage.getItem('mockSession'),
-            mockUser: localStorage.getItem('mockUser')
+          localStorage.setItem('mockUser', mockUserStr);
+          sessionStorage.setItem('mockSession', 'true');
+          sessionStorage.setItem('mockUser', mockUserStr);
+
+          // Verify storage
+          const stored = localStorage.getItem('mockSession');
+          console.log('🎭 Mock session stored:', {
+            localStorage: !!stored,
+            sessionStorage: !!sessionStorage.getItem('mockSession')
           });
         }
-        // Add delay to ensure localStorage is written
-        await new Promise(resolve => setTimeout(resolve, 300));
         console.log('🎭 Mock user data:', MOCK_USER);
         return { user: MOCK_USER };
       }
@@ -179,11 +183,13 @@ export const api = {
     logout: async (): Promise<{ message: string }> => {
       // Clear mock session if active
       if (typeof window !== 'undefined') {
-        const isMockSession = localStorage.getItem('mockSession');
+        const isMockSession = localStorage.getItem('mockSession') || sessionStorage.getItem('mockSession');
         if (isMockSession) {
           console.log('🎭 Mock logout');
           localStorage.removeItem('mockSession');
           localStorage.removeItem('mockUser');
+          sessionStorage.removeItem('mockSession');
+          sessionStorage.removeItem('mockUser');
           return { message: 'Logout realizado com sucesso' };
         }
       }
@@ -226,19 +232,30 @@ export const api = {
 
   user: {
     getMe: async (): Promise<User> => {
-      // Check for mock session
+      // Check for mock session in both storages
       if (typeof window !== 'undefined') {
-        const isMockSession = localStorage.getItem('mockSession');
-        const mockUserStr = localStorage.getItem('mockUser');
+        const isMockSessionLocal = localStorage.getItem('mockSession');
+        const mockUserStrLocal = localStorage.getItem('mockUser');
+        const isMockSessionSession = sessionStorage.getItem('mockSession');
+        const mockUserStrSession = sessionStorage.getItem('mockUser');
+
         console.log('🔍 Checking for mock session:', {
-          hasMockSession: !!isMockSession,
-          hasMockUser: !!mockUserStr,
-          mockSession: isMockSession,
+          localStorage: !!isMockSessionLocal,
+          sessionStorage: !!isMockSessionSession,
         });
-        if (isMockSession && mockUserStr) {
-          console.log('🎭 Mock user session active - returning mock user');
-          return JSON.parse(mockUserStr) as User;
+
+        // Try localStorage first
+        if (isMockSessionLocal && mockUserStrLocal) {
+          console.log('🎭 Mock session found in localStorage');
+          return JSON.parse(mockUserStrLocal) as User;
         }
+
+        // Fallback to sessionStorage
+        if (isMockSessionSession && mockUserStrSession) {
+          console.log('🎭 Mock session found in sessionStorage');
+          return JSON.parse(mockUserStrSession) as User;
+        }
+
         console.log('❌ No mock session found, calling API');
       }
 
