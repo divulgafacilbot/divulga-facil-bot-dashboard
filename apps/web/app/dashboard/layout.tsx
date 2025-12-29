@@ -16,6 +16,16 @@ const SidebarContext = createContext<{ sidebarCollapsed: boolean }>({
 
 export const useSidebar = () => useContext(SidebarContext);
 
+// MOCK USER - HARDCODED
+const MOCK_USER: User = {
+  id: 'mock-user-id',
+  email: 'teste@divulgafacil.com.br',
+  role: UserRole.USER,
+  emailVerified: true,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 export default function DashboardLayout({
   children,
 }: {
@@ -23,39 +33,12 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(MOCK_USER); // MOCK USER DIRECTLY
+  const [loading, setLoading] = useState(false); // NO LOADING
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  useEffect(() => {
-    // ALWAYS set mock user directly (mock mode forced)
-    console.log('🏭 MOCK MODE: Setting mock user');
-    const mockUser: User = {
-      id: 'mock-user-id',
-      email: 'teste@divulgafacil.com.br',
-      role: UserRole.USER,
-      emailVerified: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setUser(mockUser);
-    setLoading(false);
-
-    // DEVELOPMENT MODE DISABLED
-    // async function loadUser() {
-    //   try {
-    //     const userData = await api.user.getMe();
-    //     setUser(userData);
-    //   } catch (error) {
-    //     setLoadError(error as Error);
-    //     router.push("/login");
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // }
-    // loadUser();
-  }, [router]);
+  // NO useEffect - user is already set above
 
   const handleLogout = async () => {
     await api.auth.logout();
