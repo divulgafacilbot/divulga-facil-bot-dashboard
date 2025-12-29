@@ -40,8 +40,11 @@ export default function LoginPage() {
       setError("");
       setLoading(true);
       setShowResendButton(false);
-      await api.auth.login(data.email, data.password, data.rememberMe ?? false);
+      console.log('🔐 Attempting login...');
+      const result = await api.auth.login(data.email, data.password, data.rememberMe ?? false);
+      console.log('✅ Login successful, redirecting...', result);
       router.push(DashboardRoute.HOME);
+      console.log('✅ Router.push called');
     } catch (err) {
       // Check if error is related to email not verified
       const error = err as Error & { code?: string };
