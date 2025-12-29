@@ -148,14 +148,20 @@ export const api = {
       }),
 
     login: async (email: string, password: string, rememberMe: boolean = false): Promise<{ user: User }> => {
-      // Check for mock credentials
-      if (email === MOCK_CREDENTIALS.email && password === MOCK_CREDENTIALS.password) {
+      // Check for mock credentials (trim to avoid whitespace issues)
+      const trimmedEmail = email.trim().toLowerCase();
+      const trimmedPassword = password.trim();
+
+      if (trimmedEmail === MOCK_CREDENTIALS.email.toLowerCase() && trimmedPassword === MOCK_CREDENTIALS.password) {
         console.log('🎭 Mock login successful');
         // Store mock session in localStorage
         if (typeof window !== 'undefined') {
           localStorage.setItem('mockSession', 'true');
           localStorage.setItem('mockUser', JSON.stringify(MOCK_USER));
         }
+        // Add small delay to ensure localStorage is written
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('🎭 Mock user data:', MOCK_USER);
         return { user: MOCK_USER };
       }
 
