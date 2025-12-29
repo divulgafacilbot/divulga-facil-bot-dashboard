@@ -158,9 +158,13 @@ export const api = {
         if (typeof window !== 'undefined') {
           localStorage.setItem('mockSession', 'true');
           localStorage.setItem('mockUser', JSON.stringify(MOCK_USER));
+          console.log('🎭 Mock session stored in localStorage:', {
+            mockSession: localStorage.getItem('mockSession'),
+            mockUser: localStorage.getItem('mockUser')
+          });
         }
-        // Add small delay to ensure localStorage is written
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Add delay to ensure localStorage is written
+        await new Promise(resolve => setTimeout(resolve, 300));
         console.log('🎭 Mock user data:', MOCK_USER);
         return { user: MOCK_USER };
       }
@@ -226,10 +230,16 @@ export const api = {
       if (typeof window !== 'undefined') {
         const isMockSession = localStorage.getItem('mockSession');
         const mockUserStr = localStorage.getItem('mockUser');
+        console.log('🔍 Checking for mock session:', {
+          hasMockSession: !!isMockSession,
+          hasMockUser: !!mockUserStr,
+          mockSession: isMockSession,
+        });
         if (isMockSession && mockUserStr) {
-          console.log('🎭 Mock user session active');
+          console.log('🎭 Mock user session active - returning mock user');
           return JSON.parse(mockUserStr) as User;
         }
+        console.log('❌ No mock session found, calling API');
       }
 
       // Otherwise, proceed with normal API call
