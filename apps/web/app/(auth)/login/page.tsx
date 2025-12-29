@@ -36,36 +36,16 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginForm) => {
-    console.log('🔐 LOGIN PAGE: Form submitted');
-    console.log('🔐 Data:', { email: data.email, hasPassword: !!data.password });
-
     try {
       setError("");
       setLoading(true);
       setShowResendButton(false);
 
-      console.log('🔐 LOGIN PAGE: Calling api.auth.login...');
-      const result = await api.auth.login(data.email, data.password, data.rememberMe ?? false);
-      console.log('✅ LOGIN PAGE: Login returned successfully!');
-      console.log('✅ LOGIN PAGE: Result:', result);
-
-      // Check sessionStorage
-      if (typeof window !== 'undefined') {
-        const prodAuth = sessionStorage.getItem('prodAuth');
-        console.log('✅ LOGIN PAGE: prodAuth in sessionStorage:', prodAuth);
-      }
+      await api.auth.login(data.email, data.password, data.rememberMe ?? false);
 
       // Redirect to dashboard
-      console.log('🚀 LOGIN PAGE: Starting redirect to:', DashboardRoute.HOME);
-      console.log('🚀 LOGIN PAGE: Current location:', window.location.href);
-
-      setTimeout(() => {
-        console.log('🚀 LOGIN PAGE: Executing redirect NOW');
-        window.location.href = DashboardRoute.HOME;
-      }, 100);
-
+      window.location.href = DashboardRoute.HOME;
     } catch (err) {
-      console.error('❌ LOGIN PAGE: Error caught:', err);
       const error = err as Error & { code?: string };
 
       if (error.message?.toLowerCase().includes('não verificado') || error.code === ApiErrorCode.EMAIL_NOT_VERIFIED) {
