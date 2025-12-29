@@ -124,6 +124,19 @@ async function fetchAPI<T = unknown>(endpoint: string, options: RequestInit = {}
   return data as T;
 }
 
+// Mock credentials for demo access
+const MOCK_CREDENTIALS = {
+  email: 'teste@divulgafacil.com.br',
+  password: 'Divulga123',
+};
+
+const MOCK_USER: User = {
+  id: 'mock-user-id',
+  email: 'teste@divulgafacil.com.br',
+  emailVerified: true,
+  createdAt: new Date().toISOString(),
+};
+
 export const api = {
   auth: {
     register: (email: string, password: string) =>
@@ -132,16 +145,42 @@ export const api = {
         body: JSON.stringify({ email, password }),
       }),
 
-    login: (email: string, password: string, rememberMe: boolean = false) =>
-      fetchAPI<{ user: User }>(ApiEndpoint.AUTH_LOGIN, {
+    login: async (email: string, password: string, rememberMe: boolean = false) => {
+      // Check for mock credentials
+      if (email === MOCK_CREDENTIALS.email && password === MOCK_CREDENTIALS.password) {
+        console.log('🎭 Mock login successful');
+        // Store mock session in localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mockSession', 'true');
+          localStorage.setItem('mockUser', JSON.stringify(MOCK_USER));
+        }
+        return Promise.resolve({ user: MOCK_USER });
+      }
+
+      // Otherwise, proceed with normal API call
+      return fetchAPI<{ user: User }>(ApiEndpoint.AUTH_LOGIN, {
         method: HttpMethod.POST,
         body: JSON.stringify({ email, password, rememberMe }),
-      }),
+      });
+    },
 
-    logout: () =>
-      fetchAPI<{ message: string }>(ApiEndpoint.AUTH_LOGOUT, {
+    logout: async () => {
+      // Clear mock session if active
+      if (typeof window !== 'undefined') {
+        const isMockSession = localStorage.getItem('mockSession');
+        if (isMockSession) {
+          console.log('🎭 Mock logout');
+          localStorage.removeItem('mockSession');
+          localStorage.removeItem('mockUser');
+          return Promise.resolve({ message: 'Logout realizado com sucesso' });
+        }
+      }
+
+      // Otherwise, proceed with normal API call
+      return fetchAPI<{ message: string }>(ApiEndpoint.AUTH_LOGOUT, {
         method: HttpMethod.POST,
-      }),
+      });
+    },
 
     forgotPassword: (email: string) =>
       fetchAPI<{ message: string }>(ApiEndpoint.AUTH_FORGOT_PASSWORD, {
@@ -174,7 +213,20 @@ export const api = {
   },
 
   user: {
-    getMe: () => fetchAPI<User>(ApiEndpoint.USER_ME),
+    getMe: async () => {
+      // Check for mock session
+      if (typeof window !== 'undefined') {
+        const isMockSession = localStorage.getItem('mockSession');
+        const mockUserStr = localStorage.getItem('mockUser');
+        if (isMockSession && mockUserStr) {
+          console.log('🎭 Mock user session active');
+          return Promise.resolve(JSON.parse(mockUserStr) as User);
+        }
+      }
+
+      // Otherwise, proceed with normal API call
+      return fetchAPI<User>(ApiEndpoint.USER_ME);
+    },
     changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>
       fetchAPI<{ message: string }>(ApiEndpoint.USER_CHANGE_PASSWORD, {
         method: HttpMethod.POST,
