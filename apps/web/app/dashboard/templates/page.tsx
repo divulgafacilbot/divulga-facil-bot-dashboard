@@ -278,9 +278,9 @@ export default function TemplatesPage() {
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Personalize as informações que aparecerão nas artes geradas para cada plataforma.
           </p>
-          <div className="mt-6 flex flex-col gap-6 min-[1490px]:flex-row">
+          <div className="mt-6 flex flex-col gap-6 min-[1810px]:flex-row">
             {/* Card para Feed/Telegram/WhatsApp */}
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
+            <div className="max-w-[700px] rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
               <div className="flex flex-col gap-6 sm:flex-row">
                 {/* Informações do card */}
                 <div className="w-full sm:w-[400px]">
@@ -642,7 +642,7 @@ export default function TemplatesPage() {
             </div>
 
             {/* Card para Stories */}
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
+            <div className="max-w-[700px] rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
               <div className="flex flex-col gap-6 sm:flex-row">
                 {/* Informações do story */}
                 <div className="w-full sm:w-[400px]">
