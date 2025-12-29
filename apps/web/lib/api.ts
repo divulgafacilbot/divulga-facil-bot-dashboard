@@ -145,7 +145,7 @@ export const api = {
         body: JSON.stringify({ email, password }),
       }),
 
-    login: async (email: string, password: string, rememberMe: boolean = false) => {
+    login: async (email: string, password: string, rememberMe: boolean = false): Promise<{ user: User }> => {
       // Check for mock credentials
       if (email === MOCK_CREDENTIALS.email && password === MOCK_CREDENTIALS.password) {
         console.log('🎭 Mock login successful');
@@ -154,7 +154,7 @@ export const api = {
           localStorage.setItem('mockSession', 'true');
           localStorage.setItem('mockUser', JSON.stringify(MOCK_USER));
         }
-        return Promise.resolve({ user: MOCK_USER });
+        return { user: MOCK_USER };
       }
 
       // Otherwise, proceed with normal API call
@@ -164,7 +164,7 @@ export const api = {
       });
     },
 
-    logout: async () => {
+    logout: async (): Promise<{ message: string }> => {
       // Clear mock session if active
       if (typeof window !== 'undefined') {
         const isMockSession = localStorage.getItem('mockSession');
@@ -172,7 +172,7 @@ export const api = {
           console.log('🎭 Mock logout');
           localStorage.removeItem('mockSession');
           localStorage.removeItem('mockUser');
-          return Promise.resolve({ message: 'Logout realizado com sucesso' });
+          return { message: 'Logout realizado com sucesso' };
         }
       }
 
@@ -213,14 +213,14 @@ export const api = {
   },
 
   user: {
-    getMe: async () => {
+    getMe: async (): Promise<User> => {
       // Check for mock session
       if (typeof window !== 'undefined') {
         const isMockSession = localStorage.getItem('mockSession');
         const mockUserStr = localStorage.getItem('mockUser');
         if (isMockSession && mockUserStr) {
           console.log('🎭 Mock user session active');
-          return Promise.resolve(JSON.parse(mockUserStr) as User);
+          return JSON.parse(mockUserStr) as User;
         }
       }
 
