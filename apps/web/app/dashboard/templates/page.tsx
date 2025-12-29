@@ -18,7 +18,7 @@ const TEMPLATES = [
 ] as const;
 
 export default function TemplatesPage() {
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(TEMPLATES[0]);
   const [cardDetails, setCardDetails] = useState({
     title: true,
     description: true,
@@ -70,15 +70,9 @@ export default function TemplatesPage() {
     }
   };
 
-  const templatePreviewSrc =
-    selectedTemplate === null
-      ? "/templates/black-template-feed.png"
-      : `/templates/${selectedTemplate}-template-feed.png`;
+  const templatePreviewSrc = `/templates/${selectedTemplate}-template-feed.png`;
 
-  const templateStoryPreviewSrc =
-    selectedTemplate === null
-      ? "/templates/black-template-story.png"
-      : `/templates/${selectedTemplate}-template-story.png`;
+  const templateStoryPreviewSrc = `/templates/${selectedTemplate}-template-story.png`;
 
   const productImageSrc = useMemo(
     () => mockProduct.imagem.replace(/^public\//, "/"),
