@@ -232,34 +232,49 @@ export const api = {
 
   user: {
     getMe: async (): Promise<User> => {
+      console.log('🔍 getMe() called - checking for mock session...');
+
       // Check for mock session in both storages
       if (typeof window !== 'undefined') {
-        const isMockSessionLocal = localStorage.getItem('mockSession');
-        const mockUserStrLocal = localStorage.getItem('mockUser');
-        const isMockSessionSession = sessionStorage.getItem('mockSession');
-        const mockUserStrSession = sessionStorage.getItem('mockUser');
+        console.log('🌐 Window is defined, checking localStorage...');
 
-        console.log('🔍 Checking for mock session:', {
-          localStorage: !!isMockSessionLocal,
-          sessionStorage: !!isMockSessionSession,
-        });
+        try {
+          const mockUserStrLocal = localStorage.getItem('mockUser');
+          const mockSessionLocal = localStorage.getItem('mockSession');
+          const mockUserStrSession = sessionStorage.getItem('mockUser');
+          const mockSessionSession = sessionStorage.getItem('mockSession');
 
-        // Try localStorage first
-        if (isMockSessionLocal && mockUserStrLocal) {
-          console.log('🎭 Mock session found in localStorage');
-          return JSON.parse(mockUserStrLocal) as User;
+          console.log('📦 Storage check:', {
+            'localStorage.mockSession': mockSessionLocal,
+            'localStorage.mockUser': mockUserStrLocal ? 'EXISTS' : 'NULL',
+            'sessionStorage.mockSession': mockSessionSession,
+            'sessionStorage.mockUser': mockUserStrSession ? 'EXISTS' : 'NULL',
+          });
+
+          // Try localStorage first
+          if (mockUserStrLocal && mockSessionLocal === 'true') {
+            console.log('✅ Found mock session in localStorage');
+            const user = JSON.parse(mockUserStrLocal) as User;
+            console.log('✅ Mock user loaded:', user.email);
+            return user;
+          }
+
+          // Fallback to sessionStorage
+          if (mockUserStrSession && mockSessionSession === 'true') {
+            console.log('✅ Found mock session in sessionStorage');
+            const user = JSON.parse(mockUserStrSession) as User;
+            console.log('✅ Mock user loaded:', user.email);
+            return user;
+          }
+
+          console.log('⚠️ No valid mock session found');
+        } catch (e) {
+          console.error('❌ Error reading mock session:', e);
         }
-
-        // Fallback to sessionStorage
-        if (isMockSessionSession && mockUserStrSession) {
-          console.log('🎭 Mock session found in sessionStorage');
-          return JSON.parse(mockUserStrSession) as User;
-        }
-
-        console.log('❌ No mock session found, calling API');
       }
 
       // Otherwise, proceed with normal API call
+      console.log('📡 No mock session, calling real API...');
       return fetchAPI<User>(ApiEndpoint.USER_ME);
     },
     changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>
