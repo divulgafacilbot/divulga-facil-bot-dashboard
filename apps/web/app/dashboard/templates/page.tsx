@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { mockProduct } from "@/lib/mock-data";
+import { useSidebar } from "../layout";
 
 const TEMPLATES = [
   "blue",
@@ -18,7 +19,9 @@ const TEMPLATES = [
 ] as const;
 
 export default function TemplatesPage() {
+  const { sidebarCollapsed } = useSidebar();
   const [selectedTemplate, setSelectedTemplate] = useState<string>(TEMPLATES[0]);
+  const [useRowLayout, setUseRowLayout] = useState(false);
   const [cardDetails, setCardDetails] = useState({
     title: true,
     description: true,
@@ -27,6 +30,17 @@ export default function TemplatesPage() {
     affiliateLink: true,
     coupon: true,
   });
+
+  useEffect(() => {
+    const checkLayout = () => {
+      const breakpoint = sidebarCollapsed ? 1600 : 1810;
+      setUseRowLayout(window.innerWidth >= breakpoint);
+    };
+
+    checkLayout();
+    window.addEventListener('resize', checkLayout);
+    return () => window.removeEventListener('resize', checkLayout);
+  }, [sidebarCollapsed]);
   const [storyDetails, setStoryDetails] = useState({
     title: true,
     promotionalPrice: true,
@@ -271,14 +285,14 @@ export default function TemplatesPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+        <div className={`rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] ${!useRowLayout ? 'max-w-[700px]' : ''}`}>
           <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
             Definição de Layout
           </h2>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Personalize as informações que aparecerão nas artes geradas para cada plataforma.
           </p>
-          <div className="mt-6 flex flex-col gap-6 min-[1810px]:flex-row">
+          <div className={`mt-6 flex gap-6 ${useRowLayout ? 'flex-row' : 'flex-col'}`}>
             {/* Card para Feed/Telegram/WhatsApp */}
             <div className="max-w-[700px] rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
               <div className="flex flex-col gap-6 sm:flex-row">
@@ -582,14 +596,14 @@ export default function TemplatesPage() {
                           className="object-contain"
                           sizes="(max-width: 1024px) 70vw, 320px"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="relative h-[80%] w-[80%]">
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ marginTop: '25px' }}>
+                          <div className="relative h-[135px] w-[135px]">
                             <Image
                               src={productImageSrc}
                               alt={mockProduct.title}
                               fill
                               className="object-contain"
-                              sizes="(max-width: 1024px) 56vw, 256px"
+                              sizes="135px"
                             />
                           </div>
                         </div>
