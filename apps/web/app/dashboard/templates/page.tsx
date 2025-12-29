@@ -5,13 +5,16 @@ import { useMemo, useRef, useState } from "react";
 
 import { mockProduct } from "@/lib/mock-data";
 
-const TEMPLATE_COLORS = [
-  "gray",
+const TEMPLATES = [
   "black",
   "blue",
+  "degrade",
+  "gray",
   "green",
+  "love",
   "orange",
   "pink",
+  "promo",
   "red",
   "yellow",
 ] as const;
@@ -206,30 +209,30 @@ export default function TemplatesPage() {
               className="flex gap-[10px] overflow-x-auto scrollbar-hide px-12"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {TEMPLATE_COLORS.map((color) => (
+              {TEMPLATES.map((template) => (
                 <button
-                  key={color}
-                  onClick={() => setSelectedTemplate(color)}
+                  key={template}
+                  onClick={() => setSelectedTemplate(template)}
                   style={{
-                    borderWidth: selectedTemplate === color ? "4px" : "2px",
+                    borderWidth: selectedTemplate === template ? "4px" : "2px",
                     borderColor:
-                      selectedTemplate === color
+                      selectedTemplate === template
                         ? "var(--color-primary)"
                         : "var(--color-border)",
                     borderStyle: "solid",
                   }}
-                  className="relative h-[270px] w-auto flex-shrink-0 overflow-hidden rounded-xl shadow-[var(--shadow-sm)] transition-all duration-200 hover:shadow-[var(--shadow-md)]"
+                  className="relative h-[270px] w-auto flex-shrink-0 overflow-hidden shadow-[var(--shadow-sm)] transition-all duration-200 hover:shadow-[var(--shadow-md)]"
                   type="button"
-                  aria-label={`Selecionar template ${color}`}
+                  aria-label={`Selecionar template ${template}`}
                 >
                   <Image
-                    src={`/templates/${color}-template-story.png`}
-                    alt={`Template ${color}`}
+                    src={`/templates/${template}-template-story.png`}
+                    alt={`Template ${template}`}
                     width={152}
                     height={270}
-                    className="h-full w-auto object-cover"
+                    className="h-full w-auto object-contain"
                   />
-                  {selectedTemplate === color && (
+                  {selectedTemplate === template && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500">
                         <svg
@@ -583,13 +586,13 @@ export default function TemplatesPage() {
                     Preview
                   </p>
                   <div className="mt-4 space-y-4">
-                    <div className="relative h-[200px] w-[200px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
+                    <div className="relative h-[200px] w-[200px] overflow-hidden border border-[var(--color-border)] bg-white">
                       <div className="relative h-full w-full">
                         <Image
                           src={templatePreviewSrc}
                           alt="Template selecionado"
                           fill
-                          className="object-cover"
+                          className="object-contain"
                           sizes="(max-width: 1024px) 70vw, 320px"
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -898,7 +901,7 @@ export default function TemplatesPage() {
                     Preview
                   </p>
                   <div className="mt-4">
-                    <div className="relative h-[400px] w-[225px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
+                    <div className="relative h-[400px] w-[225px] overflow-hidden border border-[var(--color-border)] bg-white">
                       <Image
                         src={templateStoryPreviewSrc}
                         alt="Template story selecionado"
@@ -1014,13 +1017,13 @@ export default function TemplatesPage() {
                   <li className="flex items-start gap-2">
                     <span className="mt-1 text-[var(--color-primary)]">•</span>
                     <span>
-                      <strong>Template Feed:</strong> Formato aproximadamente quadrado (proporção 1:1)
+                      <strong>Template Feed:</strong> Formato quadrado (1080x1080px - proporção 1:1)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-1 text-[var(--color-primary)]">•</span>
                     <span>
-                      <strong>Template Story:</strong> Formato retangular vertical (proporção 9:16)
+                      <strong>Template Story:</strong> Formato vertical (1080x1920px - proporção 9:16)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -1029,7 +1032,7 @@ export default function TemplatesPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-1 text-[var(--color-primary)]">•</span>
-                    <span>Resolução mínima: Feed 800x800px, Story 1080x1920px</span>
+                    <span>As artes devem ser sem bordas arredondadas (formato retangular padrão)</span>
                   </li>
                 </ul>
               </div>
