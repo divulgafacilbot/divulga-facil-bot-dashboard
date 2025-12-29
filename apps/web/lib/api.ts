@@ -242,21 +242,37 @@ export const api = {
         console.log('🔍 Checking for mock session:', {
           localStorage: !!isMockSessionLocal,
           sessionStorage: !!isMockSessionSession,
+          mockUserExists: !!mockUserStrLocal || !!mockUserStrSession,
         });
 
         // Try localStorage first
-        if (isMockSessionLocal && mockUserStrLocal) {
-          console.log('🎭 Mock session found in localStorage');
-          return JSON.parse(mockUserStrLocal) as User;
+        if (mockUserStrLocal) {
+          console.log('🎭 Mock user found in localStorage, parsing...');
+          try {
+            const user = JSON.parse(mockUserStrLocal) as User;
+            console.log('✅ Mock user parsed successfully:', user);
+            alert('✅ Mock session ativa! Carregando dashboard...');
+            return user;
+          } catch (e) {
+            console.error('❌ Error parsing mock user from localStorage:', e);
+          }
         }
 
         // Fallback to sessionStorage
-        if (isMockSessionSession && mockUserStrSession) {
-          console.log('🎭 Mock session found in sessionStorage');
-          return JSON.parse(mockUserStrSession) as User;
+        if (mockUserStrSession) {
+          console.log('🎭 Mock user found in sessionStorage, parsing...');
+          try {
+            const user = JSON.parse(mockUserStrSession) as User;
+            console.log('✅ Mock user parsed successfully:', user);
+            alert('✅ Mock session ativa! Carregando dashboard...');
+            return user;
+          } catch (e) {
+            console.error('❌ Error parsing mock user from sessionStorage:', e);
+          }
         }
 
         console.log('❌ No mock session found, calling API');
+        alert('❌ Nenhuma sessão mock encontrada, tentando API...');
       }
 
       // Otherwise, proceed with normal API call

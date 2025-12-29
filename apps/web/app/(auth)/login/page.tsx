@@ -44,9 +44,13 @@ export default function LoginPage() {
       const result = await api.auth.login(data.email, data.password, data.rememberMe ?? false);
       console.log('✅ Login successful, redirecting...', result);
 
-      // Force hard redirect to dashboard (works better for mock login)
+      // Add a small delay before redirect to ensure everything is saved
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Force hard redirect to dashboard
       if (typeof window !== 'undefined') {
-        window.location.href = DashboardRoute.HOME;
+        // Add timestamp to force fresh load
+        window.location.href = `${DashboardRoute.HOME}?t=${Date.now()}`;
       } else {
         router.push(DashboardRoute.HOME);
       }
