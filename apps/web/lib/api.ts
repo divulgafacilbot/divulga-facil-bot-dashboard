@@ -7,6 +7,9 @@ const API_BASE_URL = configuredBaseUrl || 'http://localhost:4000';
 // Detect if we're in production mode (for mock login)
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Export for use in components
+export const IS_PRODUCTION = isProduction;
+
 console.log('🔧 API Configuration:', {
   configuredBaseUrl,
   API_BASE_URL,

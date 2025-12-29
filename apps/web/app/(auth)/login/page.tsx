@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/forms/Button";
 import { Input } from "@/components/forms/Input";
-import { api } from "@/lib/api";
+import { api, IS_PRODUCTION } from "@/lib/api";
 import { ApiErrorCode, DashboardRoute } from "@/lib/common-enums";
 import { loginSchema } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,18 +32,25 @@ export default function LoginPage() {
     watch,
     formState: { errors },
   } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
+    // PRODUCTION MODE: No validation, DEVELOPMENT MODE: Use Zod validation
+    resolver: IS_PRODUCTION ? undefined : zodResolver(loginSchema),
   });
 
   const onSubmit = async (data: LoginForm) => {
+    // PRODUCTION MODE: Redirect directly to dashboard
+    if (IS_PRODUCTION) {
+      console.log('🏭 PRODUCTION: Redirecting directly to dashboard');
+      window.location.href = DashboardRoute.HOME;
+      return;
+    }
+
+    // DEVELOPMENT MODE: Normal login flow
     try {
       setError("");
       setLoading(true);
       setShowResendButton(false);
 
       await api.auth.login(data.email, data.password, data.rememberMe ?? false);
-
-      // Redirect to dashboard
       window.location.href = DashboardRoute.HOME;
     } catch (err) {
       const error = err as Error & { code?: string };
