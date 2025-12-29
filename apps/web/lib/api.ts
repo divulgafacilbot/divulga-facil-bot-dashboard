@@ -155,31 +155,26 @@ export const api = {
       }),
 
     login: async (email: string, password: string, rememberMe: boolean = false): Promise<{ user: User }> => {
-      // PRODUCTION MODE: Accept ANY credentials and return mock user
-      if (isProduction) {
-        console.log('🏭 PRODUCTION MODE: Auto-login (any credentials accepted)');
-        return { user: MOCK_USER };
-      }
+      // ALWAYS return mock user (production mode forced)
+      console.log('🏭 MOCK MODE: Auto-login');
+      return { user: MOCK_USER };
 
-      // DEVELOPMENT MODE: Use real API
-      console.log('🔧 Development mode: Calling API...');
-      return fetchAPI<{ user: User }>(ApiEndpoint.AUTH_LOGIN, {
-        method: HttpMethod.POST,
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
+      // DEVELOPMENT MODE DISABLED
+      // return fetchAPI<{ user: User }>(ApiEndpoint.AUTH_LOGIN, {
+      //   method: HttpMethod.POST,
+      //   body: JSON.stringify({ email, password, rememberMe }),
+      // });
     },
 
     logout: async (): Promise<{ message: string }> => {
-      // PRODUCTION MODE: Just return success
-      if (isProduction) {
-        console.log('🏭 PRODUCTION MODE: Logout (no-op)');
-        return { message: 'Logout realizado com sucesso' };
-      }
+      // ALWAYS return success (mock mode forced)
+      console.log('🏭 MOCK MODE: Logout');
+      return { message: 'Logout realizado com sucesso' };
 
-      // DEVELOPMENT MODE: Use real API
-      return fetchAPI<{ message: string }>(ApiEndpoint.AUTH_LOGOUT, {
-        method: HttpMethod.POST,
-      });
+      // DEVELOPMENT MODE DISABLED
+      // return fetchAPI<{ message: string }>(ApiEndpoint.AUTH_LOGOUT, {
+      //   method: HttpMethod.POST,
+      // });
     },
 
     forgotPassword: (email: string) =>
@@ -214,15 +209,12 @@ export const api = {
 
   user: {
     getMe: async (): Promise<User> => {
-      // PRODUCTION MODE: Always return mock user (no authentication check)
-      if (isProduction) {
-        console.log('🏭 PRODUCTION MODE: Returning mock user (no auth check)');
-        return MOCK_USER;
-      }
+      // ALWAYS return mock user (mock mode forced)
+      console.log('🏭 MOCK MODE: Returning mock user');
+      return MOCK_USER;
 
-      // DEVELOPMENT MODE: Use real API
-      console.log('🔧 Development mode: Calling API...');
-      return fetchAPI<User>(ApiEndpoint.USER_ME);
+      // DEVELOPMENT MODE DISABLED
+      // return fetchAPI<User>(ApiEndpoint.USER_ME);
     },
     changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>
       fetchAPI<{ message: string }>(ApiEndpoint.USER_CHANGE_PASSWORD, {

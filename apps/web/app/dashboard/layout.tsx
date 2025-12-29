@@ -29,38 +29,32 @@ export default function DashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    async function loadUser() {
-      // PRODUCTION MODE: Set mock user directly without any API call
-      if (IS_PRODUCTION) {
-        console.log('🏭 PRODUCTION: Setting mock user directly');
-        const mockUser: User = {
-          id: 'mock-user-id',
-          email: 'teste@divulgafacil.com.br',
-          role: UserRole.USER,
-          emailVerified: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        setUser(mockUser);
-        setLoading(false);
-        return;
-      }
+    // ALWAYS set mock user directly (mock mode forced)
+    console.log('🏭 MOCK MODE: Setting mock user');
+    const mockUser: User = {
+      id: 'mock-user-id',
+      email: 'teste@divulgafacil.com.br',
+      role: UserRole.USER,
+      emailVerified: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setUser(mockUser);
+    setLoading(false);
 
-      // DEVELOPMENT MODE: Normal flow
-      console.log('🔧 Dashboard: Loading user from API...');
-      try {
-        const userData = await api.user.getMe();
-        console.log('✅ Dashboard: User loaded:', userData.email);
-        setUser(userData);
-      } catch (error) {
-        console.error('❌ Dashboard: Failed to load user, redirecting to login');
-        setLoadError(error as Error);
-        router.push("/login");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadUser();
+    // DEVELOPMENT MODE DISABLED
+    // async function loadUser() {
+    //   try {
+    //     const userData = await api.user.getMe();
+    //     setUser(userData);
+    //   } catch (error) {
+    //     setLoadError(error as Error);
+    //     router.push("/login");
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // }
+    // loadUser();
   }, [router]);
 
   const handleLogout = async () => {
