@@ -40,22 +40,25 @@ export default function LoginPage() {
       setError("");
       setLoading(true);
       setShowResendButton(false);
-      console.log('🔐 Attempting login...');
+      console.log('🔐 Login page: Attempting login...');
       const result = await api.auth.login(data.email, data.password, data.rememberMe ?? false);
-      console.log('✅ Login successful, redirecting...', result);
+      console.log('✅ Login page: Login successful!', result);
 
-      // Add a small delay before redirect to ensure everything is saved
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Force hard redirect to dashboard
+      // Verify localStorage was set (for mock login)
       if (typeof window !== 'undefined') {
-        // Add timestamp to force fresh load
-        window.location.href = `${DashboardRoute.HOME}?t=${Date.now()}`;
-      } else {
-        router.push(DashboardRoute.HOME);
+        const mockSession = localStorage.getItem('mockSession');
+        const mockUser = localStorage.getItem('mockUser');
+        console.log('📦 Login page: Storage verification:', {
+          mockSession,
+          mockUser: mockUser ? 'EXISTS' : 'NULL'
+        });
       }
-      console.log('✅ Redirect initiated');
+
+      // Redirect to dashboard
+      console.log('🚀 Login page: Redirecting to dashboard...');
+      window.location.href = DashboardRoute.HOME;
     } catch (err) {
+      console.error('❌ Login page: Login failed:', err);
       // Check if error is related to email not verified
       const error = err as Error & { code?: string };
       if (error.message?.toLowerCase().includes('não verificado') || error.code === ApiErrorCode.EMAIL_NOT_VERIFIED) {
@@ -64,7 +67,6 @@ export default function LoginPage() {
       } else {
         setError(error.message || "Email ou senha incorretos.");
       }
-    } finally {
       setLoading(false);
     }
   };

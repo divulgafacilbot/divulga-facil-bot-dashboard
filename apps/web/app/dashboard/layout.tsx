@@ -29,12 +29,31 @@ export default function DashboardLayout({
 
   useEffect(() => {
     async function loadUser() {
+      console.log('🏠 Dashboard layout: Loading user...');
       try {
         const userData = await api.user.getMe();
+        console.log('🏠 Dashboard layout: User loaded successfully:', userData.email);
         setUser(userData);
       } catch (error) {
+        console.error('❌ Dashboard layout: Error loading user:', error);
         setLoadError(error as Error);
-        router.push("/login");
+
+        // Only redirect to login if we're sure there's no mock session
+        if (typeof window !== 'undefined') {
+          const hasMockSession = localStorage.getItem('mockSession') === 'true' ||
+                                sessionStorage.getItem('mockSession') === 'true';
+
+          console.log('🔍 Dashboard layout: Checking mock session before redirect:', hasMockSession);
+
+          if (!hasMockSession) {
+            console.log('⚠️ Dashboard layout: No mock session, redirecting to login...');
+            router.push("/login");
+          } else {
+            console.error('⚠️ Dashboard layout: Mock session exists but getMe() failed! Error:', error);
+          }
+        } else {
+          router.push("/login");
+        }
       } finally {
         setLoading(false);
       }
