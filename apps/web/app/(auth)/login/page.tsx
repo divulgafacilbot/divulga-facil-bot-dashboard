@@ -32,37 +32,32 @@ export default function LoginPage() {
     watch,
     formState: { errors },
   } = useForm<LoginForm>({
-    // PRODUCTION MODE: No validation, DEVELOPMENT MODE: Use Zod validation
-    resolver: IS_PRODUCTION ? undefined : zodResolver(loginSchema),
+    // NO VALIDATION (mock mode forced)
+    resolver: undefined,
   });
 
   const onSubmit = async (data: LoginForm) => {
-    // PRODUCTION MODE: Redirect directly to dashboard
-    if (IS_PRODUCTION) {
-      console.log('🏭 PRODUCTION: Redirecting directly to dashboard');
-      window.location.href = DashboardRoute.HOME;
-      return;
-    }
+    // ALWAYS redirect directly to dashboard (mock mode forced)
+    console.log('🏭 MOCK MODE: Redirecting to dashboard');
+    window.location.href = DashboardRoute.HOME;
 
-    // DEVELOPMENT MODE: Normal login flow
-    try {
-      setError("");
-      setLoading(true);
-      setShowResendButton(false);
-
-      await api.auth.login(data.email, data.password, data.rememberMe ?? false);
-      window.location.href = DashboardRoute.HOME;
-    } catch (err) {
-      const error = err as Error & { code?: string };
-
-      if (error.message?.toLowerCase().includes('não verificado') || error.code === ApiErrorCode.EMAIL_NOT_VERIFIED) {
-        setShowResendButton(true);
-        setError('E-mail não verificado. Verifique sua caixa de entrada ou solicite um novo link.');
-      } else {
-        setError(error.message || "Email ou senha incorretos.");
-      }
-      setLoading(false);
-    }
+    // DEVELOPMENT MODE DISABLED
+    // try {
+    //   setError("");
+    //   setLoading(true);
+    //   setShowResendButton(false);
+    //   await api.auth.login(data.email, data.password, data.rememberMe ?? false);
+    //   window.location.href = DashboardRoute.HOME;
+    // } catch (err) {
+    //   const error = err as Error & { code?: string };
+    //   if (error.message?.toLowerCase().includes('não verificado') || error.code === ApiErrorCode.EMAIL_NOT_VERIFIED) {
+    //     setShowResendButton(true);
+    //     setError('E-mail não verificado. Verifique sua caixa de entrada ou solicite um novo link.');
+    //   } else {
+    //     setError(error.message || "Email ou senha incorretos.");
+    //   }
+    //   setLoading(false);
+    // }
   };
 
   const handleResendVerification = async () => {
