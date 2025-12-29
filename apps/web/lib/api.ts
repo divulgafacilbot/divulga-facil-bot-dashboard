@@ -1,5 +1,5 @@
 import type { User, ApiError, LoginHistoryResponse, LoginStats } from '@/types';
-import { HttpMethod, ApiEndpoint, ApiErrorCode } from './common-enums';
+import { HttpMethod, ApiEndpoint, ApiErrorCode, UserRole } from './common-enums';
 
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 const API_BASE_URL = configuredBaseUrl || 'http://localhost:4000';
@@ -133,8 +133,10 @@ const MOCK_CREDENTIALS = {
 const MOCK_USER: User = {
   id: 'mock-user-id',
   email: 'teste@divulgafacil.com.br',
+  role: UserRole.USER,
   emailVerified: true,
   createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
 export const api = {
