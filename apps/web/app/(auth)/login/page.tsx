@@ -43,8 +43,14 @@ export default function LoginPage() {
       console.log('🔐 Attempting login...');
       const result = await api.auth.login(data.email, data.password, data.rememberMe ?? false);
       console.log('✅ Login successful, redirecting...', result);
-      router.push(DashboardRoute.HOME);
-      console.log('✅ Router.push called');
+
+      // Force hard redirect to dashboard (works better for mock login)
+      if (typeof window !== 'undefined') {
+        window.location.href = DashboardRoute.HOME;
+      } else {
+        router.push(DashboardRoute.HOME);
+      }
+      console.log('✅ Redirect initiated');
     } catch (err) {
       // Check if error is related to email not verified
       const error = err as Error & { code?: string };
