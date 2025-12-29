@@ -7,7 +7,13 @@ import type { User } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+const SidebarContext = createContext<{ sidebarCollapsed: boolean }>({
+  sidebarCollapsed: false,
+});
+
+export const useSidebar = () => useContext(SidebarContext);
 
 export default function DashboardLayout({
   children,
@@ -111,7 +117,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)]">
+    <SidebarContext.Provider value={{ sidebarCollapsed }}>
+      <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)]">
       <header
         className="border-b border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)]"
         style={{
@@ -252,5 +259,6 @@ export default function DashboardLayout({
         </div>
       </main>
     </div>
+    </SidebarContext.Provider>
   );
 }
