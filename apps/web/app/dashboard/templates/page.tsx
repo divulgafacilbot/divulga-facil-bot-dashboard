@@ -29,6 +29,7 @@ export default function TemplatesPage() {
     fullPrice: true,
     affiliateLink: true,
     coupon: true,
+    disclaimer: false,
   });
 
   useEffect(() => {
@@ -45,7 +46,6 @@ export default function TemplatesPage() {
     title: true,
     promotionalPrice: true,
     fullPrice: true,
-    affiliateLink: true,
     coupon: true,
   });
   const [feedColors, setFeedColors] = useState({
@@ -55,12 +55,12 @@ export default function TemplatesPage() {
     fullPrice: "#000000",
     affiliateLink: "#000000",
     coupon: "#000000",
+    disclaimer: "#000000",
   });
   const [storyColors, setStoryColors] = useState({
     title: "#000000",
     promotionalPrice: "#000000",
     fullPrice: "#000000",
-    affiliateLink: "#000000",
     coupon: "#000000",
   });
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -578,6 +578,52 @@ export default function TemplatesPage() {
                         />
                       </div>
                     </div>
+                    <div className="flex w-full items-center gap-2">
+                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+                        <span>Aviso de promoção</span>
+                        <input
+                          type="checkbox"
+                          checked={cardDetails.disclaimer}
+                          onChange={(event) =>
+                            setCardDetails((prev) => ({
+                              ...prev,
+                              disclaimer: event.target.checked,
+                            }))
+                          }
+                        />
+                      </label>
+                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={feedColors.disclaimer}
+                            onChange={(e) =>
+                              setFeedColors((prev) => ({
+                                ...prev,
+                                disclaimer: e.target.value,
+                              }))
+                            }
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          />
+                          <div
+                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
+                            style={{ backgroundColor: feedColors.disclaimer }}
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={feedColors.disclaimer}
+                          onChange={(e) =>
+                            setFeedColors((prev) => ({
+                              ...prev,
+                              disclaimer: e.target.value,
+                            }))
+                          }
+                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
+                          placeholder="#000000"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -612,7 +658,7 @@ export default function TemplatesPage() {
                     <div className="space-y-2 text-sm text-[var(--color-text-secondary)]">
                       {cardDetails.title && (
                         <p className="font-semibold" style={{ color: feedColors.title }}>
-                          {mockProduct.title}
+                          🛍️ {mockProduct.title}
                         </p>
                       )}
                       {cardDetails.description && (
@@ -622,10 +668,7 @@ export default function TemplatesPage() {
                       )}
                       {cardDetails.promotionalPrice && (
                         <p style={{ color: feedColors.promotionalPrice }}>
-                          <span className="font-semibold">
-                            Promoção:
-                          </span>{" "}
-                          {mockProduct.promotionalPrice}
+                          💸 por R$ {mockProduct.promotionalPrice.replace('R$ ', '')} 🚨🚨
                         </p>
                       )}
                       {cardDetails.fullPrice && (
@@ -637,9 +680,10 @@ export default function TemplatesPage() {
                         </p>
                       )}
                       {cardDetails.affiliateLink && (
-                        <p className="break-all" style={{ color: feedColors.affiliateLink }}>
-                          {mockProduct.affiliateLink}
-                        </p>
+                        <div style={{ color: feedColors.affiliateLink }}>
+                          <p style={{ marginBottom: 0 }}>👉Link p/ comprar:</p>
+                          <p className="break-all">{mockProduct.affiliateLink}</p>
+                        </div>
                       )}
                       {cardDetails.coupon && (
                         <p style={{ color: feedColors.coupon }}>
@@ -647,6 +691,11 @@ export default function TemplatesPage() {
                             Cupom:
                           </span>{" "}
                           {mockProduct.coupon}
+                        </p>
+                      )}
+                      {cardDetails.disclaimer && (
+                        <p className="text-xs italic" style={{ color: feedColors.disclaimer }}>
+                          *Promoção sujeita a alteração a qualquer momento
                         </p>
                       )}
                     </div>
@@ -804,52 +853,6 @@ export default function TemplatesPage() {
                     </div>
                     <div className="flex w-full items-center gap-2">
                       <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Link de afiliado</span>
-                        <input
-                          type="checkbox"
-                          checked={storyDetails.affiliateLink}
-                          onChange={(event) =>
-                            setStoryDetails((prev) => ({
-                              ...prev,
-                              affiliateLink: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={storyColors.affiliateLink}
-                            onChange={(e) =>
-                              setStoryColors((prev) => ({
-                                ...prev,
-                                affiliateLink: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: storyColors.affiliateLink }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={storyColors.affiliateLink}
-                          onChange={(e) =>
-                            setStoryColors((prev) => ({
-                              ...prev,
-                              affiliateLink: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
                         <span>Cupom de desconto</span>
                         <input
                           type="checkbox"
@@ -948,15 +951,6 @@ export default function TemplatesPage() {
                               </p>
                             )}
                           </div>
-                        </div>
-
-                        {/* 1/6 inferior com link de afiliado */}
-                        <div className="flex items-center justify-center text-center px-3" style={{ height: 'calc(100% / 6)', marginTop: '-20px', marginLeft: '25px' }}>
-                          {storyDetails.affiliateLink && (
-                            <p className="break-all text-[10px] leading-tight" style={{ color: storyColors.affiliateLink }}>
-                              {mockProduct.affiliateLink}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </div>
