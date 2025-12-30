@@ -7,20 +7,76 @@ import { mockProduct } from "@/lib/mock-data";
 import { useSidebar } from "../layout";
 
 const TEMPLATES = [
+  "amazon",
+  "amazon1",
+  "black2",
   "blue",
   "degrade",
   "green",
-  "love",
-  "orange",
+  "greenblack",
+  "magalu",
+  "magalu2",
   "pink",
-  "pink2",
+  "pinkblack",
+  "purple",
+  "purple2",
   "promo",
+  "red",
+  "Shopee2",
+  "shopee",
+  "vinho",
   "yellow",
+  "yellow2",
+  "yellowblack",
 ] as const;
+
+type TemplateOption = {
+  id: string;
+  name: string;
+  feedUrl: string;
+  storyUrl: string;
+  source: "system" | "custom";
+};
+
+const SYSTEM_TEMPLATES: TemplateOption[] = TEMPLATES.map((template) => ({
+  id: template,
+  name: template,
+  feedUrl: `/templates/${template}-feed.png`,
+  storyUrl: `/templates/${template}-story.png`,
+  source: "system",
+}));
+
+const TemplateImage = ({
+  src,
+  alt,
+  className,
+  width,
+  height,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  width?: number;
+  height?: number;
+}) => {
+  if (src.startsWith("http")) {
+    return <img src={src} alt={alt} className={className} />;
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      className={className}
+    />
+  );
+};
 
 export default function TemplatesPage() {
   const { sidebarCollapsed } = useSidebar();
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(TEMPLATES[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateOption>(SYSTEM_TEMPLATES[0]);
   const [useRowLayout, setUseRowLayout] = useState(false);
   const [cardDetails, setCardDetails] = useState({
     title: true,
@@ -30,6 +86,7 @@ export default function TemplatesPage() {
     affiliateLink: true,
     coupon: true,
     disclaimer: false,
+    customText: false,
   });
 
   useEffect(() => {
@@ -47,6 +104,7 @@ export default function TemplatesPage() {
     promotionalPrice: true,
     fullPrice: true,
     coupon: true,
+    customText: false,
   });
   const [feedColors, setFeedColors] = useState({
     title: "#000000",
@@ -56,19 +114,68 @@ export default function TemplatesPage() {
     affiliateLink: "#000000",
     coupon: "#000000",
     disclaimer: "#000000",
+    customText: "#000000",
   });
   const [storyColors, setStoryColors] = useState({
     title: "#000000",
     promotionalPrice: "#000000",
     fullPrice: "#000000",
     coupon: "#000000",
+    customText: "#000000",
   });
+  const [customCardText, setCustomCardText] = useState("");
+  const [customStoryText, setCustomStoryText] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [feedTemplate, setFeedTemplate] = useState<File | null>(null);
   const [storyTemplate, setStoryTemplate] = useState<File | null>(null);
   const [feedError, setFeedError] = useState<string>("");
   const [storyError, setStoryError] = useState<string>("");
+  const [templateName, setTemplateName] = useState("");
+  const [templateNameTouched, setTemplateNameTouched] = useState(false);
+  const [isCanvaModalOpen, setIsCanvaModalOpen] = useState(false);
+  const [customTemplates, setCustomTemplates] = useState<TemplateOption[]>([]);
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [selectedCustomIds, setSelectedCustomIds] = useState<string[]>([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFeedFile, setEditFeedFile] = useState<File | null>(null);
+  const [editStoryFile, setEditStoryFile] = useState<File | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editNameTouched, setEditNameTouched] = useState(false);
+  const [editFeedError, setEditFeedError] = useState("");
+  const [editStoryError, setEditStoryError] = useState("");
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [isDeletingTemplates, setIsDeletingTemplates] = useState(false);
+  const [saveError, setSaveError] = useState<string>("");
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
+  useEffect(() => {
+    const loadCustomTemplates = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/templates`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        if (Array.isArray(data.templates)) {
+          setCustomTemplates(data.templates);
+          if (data.templates.length > 0) {
+            setSelectedTemplate(data.templates[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar templates personalizados:", error);
+      }
+    };
+
+    loadCustomTemplates();
+  }, [apiBaseUrl]);
 
   const scrollCarousel = (direction: "left" | "right") => {
     if (carouselRef.current) {
@@ -84,9 +191,19 @@ export default function TemplatesPage() {
     }
   };
 
-  const templatePreviewSrc = `/templates/${selectedTemplate}-template-feed.png`;
+  const templatePreviewSrc = selectedTemplate.feedUrl;
 
-  const templateStoryPreviewSrc = `/templates/${selectedTemplate}-template-story.png`;
+  const templateStoryPreviewSrc = selectedTemplate.storyUrl;
+
+  const allTemplates = useMemo(
+    () => [...customTemplates, ...SYSTEM_TEMPLATES],
+    [customTemplates]
+  );
+
+  const selectedCustomTemplate = useMemo(() => {
+    if (selectedCustomIds.length !== 1) return null;
+    return customTemplates.find((template) => template.id === selectedCustomIds[0]) || null;
+  }, [customTemplates, selectedCustomIds]);
 
   const productImageSrc = useMemo(
     () => mockProduct.imagem.replace(/^public\//, "/"),
@@ -106,9 +223,9 @@ export default function TemplatesPage() {
         const aspectRatio = width / height;
 
         if (type === "feed") {
-          // Feed deve ser aproximadamente quadrado (aspect ratio entre 0.8 e 1.2)
-          if (aspectRatio < 0.8 || aspectRatio > 1.2) {
-            resolve("O formato desta imagem não está bom para feed");
+          // Feed deve ser 4:5 (aspect ratio entre 0.75 e 0.85)
+          if (aspectRatio < 0.75 || aspectRatio > 0.85) {
+            resolve("O formato desta imagem não está bom para feed (4:5)");
           } else {
             resolve("");
           }
@@ -155,10 +272,193 @@ export default function TemplatesPage() {
     }
   };
 
-  const handleSaveTemplates = () => {
-    if (!feedError && !storyError) {
-      // TODO: Implementar backend para salvar templates
+  const handleSaveTemplates = async () => {
+    if (
+      feedError ||
+      storyError ||
+      !feedTemplate ||
+      !storyTemplate ||
+      !templateName.trim()
+    ) {
+      return;
+    }
+
+    setIsSavingTemplate(true);
+    setSaveError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("name", templateName.trim());
+      formData.append("feed", feedTemplate);
+      formData.append("story", storyTemplate);
+
+      const response = await fetch(`${apiBaseUrl}/api/templates`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSaveError(data?.error || "Nao foi possivel salvar o template.");
+        return;
+      }
+
+      if (data.template) {
+        setCustomTemplates((prev) => [data.template, ...prev]);
+        setSelectedTemplate(data.template);
+      }
+
+      setFeedTemplate(null);
+      setStoryTemplate(null);
+      setFeedError("");
+      setStoryError("");
+      setTemplateName("");
+      setTemplateNameTouched(false);
       setIsUploadModalOpen(false);
+    } catch (error) {
+      console.error("Erro ao salvar template:", error);
+      setSaveError("Erro ao enviar os arquivos. Tente novamente.");
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
+  const handleToggleCustomTemplate = (templateId: string) => {
+    setSelectedCustomIds((prev) => {
+      if (prev.includes(templateId)) {
+        return prev.filter((id) => id !== templateId);
+      }
+      return [...prev, templateId];
+    });
+  };
+
+  const handleOpenEditModal = () => {
+    if (!selectedCustomTemplate) return;
+    setEditName(selectedCustomTemplate.name);
+    setEditFeedFile(null);
+    setEditStoryFile(null);
+    setEditFeedError("");
+    setEditStoryError("");
+    setEditNameTouched(false);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditFeedChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setEditFeedFile(file);
+      const error = await validateImageFormat(file, "feed");
+      setEditFeedError(error);
+    }
+  };
+
+  const handleEditStoryChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setEditStoryFile(file);
+      const error = await validateImageFormat(file, "story");
+      setEditStoryError(error);
+    }
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!selectedCustomTemplate) return;
+
+    if (editFeedError || editStoryError || !editName.trim()) {
+      setEditNameTouched(true);
+      return;
+    }
+
+    setIsEditingTemplate(true);
+    setSaveError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("name", editName.trim());
+      if (editFeedFile) {
+        formData.append("feed", editFeedFile);
+      }
+      if (editStoryFile) {
+        formData.append("story", editStoryFile);
+      }
+
+      const response = await fetch(`${apiBaseUrl}/api/templates/${selectedCustomTemplate.id}`, {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSaveError(data?.error || "Nao foi possivel atualizar o template.");
+        return;
+      }
+
+      if (data.template) {
+        setCustomTemplates((prev) =>
+          prev.map((template) =>
+            template.id === data.template.id ? data.template : template
+          )
+        );
+        setSelectedTemplate(data.template);
+      }
+
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error("Erro ao atualizar template:", error);
+      setSaveError("Erro ao atualizar o template.");
+    } finally {
+      setIsEditingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplates = async () => {
+    if (selectedCustomIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      selectedCustomIds.length === 1
+        ? "Tem certeza que deseja deletar este template?"
+        : "Tem certeza que deseja deletar estes templates?"
+    );
+
+    if (!confirmed) return;
+
+    setIsDeletingTemplates(true);
+    setSaveError("");
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/templates`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: selectedCustomIds }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSaveError(data?.error || "Nao foi possivel deletar os templates.");
+        return;
+      }
+
+      setCustomTemplates((prev) =>
+        prev.filter((template) => !selectedCustomIds.includes(template.id))
+      );
+      setSelectedCustomIds([]);
+    } catch (error) {
+      console.error("Erro ao deletar templates:", error);
+      setSaveError("Erro ao deletar templates.");
+    } finally {
+      setIsDeletingTemplates(false);
     }
   };
 
@@ -179,13 +479,24 @@ export default function TemplatesPage() {
 
       <div className="flex flex-col gap-6">
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
-            Imagem de fundo
-          </h2>
-          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-            Escolha o layout que define posição de imagem, preço, título e
-            cupom.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
+                Imagem de fundo
+              </h2>
+              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                Escolha o layout que define posição de imagem, preço, título e
+                cupom.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsCustomModalOpen(true)}
+              className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] px-4 py-2 text-sm font-semibold text-[var(--color-text-main)] transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+              type="button"
+            >
+              Templates Personalizados
+            </button>
+          </div>
           <div className="relative mt-6">
             {/* Botão Esquerdo */}
             <button
@@ -215,30 +526,30 @@ export default function TemplatesPage() {
               className="flex gap-[10px] overflow-x-auto scrollbar-hide px-12"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {TEMPLATES.map((template) => (
+              {allTemplates.map((template) => (
                 <button
-                  key={template}
+                  key={template.id}
                   onClick={() => setSelectedTemplate(template)}
                   style={{
-                    borderWidth: selectedTemplate === template ? "4px" : "2px",
+                    borderWidth: selectedTemplate.id === template.id ? "4px" : "2px",
                     borderColor:
-                      selectedTemplate === template
+                      selectedTemplate.id === template.id
                         ? "var(--color-primary)"
                         : "var(--color-border)",
                     borderStyle: "solid",
                   }}
                   className="relative h-[270px] w-auto flex-shrink-0 overflow-hidden shadow-[var(--shadow-sm)] transition-all duration-200 hover:shadow-[var(--shadow-md)]"
                   type="button"
-                  aria-label={`Selecionar template ${template}`}
+                  aria-label={`Selecionar template ${template.name}`}
                 >
-                  <Image
-                    src={`/templates/${template}-template-story.png`}
-                    alt={`Template ${template}`}
+                  <TemplateImage
+                    src={template.storyUrl}
+                    alt={`Template ${template.name}`}
                     width={152}
                     height={270}
                     className="h-full w-auto object-contain"
                   />
-                  {selectedTemplate === template && (
+                  {selectedTemplate.id === template.id && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500">
                         <svg
@@ -624,6 +935,58 @@ export default function TemplatesPage() {
                         />
                       </div>
                     </div>
+                    <div className="flex w-full items-center gap-2">
+                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+                        <input
+                          type="text"
+                          value={customCardText}
+                          onChange={(event) => setCustomCardText(event.target.value)}
+                          placeholder="Meu texto personalizado"
+                          className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
+                        />
+                        <input
+                          type="checkbox"
+                          checked={cardDetails.customText}
+                          onChange={(event) =>
+                            setCardDetails((prev) => ({
+                              ...prev,
+                              customText: event.target.checked,
+                            }))
+                          }
+                        />
+                      </label>
+                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={feedColors.customText}
+                            onChange={(e) =>
+                              setFeedColors((prev) => ({
+                                ...prev,
+                                customText: e.target.value,
+                              }))
+                            }
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          />
+                          <div
+                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
+                            style={{ backgroundColor: feedColors.customText }}
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={feedColors.customText}
+                          onChange={(e) =>
+                            setFeedColors((prev) => ({
+                              ...prev,
+                              customText: e.target.value,
+                            }))
+                          }
+                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
+                          placeholder="#000000"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -633,17 +996,25 @@ export default function TemplatesPage() {
                     Preview
                   </p>
                   <div className="mt-4 space-y-4">
-                    <div className="relative h-[200px] w-[200px] overflow-hidden border border-[var(--color-border)] bg-white">
+                    <div className="relative h-[250px] w-[200px] overflow-hidden border border-[var(--color-border)] bg-white">
                       <div className="relative h-full w-full">
-                        <Image
-                          src={templatePreviewSrc}
-                          alt="Template selecionado"
-                          fill
-                          className="object-contain"
-                          sizes="(max-width: 1024px) 70vw, 320px"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center" style={{ marginTop: '25px' }}>
-                          <div className="relative h-[135px] w-[135px]">
+                        {selectedTemplate.source === "custom" ? (
+                          <img
+                            src={templatePreviewSrc}
+                            alt="Template selecionado"
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <Image
+                            src={templatePreviewSrc}
+                            alt="Template selecionado"
+                            fill
+                            className="object-contain"
+                            sizes="(max-width: 1024px) 70vw, 320px"
+                          />
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ marginTop: '30px' }}>
+                          <div className="relative h-[140px] w-[140px]">
                             <Image
                               src={productImageSrc}
                               alt={mockProduct.title}
@@ -696,6 +1067,11 @@ export default function TemplatesPage() {
                       {cardDetails.disclaimer && (
                         <p className="text-xs italic" style={{ color: feedColors.disclaimer }}>
                           *Promoção sujeita a alteração a qualquer momento
+                        </p>
+                      )}
+                      {cardDetails.customText && customCardText.trim() && (
+                        <p style={{ color: feedColors.customText }}>
+                          {customCardText}
                         </p>
                       )}
                     </div>
@@ -897,6 +1273,58 @@ export default function TemplatesPage() {
                         />
                       </div>
                     </div>
+                    <div className="flex w-full items-center gap-2">
+                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+                        <input
+                          type="text"
+                          value={customStoryText}
+                          onChange={(event) => setCustomStoryText(event.target.value)}
+                          placeholder="Meu texto personalizado"
+                          className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
+                        />
+                        <input
+                          type="checkbox"
+                          checked={storyDetails.customText}
+                          onChange={(event) =>
+                            setStoryDetails((prev) => ({
+                              ...prev,
+                              customText: event.target.checked,
+                            }))
+                          }
+                        />
+                      </label>
+                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={storyColors.customText}
+                            onChange={(e) =>
+                              setStoryColors((prev) => ({
+                                ...prev,
+                                customText: e.target.value,
+                              }))
+                            }
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          />
+                          <div
+                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
+                            style={{ backgroundColor: storyColors.customText }}
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={storyColors.customText}
+                          onChange={(e) =>
+                            setStoryColors((prev) => ({
+                              ...prev,
+                              customText: e.target.value,
+                            }))
+                          }
+                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
+                          placeholder="#000000"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -907,19 +1335,27 @@ export default function TemplatesPage() {
                   </p>
                   <div className="mt-4">
                     <div className="relative h-[400px] w-[225px] overflow-hidden border border-[var(--color-border)] bg-white">
-                      <Image
-                        src={templateStoryPreviewSrc}
-                        alt="Template story selecionado"
-                        fill
-                        className="object-contain"
-                        sizes="225px"
-                      />
+                      {selectedTemplate.source === "custom" ? (
+                        <img
+                          src={templateStoryPreviewSrc}
+                          alt="Template story selecionado"
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <Image
+                          src={templateStoryPreviewSrc}
+                          alt="Template story selecionado"
+                          fill
+                          className="object-contain"
+                          sizes="225px"
+                        />
+                      )}
                       <div className="absolute inset-0 flex flex-col">
                         {/* 1/6 superior vazio */}
                         <div style={{ height: 'calc(100% / 6)' }} />
 
                         {/* 4/6 central com conteúdo principal */}
-                        <div className="flex flex-col items-center justify-center text-center" style={{ height: 'calc(100% * 4 / 6)', paddingLeft: '10%', paddingRight: '10%' }}>
+                        <div className="flex flex-col items-center justify-center text-center" style={{ height: 'calc(100% * 4 / 6)', paddingLeft: '15%', paddingRight: '15%' }}>
                           <div className="relative mb-2 h-[100px] w-[100px] flex-shrink-0">
                             <Image
                               src={productImageSrc}
@@ -950,6 +1386,11 @@ export default function TemplatesPage() {
                                 {mockProduct.coupon}
                               </p>
                             )}
+                            {storyDetails.customText && customStoryText.trim() && (
+                              <p className="text-xs font-semibold" style={{ color: storyColors.customText }}>
+                                {customStoryText}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -971,15 +1412,17 @@ export default function TemplatesPage() {
             Faça download do template básico, edite no Canva ou envie sua própria arte personalizada.
           </p>
           <div className="mt-6 grid gap-3 md:grid-cols-3">
-            <button
-              className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm font-semibold text-[var(--color-text-main)] transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-              type="button"
+            <a
+              className="flex items-center justify-center rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm font-semibold text-[var(--color-text-main)] transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:no-underline"
+              href="/template-base.zip"
+              download="template-base-divulga-facil.zip"
             >
               Download de template básico
-            </button>
+            </a>
             <button
               className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm font-semibold text-[var(--color-text-main)] transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
               type="button"
+              onClick={() => setIsCanvaModalOpen(true)}
             >
               Editar no Canva
             </button>
@@ -994,10 +1437,77 @@ export default function TemplatesPage() {
         </div>
       </div>
 
+      {/* Modal de Editar no Canva */}
+      {isCanvaModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setIsCanvaModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-[var(--shadow-lg)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsCanvaModalOpen(false)}
+              className="absolute right-4 top-4 text-2xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)]"
+              type="button"
+            >
+              ×
+            </button>
+
+            <h2 className="text-2xl font-bold text-[var(--color-text-main)]">
+              Editar no Canva
+            </h2>
+            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+              <strong>1) </strong>Seu layout novo necessita obrigatoriamente de 2 formatos, ambos padronizados no Canva: formato feed e formato story.
+            </h5>
+            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+              <strong>2) </strong>Após clicar no botão e o temhplate padrão se abrir, clique em <strong>Arquivo</strong> &gt; <strong>Fazer uma cópia</strong>, conforme o vídeo abaixo.
+            </h5>
+            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+              <strong>3) </strong>Depois de prontas as duas artes, anexe pelo botão <strong>Upload de arte</strong>.
+            </h5>
+
+            <div className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
+              <video
+                src="/Canva.mp4"
+                controls
+                className="h-auto w-full"
+              />
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <a
+                className="rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary)] px-5 py-2 text-center text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary)]/90"
+                href="https://www.canva.com/design/DAG88NhTX6o/YeHyZO5pxBvB79VzA86L8Q/edit?utm_content=DAG88NhTX6o&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Editar template de feed
+              </a>
+              <a
+                className="rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary)] px-5 py-2 text-center text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary)]/90"
+                href="https://www.canva.com/design/DAG88Nru2NU/9YuU22yvNeP9frr06sUgtw/edit?utm_content=DAG88Nru2NU&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Editar template de story
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Upload de Arte */}
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="relative w-full max-w-2xl rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-[var(--shadow-lg)]">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setIsUploadModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-[var(--shadow-lg)]"
+            onClick={(event) => event.stopPropagation()}
+          >
             <button
               onClick={() => setIsUploadModalOpen(false)}
               className="absolute right-4 top-4 text-2xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)]"
@@ -1021,24 +1531,24 @@ export default function TemplatesPage() {
                 </h3>
                 <ul className="mt-3 space-y-2 text-sm text-[var(--color-text-secondary)]">
                   <li className="flex items-start gap-2">
-                    <span className="mt-1 text-[var(--color-primary)]">•</span>
+                    <span className="text-[var(--color-primary)]">•</span>
+                    <span>São necessárias as duas artes para a produção de seu template personalizado</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[var(--color-primary)]">•</span>
                     <span>
-                      <strong>Template Feed:</strong> Formato quadrado (1080x1080px - proporção 1:1)
+                      <strong>Template Feed:</strong> Formato vertical (1080x1350px - proporção 4:5)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="mt-1 text-[var(--color-primary)]">•</span>
+                    <span className="text-[var(--color-primary)]">•</span>
                     <span>
                       <strong>Template Story:</strong> Formato vertical (1080x1920px - proporção 9:16)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="mt-1 text-[var(--color-primary)]">•</span>
+                    <span className="text-[var(--color-primary)]">•</span>
                     <span>Formatos aceitos: JPG, PNG</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1 text-[var(--color-primary)]">•</span>
-                    <span>As artes devem ser sem bordas arredondadas (formato retangular padrão)</span>
                   </li>
                 </ul>
               </div>
@@ -1097,6 +1607,34 @@ export default function TemplatesPage() {
                 </label>
               </div>
 
+              {/* Nome do template */}
+              <div>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-[var(--color-text-main)]">
+                    Nome do template
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Ex: Promoção Primavera"
+                    value={templateName}
+                    onChange={(event) => setTemplateName(event.target.value)}
+                    onBlur={() => setTemplateNameTouched(true)}
+                    className="w-full rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-text-main)] outline-none transition-all focus:border-[var(--color-primary)]"
+                  />
+                </label>
+                {templateNameTouched && !templateName.trim() && (
+                  <p className="mt-2 text-sm font-semibold text-red-600">
+                    Informe um nome para o template.
+                  </p>
+                )}
+              </div>
+
+              {saveError && (
+                <p className="text-sm font-semibold text-red-600">
+                  {saveError}
+                </p>
+              )}
+
               {/* Botões */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
@@ -1108,11 +1646,216 @@ export default function TemplatesPage() {
                 </button>
                 <button
                   onClick={handleSaveTemplates}
-                  disabled={!!feedError || !!storyError}
+                  disabled={
+                    !!feedError ||
+                    !!storyError ||
+                    !feedTemplate ||
+                    !storyTemplate ||
+                    !templateName.trim() ||
+                    isSavingTemplate
+                  }
                   className="rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary)] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary)]/90 disabled:cursor-not-allowed disabled:opacity-50"
                   type="button"
                 >
-                  Salvar
+                  {isSavingTemplate ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Templates Personalizados */}
+      {isCustomModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setIsCustomModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-[var(--shadow-lg)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsCustomModalOpen(false)}
+              className="absolute right-4 top-4 text-2xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)]"
+              type="button"
+            >
+              ×
+            </button>
+
+            <h2 className="text-2xl font-bold text-[var(--color-text-main)]">
+              Templates Personalizados
+            </h2>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+              Selecione os templates personalizados para editar ou deletar.
+            </p>
+
+            <div className="mt-6 max-h-[300px] space-y-2 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
+              {customTemplates.length === 0 && (
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  Nenhum template personalizado encontrado.
+                </p>
+              )}
+              {customTemplates.map((template) => (
+                <label
+                  key={template.id}
+                  className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-text-main)]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCustomIds.includes(template.id)}
+                    onChange={() => handleToggleCustomTemplate(template.id)}
+                  />
+                  <TemplateImage
+                    src={template.feedUrl}
+                    alt={`Template ${template.name}`}
+                    width={20}
+                    height={25}
+                    className="h-[25px] w-[20px] rounded object-cover"
+                  />
+                  <span className="font-semibold">{template.name}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={handleOpenEditModal}
+                disabled={selectedCustomIds.length !== 1}
+                className="rounded-xl border-2 border-[var(--color-border)] bg-white px-5 py-2 text-sm font-semibold text-[var(--color-text-main)] transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                Editar
+              </button>
+              <button
+                onClick={handleDeleteTemplates}
+                disabled={selectedCustomIds.length === 0 || isDeletingTemplates}
+                className="rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary)] px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary)]/90 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                {isDeletingTemplates ? "Deletando..." : "Deletar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Editar Template */}
+      {isEditModalOpen && selectedCustomTemplate && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setIsEditModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-[var(--shadow-lg)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute right-4 top-4 text-2xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)]"
+              type="button"
+            >
+              ×
+            </button>
+
+            <h2 className="text-2xl font-bold text-[var(--color-text-main)]">
+              Editar Template Personalizado
+            </h2>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+              Altere apenas o que desejar. Campos não modificados serão mantidos.
+            </p>
+
+            <div className="mt-6 space-y-6">
+              <div>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-[var(--color-text-main)]">
+                    Alterar o nome do template
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Ex: Promoção Primavera"
+                    value={editName}
+                    onChange={(event) => setEditName(event.target.value)}
+                    onBlur={() => setEditNameTouched(true)}
+                    className="w-full rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-text-main)] outline-none transition-all focus:border-[var(--color-primary)]"
+                  />
+                </label>
+                {editNameTouched && !editName.trim() && (
+                  <p className="mt-2 text-sm font-semibold text-red-600">
+                    Informe um nome para o template.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-[var(--color-text-main)]">
+                    Alterar imagem de fundo para feed.
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleEditFeedChange}
+                    className="w-full cursor-pointer rounded-xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-text-secondary)] transition-all hover:border-[var(--color-primary)] file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-[var(--color-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                  />
+                  {editFeedFile && (
+                    <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                      Arquivo selecionado: {editFeedFile.name}
+                    </p>
+                  )}
+                  {editFeedError && (
+                    <p className="mt-2 text-sm font-semibold text-red-600">
+                      {editFeedError}
+                    </p>
+                  )}
+                </label>
+              </div>
+
+              <div>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-[var(--color-text-main)]">
+                    Alterar imagem de fundo para stories
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleEditStoryChange}
+                    className="w-full cursor-pointer rounded-xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-text-secondary)] transition-all hover:border-[var(--color-primary)] file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-[var(--color-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                  />
+                  {editStoryFile && (
+                    <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                      Arquivo selecionado: {editStoryFile.name}
+                    </p>
+                  )}
+                  {editStoryError && (
+                    <p className="mt-2 text-sm font-semibold text-red-600">
+                      {editStoryError}
+                    </p>
+                  )}
+                </label>
+              </div>
+
+              {saveError && (
+                <p className="text-sm font-semibold text-red-600">
+                  {saveError}
+                </p>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="rounded-xl border-2 border-[var(--color-border)] bg-white px-6 py-2 text-sm font-semibold text-[var(--color-text-main)] transition-all hover:bg-[var(--color-background)]"
+                  type="button"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleUpdateTemplate}
+                  disabled={!!editFeedError || !!editStoryError || !editName.trim() || isEditingTemplate}
+                  className="rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary)] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary)]/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  type="button"
+                >
+                  {isEditingTemplate ? "Salvando..." : "Salvar alterações"}
                 </button>
               </div>
             </div>

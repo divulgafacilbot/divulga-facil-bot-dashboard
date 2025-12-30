@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
         <div className="flex flex-col items-center text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-hero shadow-[var(--shadow-xl)] animate-[slideDown_0.3s_ease-out]">
             <Image
-              src="/logo-v2.png"
+              src="/logo.png"
               alt="Posting Bot"
               width={36}
               height={36}
@@ -94,20 +94,20 @@ export default function ForgotPasswordPage() {
       <div className="flex flex-col items-center text-center">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-hero shadow-[var(--shadow-xl)]">
           <Image
-            src="/logo-v2.png"
+            src="/logo.png"
             alt="Posting Bot"
             width={50}
             height={50}
             className="h-9 w-9 object-contain"
           />
         </div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-warning)]">
+        <p className="mb-0 text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-warning)]">
           Recuperar senha
         </p>
         <h1 className="mt-2 text-3xl font-bold text-[var(--color-text-main)]">
           Redefinir senha
         </h1>
-        <p className="mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
+        <p className="mb-0 mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
           Digite seu e-mail e enviaremos um link para redefinir sua senha.
         </p>
       </div>

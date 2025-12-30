@@ -1,13 +1,18 @@
 import './env.js';
 import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import templatesRoutes from './routes/templates.routes.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { CleanupService } from './services/jobs/cleanup.service.js';
 
 export const app = express();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadsPath = path.join(__dirname, '..', 'uploads');
 
 // Middleware
 app.use(express.json());
@@ -29,6 +34,7 @@ app.use(
     credentials: true,
   })
 );
+app.use('/uploads', express.static(uploadsPath));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -38,6 +44,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);
+app.use('/api/templates', templatesRoutes);
 
 // Error handling
 app.use(errorMiddleware);

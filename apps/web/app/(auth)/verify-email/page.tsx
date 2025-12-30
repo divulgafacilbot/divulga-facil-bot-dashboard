@@ -50,7 +50,7 @@ function VerifyEmailContent() {
           <div className="mb-6 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] shadow-[var(--shadow-lg)]">
               <Image
-                src="/logo-v2.png"
+                src="/logo.png"
                 alt="Posting Bot"
                 width={50}
                 height={50}
