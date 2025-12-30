@@ -5,6 +5,7 @@ export const mockProduct = {
     "O Smart Watch T800 Ultra, a nova geração de relógios inteligentes que combina estilo e funcionalidade.",
   promotionalPrice: "R$89,99",
   fullPrice: "R$189,99",
+  salesQuantity: 28500,
   affiliateLink: "https://shopee.com.br/seu-link",
   coupon: "desconto10",
 };
