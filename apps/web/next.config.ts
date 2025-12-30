@@ -1,9 +1,30 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  async rewrites() {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+const remotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [];
 
+if (apiBase && apiBase.startsWith("http")) {
+  try {
+    const url = new URL(apiBase);
+    remotePatterns.push({
+      protocol: url.protocol.replace(":", ""),
+      hostname: url.hostname,
+      port: url.port || "",
+    });
+  } catch {
+    // Ignore invalid API base URL
+  }
+}
+
+remotePatterns.push({
+  protocol: "http",
+  hostname: "localhost",
+  port: "4000",
+});
+
+const nextConfig: NextConfig = {
+  images: remotePatterns.length > 0 ? { remotePatterns } : undefined,
+  async rewrites() {
     if (!apiBase || apiBase.startsWith("/")) {
       return [];
     }

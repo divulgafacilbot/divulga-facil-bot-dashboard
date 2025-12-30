@@ -25,6 +25,7 @@ model User {
   telemetry_events        telemetry_events[]
   usage_counters          usage_counters[]
   user_brand_configs      user_brand_configs?
+  user_templates          user_templates[]
 
   @@index([email], map: "idx_users_email")
   @@index([role], map: "idx_users_role")
@@ -206,4 +207,19 @@ model user_brand_configs {
   users       User?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_user_brand_configs_user_id")
+}
+
+model user_templates {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String   @db.Uuid
+  name       String   @db.VarChar(120)
+  feed_url   String   @db.VarChar(500)
+  story_url  String   @db.VarChar(500)
+  type       String   @default("custom") @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  users      User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_user_templates_user_id")
+  @@map("user_templates")
 }
