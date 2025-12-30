@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
-import { registerSchema } from "@/lib/validation";
-import { api } from "@/lib/api";
-import { Input } from "@/components/forms/Input";
 import { Button } from "@/components/forms/Button";
+import { Input } from "@/components/forms/Input";
+import { api } from "@/lib/api";
+import { registerSchema } from "@/lib/validation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 
 type RegisterForm = {
   email: string;
@@ -156,22 +156,22 @@ export default function RegisterPage() {
     <div className="flex flex-col gap-8">
       {/* Header with icon */}
       <div className="flex flex-col items-center text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-primary shadow-[var(--shadow-primary-lg)]">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary)] shadow-[var(--shadow-primary-lg)]">
           <Image
-            src="/logo-v2.png"
+            src="/logo.png"
             alt="Posting Bot"
             width={36}
             height={36}
             className="h-9 w-9 object-contain"
           />
         </div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-primary)]">
+        <p className="mb-0 text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-primary)]">
           Criar conta
         </p>
         <h1 className="mt-2 text-3xl font-bold text-[var(--color-text-main)]">
           Comece a personalizar
         </h1>
-        <p className="mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
+        <p className="mb-0 mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
           Cadastre seu e-mail e defina uma senha para configurar seus templates.
         </p>
       </div>

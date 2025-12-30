@@ -2,13 +2,12 @@
 
 import { Button } from "@/components/forms/Button";
 import { api, IS_PRODUCTION } from "@/lib/api";
-import { BOT_NAME } from "@/lib/constants";
 import { UserRole } from "@/lib/common-enums";
 import type { User } from "@/types";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import AppHeader from "@/components/common/AppHeader";
 
 const SidebarContext = createContext<{ sidebarCollapsed: boolean }>({
   sidebarCollapsed: false,
@@ -140,53 +139,7 @@ export default function DashboardLayout({
   return (
     <SidebarContext.Provider value={{ sidebarCollapsed }}>
       <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)]">
-      <header
-        className="border-b border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)]"
-        style={{
-          height: '100px',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 40
-        }}
-      >
-        <div className="mx-auto flex h-full w-full items-center justify-between p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary text-base font-bold text-white shadow-[var(--shadow-primary)]">
-              <Image
-                src="/logo-v2.png"
-                alt="Posting Bot"
-                width={50}
-                height={50}
-                className="h-8 w-8 object-contain"
-              />
-            </div>
-            <div className="leading-tight">
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--color-primary)]" style={{ margin: 0 }}>
-                {BOT_NAME}
-              </p>
-              <p className="text-xl font-bold" style={{ margin: 0 }}>Seu painel</p>
-            </div>
-          </div>
-          <Button onClick={handleLogout} variant="ghost">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
-            Sair
-          </Button>
-        </div>
-      </header>
+      <AppHeader variant="dashboard" onLogout={handleLogout} />
 
       {/* Sidebar */}
       <aside
@@ -194,7 +147,7 @@ export default function DashboardLayout({
           width: sidebarCollapsed ? '50px' : '260px',
           position: 'fixed',
           left: 0,
-          top: '100px',
+          top: '70px',
           bottom: 0,
           transition: 'width 300ms ease-in-out',
         }}
@@ -242,7 +195,7 @@ export default function DashboardLayout({
           style={{
             position: 'fixed',
             left: sidebarCollapsed ? '34px' : '244px',
-            top: '124px',
+            top: '94px',
             zIndex: 50,
             transition: 'left 300ms ease-in-out',
           }}
@@ -269,7 +222,7 @@ export default function DashboardLayout({
       <main
         style={{
           marginLeft: sidebarCollapsed ? '50px' : '260px',
-          paddingTop: '100px',
+          paddingTop: '70px',
           transition: 'margin-left 300ms ease-in-out',
         }}
       >

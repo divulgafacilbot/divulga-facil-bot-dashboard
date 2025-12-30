@@ -86,22 +86,22 @@ export default function LoginPage() {
     <div className="flex flex-col gap-8">
       {/* Header with icon */}
       <div className="flex flex-col items-center text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-secondary shadow-[var(--shadow-lg)]">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary)] shadow-[var(--shadow-lg)]">
           <Image
-            src="/logo-v2.png"
+            src="/logo.png"
             alt="Posting Bot"
-            width={50}
-            height={50}
+            width={60}
+            height={60}
             className="h-9 w-9 object-contain"
           />
         </div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-secondary)]">
+        <p className="mb-0 text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-secondary)]">
           Acesso ao painel
         </p>
         <h1 className="mt-2 text-3xl font-bold text-[var(--color-text-main)]">
           Vamos configurar seus templates
         </h1>
-        <p className="mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
+        <p className="mb-0 mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
           Entre com seu e-mail e senha para personalizar suas artes e publicar.
         </p>
       </div>
