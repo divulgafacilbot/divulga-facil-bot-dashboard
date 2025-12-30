@@ -86,6 +86,7 @@ export default function TemplatesPage() {
     affiliateLink: true,
     coupon: true,
     disclaimer: false,
+    salesQuantity: false,
     customText: false,
   });
 
@@ -114,6 +115,7 @@ export default function TemplatesPage() {
     affiliateLink: "#000000",
     coupon: "#000000",
     disclaimer: "#000000",
+    salesQuantity: "#000000",
     customText: "#000000",
   });
   const [storyColors, setStoryColors] = useState({
@@ -209,6 +211,13 @@ export default function TemplatesPage() {
     () => mockProduct.imagem.replace(/^public\//, "/"),
     []
   );
+  const formattedSalesQuantity = useMemo(() => {
+    const quantity = mockProduct.salesQuantity;
+    if (quantity < 1000) {
+      return `${quantity} vendidos`;
+    }
+    return `${Math.floor(quantity / 1000)}mil+ vendidos`;
+  }, []);
 
   const validateImageFormat = (
     file: File,
@@ -937,6 +946,52 @@ export default function TemplatesPage() {
                     </div>
                     <div className="flex w-full items-center gap-2">
                       <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+                        <span>Quantidade de vendas</span>
+                        <input
+                          type="checkbox"
+                          checked={cardDetails.salesQuantity}
+                          onChange={(event) =>
+                            setCardDetails((prev) => ({
+                              ...prev,
+                              salesQuantity: event.target.checked,
+                            }))
+                          }
+                        />
+                      </label>
+                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={feedColors.salesQuantity}
+                            onChange={(e) =>
+                              setFeedColors((prev) => ({
+                                ...prev,
+                                salesQuantity: e.target.value,
+                              }))
+                            }
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          />
+                          <div
+                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
+                            style={{ backgroundColor: feedColors.salesQuantity }}
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={feedColors.salesQuantity}
+                          onChange={(e) =>
+                            setFeedColors((prev) => ({
+                              ...prev,
+                              salesQuantity: e.target.value,
+                            }))
+                          }
+                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
+                          placeholder="#000000"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex w-full items-center gap-2">
+                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
                         <input
                           type="text"
                           value={customCardText}
@@ -1067,6 +1122,14 @@ export default function TemplatesPage() {
                       {cardDetails.disclaimer && (
                         <p className="text-xs italic" style={{ color: feedColors.disclaimer }}>
                           *Promoção sujeita a alteração a qualquer momento
+                        </p>
+                      )}
+                      {cardDetails.salesQuantity && (
+                        <p style={{ color: feedColors.salesQuantity }}>
+                          <span className="font-semibold">
+                            Vendas:
+                          </span>{" "}
+                          {formattedSalesQuantity}
                         </p>
                       )}
                       {cardDetails.customText && customCardText.trim() && (
