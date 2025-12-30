@@ -6,10 +6,12 @@ const remotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [];
 if (apiBase && apiBase.startsWith("http")) {
   try {
     const url = new URL(apiBase);
+    const protocol = url.protocol.replace(":", "") as "http" | "https";
     remotePatterns.push({
-      protocol: url.protocol.replace(":", ""),
+      protocol,
       hostname: url.hostname,
       port: url.port || "",
+      pathname: "/**",
     });
   } catch {
     // Ignore invalid API base URL
@@ -20,6 +22,7 @@ remotePatterns.push({
   protocol: "http",
   hostname: "localhost",
   port: "4000",
+  pathname: "/**",
 });
 
 const nextConfig: NextConfig = {
