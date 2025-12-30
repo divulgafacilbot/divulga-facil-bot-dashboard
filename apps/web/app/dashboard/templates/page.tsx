@@ -1462,7 +1462,7 @@ export default function TemplatesPage() {
               <strong>1) </strong>Seu layout novo necessita obrigatoriamente de 2 formatos, ambos padronizados no Canva: formato feed e formato story.
             </h5>
             <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
-              <strong>2) </strong>Ah5ós clicar no botão e o temh5late padrão se abrir, clique em <strong>Arquivo</strong> &gt; <strong>Fazer uma cópia</strong>, conforme o vídeo abaixo.
+              <strong>2) </strong>Após clicar no botão e o temhplate padrão se abrir, clique em <strong>Arquivo</strong> &gt; <strong>Fazer uma cópia</strong>, conforme o vídeo abaixo.
             </h5>
             <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
               <strong>3) </strong>Depois de prontas as duas artes, anexe pelo botão <strong>Upload de arte</strong>.
