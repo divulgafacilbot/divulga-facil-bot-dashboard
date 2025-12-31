@@ -137,6 +137,7 @@ export default function TemplatesPage() {
   const [isCanvaModalOpen, setIsCanvaModalOpen] = useState(false);
   const [customTemplates, setCustomTemplates] = useState<TemplateOption[]>([]);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [isSavingLayout, setIsSavingLayout] = useState(false);
   const [selectedCustomIds, setSelectedCustomIds] = useState<string[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFeedFile, setEditFeedFile] = useState<File | null>(null);
@@ -178,6 +179,97 @@ export default function TemplatesPage() {
 
     loadCustomTemplates();
   }, [apiBaseUrl]);
+
+  // Load layout preferences on component mount
+  useEffect(() => {
+    const loadLayoutPreferences = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/me/layout-preferences`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          return; // User doesn't have preferences yet, use defaults
+        }
+
+        const prefs = await response.json();
+
+        // Update card/feed details
+        setCardDetails({
+          title: prefs.feedShowTitle,
+          description: prefs.feedShowDescription,
+          promotionalPrice: prefs.feedShowPrice,
+          fullPrice: prefs.feedShowOriginalPrice,
+          affiliateLink: prefs.feedShowProductUrl,
+          coupon: prefs.feedShowCoupon,
+          disclaimer: prefs.feedShowDisclaimer,
+          salesQuantity: prefs.feedShowSalesQuantity,
+          customText: prefs.feedShowCustomText,
+        });
+
+        // Update story details
+        setStoryDetails({
+          title: prefs.storyShowTitle,
+          promotionalPrice: prefs.storyShowPrice,
+          fullPrice: prefs.storyShowOriginalPrice,
+          coupon: prefs.storyShowCoupon,
+          customText: prefs.storyShowCustomText,
+        });
+      } catch (error) {
+        console.error("Erro ao carregar preferências de layout:", error);
+      }
+    };
+
+    loadLayoutPreferences();
+  }, [apiBaseUrl]);
+
+  // Handle save layout preferences
+  const handleSaveLayout = async () => {
+    setIsSavingLayout(true);
+    try {
+      const layoutData = {
+        // Feed preferences
+        feedShowTitle: cardDetails.title,
+        feedShowDescription: cardDetails.description,
+        feedShowPrice: cardDetails.promotionalPrice,
+        feedShowOriginalPrice: cardDetails.fullPrice,
+        feedShowProductUrl: cardDetails.affiliateLink,
+        feedShowCoupon: cardDetails.coupon,
+        feedShowDisclaimer: cardDetails.disclaimer,
+        feedShowSalesQuantity: cardDetails.salesQuantity,
+        feedShowCustomText: cardDetails.customText,
+
+        // Story preferences
+        storyShowTitle: storyDetails.title,
+        storyShowPrice: storyDetails.promotionalPrice,
+        storyShowOriginalPrice: storyDetails.fullPrice,
+        storyShowCoupon: storyDetails.coupon,
+        storyShowCustomText: storyDetails.customText,
+      };
+
+      const response = await fetch(`${apiBaseUrl}/api/me/layout-preferences`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(layoutData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao salvar preferências de layout");
+      }
+
+      // Success feedback - você pode adicionar um toast ou notificação aqui
+      alert("✅ Layout salvo com sucesso! Suas preferências serão usadas na geração de artes.");
+    } catch (error) {
+      console.error("Erro ao salvar layout:", error);
+      alert("❌ Erro ao salvar layout. Tente novamente.");
+    } finally {
+      setIsSavingLayout(false);
+    }
+  };
 
   const scrollCarousel = (direction: "left" | "right") => {
     if (carouselRef.current) {
@@ -606,12 +698,38 @@ export default function TemplatesPage() {
         </div>
 
         <div className={`rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] ${!useRowLayout ? 'max-w-[700px]' : ''}`}>
-          <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
-            Definição de Layout
-          </h2>
-          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-            Personalize as informações que aparecerão nas artes geradas para cada plataforma.
-          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
+                Definição de Layout
+              </h2>
+              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                Personalize as informações que aparecerão nas artes geradas para cada plataforma.
+              </p>
+            </div>
+            <button
+              onClick={handleSaveLayout}
+              disabled={isSavingLayout}
+              className="ml-4 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingLayout ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  Salvar Layout
+                </>
+              )}
+            </button>
+          </div>
           <div className={`mt-6 flex gap-6 ${useRowLayout ? 'flex-row' : 'flex-col'}`}>
             {/* Card para Feed/Telegram/WhatsApp */}
             <div className="max-w-[700px] rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">

@@ -21,11 +21,12 @@ model User {
   loginHistory            LoginHistory[]
   subscriptions           subscriptions?
   telegram_bot_links      telegram_bot_links[]
-  telegram_links          telegram_links?
+  telegram_links          telegram_links[]
   telemetry_events        telemetry_events[]
   usage_counters          usage_counters[]
   user_brand_configs      user_brand_configs?
   user_templates          user_templates[]
+  user_layout_preferences user_layout_preferences?
 
   @@index([email], map: "idx_users_email")
   @@index([role], map: "idx_users_role")
@@ -144,25 +145,29 @@ model subscriptions {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model telegram_bot_links {
-  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id   String?   @db.Uuid
-  bot_type  String    @db.VarChar(50)
-  linked_at DateTime? @default(now()) @db.Timestamptz(6)
-  users     User?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String    @db.Uuid
+  bot_type         String    @db.VarChar(50)
+  telegram_user_id String    @db.VarChar(100)
+  chat_id          String    @db.VarChar(100)
+  linked_at        DateTime? @default(now()) @db.Timestamptz(6)
+  users            User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([user_id, bot_type])
+  @@unique([user_id, bot_type], map: "user_id_bot_type")
   @@index([user_id], map: "idx_telegram_bot_links_user_id")
 }
 
 model telegram_links {
-  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id          String?   @unique @db.Uuid
-  telegram_user_id BigInt    @unique(map: "idx_telegram_links_telegram_user_id")
-  telegram_chat_id BigInt
-  linked_at        DateTime? @default(now()) @db.Timestamptz(6)
-  users            User?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token      String    @db.VarChar(255)
+  expires_at DateTime  @db.Timestamptz(6)
+  status     String    @default("PENDING") @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  users      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_telegram_links_user_id")
+  @@index([token], map: "idx_telegram_links_token")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -195,16 +200,19 @@ model usage_counters {
 }
 
 model user_brand_configs {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id     String?   @unique @db.Uuid
-  template_id String?   @default("default_v1") @db.VarChar(100)
-  bg_color    String?   @default("#FFFFFF") @db.VarChar(7)
-  text_color  String?   @default("#000000") @db.VarChar(7)
-  font_family String?   @default("Inter") @db.VarChar(100)
-  show_coupon Boolean?  @default(false)
-  coupon_text String?   @db.VarChar(50)
-  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
-  users       User?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String?   @unique @db.Uuid
+  template_id      String?   @default("default_v1") @db.VarChar(100)
+  bg_color         String?   @default("#FFFFFF") @db.VarChar(7)
+  text_color       String?   @default("#000000") @db.VarChar(7)
+  price_color      String?   @db.VarChar(7)
+  font_family      String?   @default("Inter") @db.VarChar(100)
+  show_coupon      Boolean?  @default(false)
+  coupon_text      String?   @db.VarChar(50)
+  cta_text         String?   @db.VarChar(100)
+  custom_image_url String?   @db.VarChar(500)
+  updated_at       DateTime? @default(now()) @db.Timestamptz(6)
+  users            User?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_user_brand_configs_user_id")
 }
@@ -222,4 +230,33 @@ model user_templates {
 
   @@index([user_id], map: "idx_user_templates_user_id")
   @@map("user_templates")
+}
+
+model user_layout_preferences {
+  id                     String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                String    @unique @db.Uuid
+
+  // Feed/Card layout preferences
+  feed_show_title        Boolean   @default(true)
+  feed_show_description  Boolean   @default(true)
+  feed_show_price        Boolean   @default(true)
+  feed_show_original_price Boolean @default(true)
+  feed_show_product_url  Boolean   @default(true)
+  feed_show_coupon       Boolean   @default(true)
+  feed_show_disclaimer   Boolean   @default(false)
+  feed_show_sales_quantity Boolean @default(false)
+  feed_show_custom_text  Boolean   @default(false)
+
+  // Story layout preferences
+  story_show_title       Boolean   @default(true)
+  story_show_price       Boolean   @default(true)
+  story_show_original_price Boolean @default(true)
+  story_show_coupon      Boolean   @default(true)
+  story_show_custom_text Boolean   @default(false)
+
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  users                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_user_layout_preferences_user_id")
 }

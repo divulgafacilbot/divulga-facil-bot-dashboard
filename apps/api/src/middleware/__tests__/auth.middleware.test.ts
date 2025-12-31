@@ -20,7 +20,7 @@ describe('Auth Middleware - requireAuth', () => {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
     };
-    nextFunction = vi.fn();
+    nextFunction = vi.fn() as any;
     vi.clearAllMocks();
   });
 
