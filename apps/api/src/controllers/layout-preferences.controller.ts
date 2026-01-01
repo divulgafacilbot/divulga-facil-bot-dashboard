@@ -13,6 +13,7 @@ const layoutPreferencesSchema = z.object({
   feedShowDisclaimer: z.boolean().optional(),
   feedShowSalesQuantity: z.boolean().optional(),
   feedShowCustomText: z.boolean().optional(),
+  feedOrder: z.array(z.string()).optional(),
 
   // Story preferences
   storyShowTitle: z.boolean().optional(),
@@ -20,6 +21,7 @@ const layoutPreferencesSchema = z.object({
   storyShowOriginalPrice: z.boolean().optional(),
   storyShowCoupon: z.boolean().optional(),
   storyShowCustomText: z.boolean().optional(),
+  storyOrder: z.array(z.string()).optional(),
 });
 
 export class LayoutPreferencesController {

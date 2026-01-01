@@ -7,6 +7,12 @@ const router = Router();
 // POST /telegram/link-token - Generate link token (requires auth)
 router.post('/telegram/link-token', authMiddleware, telegramController.generateLinkToken.bind(telegramController));
 
+// GET /telegram/link-tokens - List pending tokens (requires auth)
+router.get('/telegram/link-tokens', authMiddleware, telegramController.listTokens.bind(telegramController));
+
+// DELETE /telegram/link-tokens/:id - Delete token (requires auth)
+router.delete('/telegram/link-tokens/:id', authMiddleware, telegramController.deleteToken.bind(telegramController));
+
 // POST /telegram/confirm-link - Confirm link (called by bot, no auth)
 router.post('/telegram/confirm-link', telegramController.confirmLink.bind(telegramController));
 

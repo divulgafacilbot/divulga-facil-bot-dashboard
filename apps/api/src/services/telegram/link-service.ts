@@ -14,18 +14,26 @@ export class TelegramLinkService {
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + TOKEN_EXPIRATION_MS);
 
-    // Delete any existing pending tokens for this user/bot combination
-    await prisma.telegram_links.deleteMany({
+    const existingTokens = await prisma.telegram_links.count({
       where: {
         user_id: userId,
+        bot_type: botType,
         status: 'PENDING',
+        expires_at: {
+          gt: new Date(),
+        },
       },
     });
+
+    if (existingTokens >= 2) {
+      throw new Error('Token limit reached');
+    }
 
     // Create new token
     await prisma.telegram_links.create({
       data: {
         user_id: userId,
+        bot_type: botType,
         token,
         expires_at: expiresAt,
         status: 'PENDING',
@@ -39,10 +47,11 @@ export class TelegramLinkService {
    * Validate a token and check if it's still valid
    * Returns the userId if valid, null if invalid/expired
    */
-  async validateToken(token: string): Promise<string | null> {
+  async validateToken(token: string, botType: 'ARTS' | 'DOWNLOAD'): Promise<string | null> {
     const link = await prisma.telegram_links.findFirst({
       where: {
         token,
+        bot_type: botType,
         status: 'PENDING',
         expires_at: {
           gt: new Date(),
@@ -64,7 +73,7 @@ export class TelegramLinkService {
     botType: 'ARTS' | 'DOWNLOAD'
   ): Promise<{ success: boolean; userId?: string; error?: string }> {
     // Validate token first
-    const userId = await this.validateToken(token);
+    const userId = await this.validateToken(token, botType);
 
     if (!userId) {
       return {
@@ -96,6 +105,7 @@ export class TelegramLinkService {
           where: {
             token,
             status: 'PENDING',
+            bot_type: botType,
           },
           data: {
             status: 'CONFIRMED',
@@ -173,6 +183,32 @@ export class TelegramLinkService {
       // Record doesn't exist or delete failed
       return false;
     }
+  }
+
+  async listTokens(userId: string, botType: 'ARTS' | 'DOWNLOAD') {
+    return prisma.telegram_links.findMany({
+      where: {
+        user_id: userId,
+        bot_type: botType,
+        status: 'PENDING',
+        expires_at: {
+          gt: new Date(),
+        },
+      },
+      orderBy: {
+        created_at: 'asc',
+      },
+    });
+  }
+
+  async deleteToken(userId: string, botType: 'ARTS' | 'DOWNLOAD', tokenId: string) {
+    return prisma.telegram_links.deleteMany({
+      where: {
+        id: tokenId,
+        user_id: userId,
+        bot_type: botType,
+      },
+    });
   }
 }
 

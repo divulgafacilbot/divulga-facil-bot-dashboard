@@ -11,6 +11,7 @@ import brandConfigRoutes from './routes/brand-config.routes.js';
 import telegramRoutes from './routes/telegram.routes.js';
 import artGenerationRoutes from './routes/art-generation.routes.js';
 import layoutPreferencesRoutes from './routes/layout-preferences.routes.js';
+import metricsRoutes from './routes/metrics.routes.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { CleanupService } from './services/jobs/cleanup.service.js';
 import { artsBot } from './bot/arts-bot.js';
@@ -53,6 +54,7 @@ app.use('/api', telegramRoutes);
 app.use('/api', userRoutes);
 app.use('/api', brandConfigRoutes);
 app.use('/api', layoutPreferencesRoutes);
+app.use('/api', metricsRoutes);
 app.use('/api/templates', templatesRoutes);
 
 // Error handling

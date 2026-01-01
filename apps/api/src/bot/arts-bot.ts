@@ -1,10 +1,12 @@
-import { Bot, Context, InlineKeyboard, InputFile } from 'grammy';
-import { telegramLinkService } from '../services/telegram/link-service.js';
-import { scraperManager } from '../services/scrapers/index.js';
-import { brandConfigService } from '../services/brand-config.service.js';
-import { layoutPreferencesService } from '../services/layout-preferences.service.js';
-import { artGeneratorService } from '../services/image-generation/art-generator.service.js';
+import { Bot, InlineKeyboard, InputFile } from 'grammy';
 import { prisma } from '../db/prisma.js';
+import { getRequiredScrapeFields } from '../scraping/fields.js';
+import { scraperRouter } from '../scraping/index.js';
+import { brandConfigService } from '../services/brand-config.service.js';
+import { artGeneratorService } from '../services/image-generation/art-generator.service.js';
+import { layoutPreferencesService } from '../services/layout-preferences.service.js';
+import { telegramLinkService } from '../services/telegram/link-service.js';
+import { usageCountersService } from '../services/usage-counters.service.js';
 
 const TELEGRAM_BOT_ARTS_TOKEN = process.env.TELEGRAM_BOT_ARTS_TOKEN;
 
@@ -18,25 +20,39 @@ export const artsBot = new Bot(TELEGRAM_BOT_ARTS_TOKEN);
  * /start command - Welcome message
  */
 artsBot.command('start', async (ctx) => {
-  const welcomeMessage = `
+  const telegramUserId = ctx.from?.id.toString();
+  let isLinked = false;
+
+  if (telegramUserId) {
+    const link = await prisma.telegram_bot_links.findFirst({
+      where: {
+        telegram_user_id: telegramUserId,
+        bot_type: 'ARTS',
+      },
+    });
+    isLinked = !!link;
+  }
+
+  const welcomeMessage = isLinked
+    ? `
 🎨 *Bem-vindo ao Bot de Artes!*
 
 Envie um link de produto de qualquer marketplace suportado e eu crio uma arte personalizada para você!
 
 *Marketplaces suportados:*
-${scraperManager.getSupportedMarketplaces().map((m) => `• ${m}`).join('\n')}
+${scraperRouter.getSupportedMarketplaces().map((m) => `• ${m}`).join('\n')}
 
 *Como usar:*
 1. Cole o link do produto
 2. Aguarde enquanto eu extraio as informações
 3. Receba sua arte personalizada!
+`
+    : `
+🔒 *Token necessário para acessar*
 
-*Comandos disponíveis:*
-/start - Mostrar esta mensagem
-/vincular - Vincular sua conta
-/status - Ver status da vinculação
-/config - Ver suas configurações de marca
-/ajuda - Obter ajuda
+Envie seu token de acesso para liberar o bot.
+
+Depois de vinculado, você poderá enviar links de produtos.
 `;
 
   await ctx.reply(welcomeMessage, { parse_mode: 'Markdown' });
@@ -49,13 +65,7 @@ artsBot.command('vincular', async (ctx) => {
   const message = `
 🔗 *Vincular Conta*
 
-Para vincular sua conta do Telegram ao sistema:
-
-1. Acesse o dashboard web
-2. Gere um código de vinculação
-3. Envie o código aqui usando: \`/codigo SEU_CODIGO\`
-
-O código expira em 10 minutos.
+Gere um token no dashboard web e envie aqui.
 `;
 
   await ctx.reply(message, { parse_mode: 'Markdown' });
@@ -132,7 +142,7 @@ artsBot.command('ajuda', async (ctx) => {
 3. Receba uma arte personalizada
 
 *Marketplaces suportados:*
-${scraperManager.getSupportedMarketplaces().map((m) => `• ${m}`).join('\n')}
+${scraperRouter.getSupportedMarketplaces().map((m) => `• ${m}`).join('\n')}
 
 *Comandos:*
 /start - Mensagem de boas-vindas
@@ -164,7 +174,42 @@ artsBot.on('message:text', async (ctx) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const urls = text.match(urlRegex);
 
+  const telegramUserId = ctx.from?.id.toString();
+  const chatId = ctx.chat?.id.toString();
+  let botLink = null;
+
+  if (telegramUserId) {
+    botLink = await prisma.telegram_bot_links.findFirst({
+      where: {
+        telegram_user_id: telegramUserId,
+        bot_type: 'ARTS',
+      },
+    });
+  }
+
   if (!urls || urls.length === 0) {
+    if (!telegramUserId || !chatId) {
+      await ctx.reply('❌ Erro ao obter suas informações do Telegram.');
+      return;
+    }
+
+    if (!botLink) {
+      const result = await telegramLinkService.confirmLink(
+        text.trim(),
+        telegramUserId,
+        chatId,
+        'ARTS'
+      );
+
+      if (!result.success) {
+        await ctx.reply(`❌ Token inválido: ${result.error}`);
+        return;
+      }
+
+      await ctx.reply('✅ Conta vinculada com sucesso! Agora envie um link de produto.');
+      return;
+    }
+
     await ctx.reply('👋 Envie um link de produto para eu criar uma arte!\n\nUse /ajuda para mais informações.');
     return;
   }
@@ -172,11 +217,11 @@ artsBot.on('message:text', async (ctx) => {
   const url = urls[0]; // Process first URL
 
   // Check if marketplace is supported
-  const marketplace = scraperManager.detectMarketplace(url);
+  const marketplace = scraperRouter.detectMarketplace(url);
 
   if (!marketplace) {
     await ctx.reply(
-      `❌ Este marketplace não é suportado.\n\n*Marketplaces suportados:*\n${scraperManager
+      `❌ Este marketplace não é suportado.\n\n*Marketplaces suportados:*\n${scraperRouter
         .getSupportedMarketplaces()
         .map((m) => `• ${m}`)
         .join('\n')}`,
@@ -190,9 +235,17 @@ artsBot.on('message:text', async (ctx) => {
     parse_mode: 'Markdown',
   });
 
+  if (!botLink) {
+    await ctx.reply('🔒 Você precisa vincular sua conta com um token antes de gerar artes.');
+    return;
+  }
+
   try {
+    const layoutPreferences = await layoutPreferencesService.getPreferences(botLink.user_id);
+    const requiredFields = getRequiredScrapeFields(layoutPreferences);
+
     // Scrape product data
-    const result = await scraperManager.scrape(url);
+    const result = await scraperRouter.scrape(url, { fields: requiredFields });
 
     if (!result.success || !result.data) {
       await ctx.api.editMessageText(
@@ -232,27 +285,9 @@ ${product.inStock ? '✅ Em estoque' : '❌ Fora de estoque'}
     });
 
     // Get user ID from telegram link
-    const telegramUserId = ctx.from?.id.toString();
-    let userId: string | null = null;
+    let userId: string | null = botLink.user_id;
     let brandConfig;
-    let layoutPreferences;
-
-    if (telegramUserId) {
-      // Find linked user account
-      const botLink = await prisma.telegram_bot_links.findFirst({
-        where: {
-          telegram_user_id: telegramUserId,
-          bot_type: 'ARTS',
-        },
-      });
-
-      if (botLink) {
-        userId = botLink.user_id;
-        // Get user's brand config and layout preferences
-        brandConfig = await brandConfigService.getConfig(userId);
-        layoutPreferences = await layoutPreferencesService.getPreferences(userId);
-      }
-    }
+    brandConfig = await brandConfigService.getConfig(userId);
 
     // If no user found, use default config
     if (!brandConfig) {
@@ -270,24 +305,6 @@ ${product.inStock ? '✅ Em estoque' : '❌ Fora de estoque'}
     }
 
     // If no layout preferences, use defaults (show everything)
-    if (!layoutPreferences) {
-      layoutPreferences = {
-        feedShowTitle: true,
-        feedShowDescription: true,
-        feedShowPrice: true,
-        feedShowOriginalPrice: true,
-        feedShowProductUrl: true,
-        feedShowCoupon: true,
-        feedShowDisclaimer: false,
-        feedShowSalesQuantity: false,
-        feedShowCustomText: false,
-        storyShowTitle: true,
-        storyShowPrice: true,
-        storyShowOriginalPrice: true,
-        storyShowCoupon: true,
-        storyShowCustomText: false,
-      };
-    }
 
     // Generate custom art images (feed and story formats)
     try {
@@ -310,35 +327,52 @@ ${product.inStock ? '✅ Em estoque' : '❌ Fora de estoque'}
       );
 
       // Send feed art
+      const legendText = artGeneratorService.buildLegendText(
+        product,
+        brandConfig,
+        layoutPreferences
+      );
+
       await ctx.replyWithPhoto(new InputFile(feedArtBuffer, 'product-feed.png'), {
-        caption: `📸 *Arte Feed (4:5)*\n\n${product.title}\n\n💰 ${priceFormatted}${discountText}`,
+        caption: `${legendText}`,
         parse_mode: 'Markdown',
       });
 
       // Send story art
       await ctx.replyWithPhoto(new InputFile(storyArtBuffer, 'product-story.png'), {
-        caption: `📸 *Arte Story (9:16)*\n\n${product.title}\n\n💰 ${priceFormatted}${discountText}`,
+        caption: '',
         parse_mode: 'Markdown',
         reply_markup: new InlineKeyboard().url('Ver Produto', product.productUrl),
       });
 
       // Send success message
-      await ctx.reply(
-        `✅ Artes geradas com sucesso!\n\n📱 Você recebeu 2 formatos:\n• **Feed**: 4:5 (ideal para Instagram Feed)\n• **Story**: 9:16 (ideal para Stories/Reels)${
-          !userId
-            ? '\n\n💡 *Dica:* Use /vincular para conectar sua conta e personalizar suas artes com suas cores e templates!'
-            : '\n\n💡 *Dica:* Configure suas preferências no dashboard web para personalizar ainda mais suas artes.'
-        }`,
-        { parse_mode: 'Markdown' }
-      );
+      await usageCountersService.incrementRenders(userId);
+
+      // Sucesso silencioso: evita mensagem extra após enviar as artes.
     } catch (artError) {
       console.error('Error generating custom art:', artError);
-      // Fallback: send original product image
-      await ctx.replyWithPhoto(product.imageUrl, {
-        caption: `⚠️ *Erro ao gerar arte personalizada*\n\nAqui está a imagem original do produto:\n\n${product.title}\n\n💰 ${priceFormatted}${discountText}`,
-        parse_mode: 'Markdown',
-        reply_markup: new InlineKeyboard().url('Ver Produto', product.productUrl),
-      });
+      const fallbackMessage = `⚠️ *Erro ao gerar arte personalizada*\n\nAqui está a imagem original do produto:\n\n${product.title}\n\n💰 ${priceFormatted}${discountText}`;
+      const hasValidImageUrl = (() => {
+        try {
+          const parsed = new URL(product.imageUrl);
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      })();
+
+      if (hasValidImageUrl) {
+        await ctx.replyWithPhoto(product.imageUrl, {
+          caption: fallbackMessage,
+          parse_mode: 'Markdown',
+          reply_markup: new InlineKeyboard().url('Ver Produto', product.productUrl),
+        });
+      } else {
+        await ctx.reply(fallbackMessage, {
+          parse_mode: 'Markdown',
+          reply_markup: new InlineKeyboard().url('Ver Produto', product.productUrl),
+        });
+      }
     }
   } catch (error) {
     console.error('Error processing product URL:', error);

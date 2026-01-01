@@ -1,5 +1,9 @@
 // Mock product data - matches ProductData interface from scraping
 export const mockProduct = {
+  // Campo de input
+  productUrl: "https://shopee.com.br/seu-link", // affiliateLink
+
+
   // Campos do scraping (ProductData)
   title: "Smartwatch Relógio Ultra 2 Pro",
   description: "O Smart Watch T800 Ultra, a nova geração de relógios inteligentes que combina estilo e funcionalidade.",
@@ -7,7 +11,6 @@ export const mockProduct = {
   originalPrice: 189.99, // fullPrice
   discountPercentage: 53,
   imageUrl: "public/relógio-mock.png", // imagem
-  productUrl: "https://shopee.com.br/seu-link", // affiliateLink
   marketplace: "SHOPEE" as const,
   rating: 4.8,
   reviewCount: 1234,

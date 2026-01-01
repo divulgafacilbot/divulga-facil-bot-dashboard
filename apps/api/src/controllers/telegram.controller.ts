@@ -28,10 +28,28 @@ export class TelegramController {
       const { botType } = validation.data;
 
       // Generate token
-      const token = await telegramLinkService.generateLinkToken(userId, botType);
+      let token: string;
+      try {
+        token = await telegramLinkService.generateLinkToken(userId, botType);
+      } catch (error) {
+        return res.status(400).json({
+          error: error instanceof Error ? error.message : 'Token limit reached',
+        });
+      }
+
+      const tokens = await telegramLinkService.listTokens(userId, botType);
+      const tokenRecord = tokens.find((item) => item.token === token);
 
       return res.status(200).json({
         token,
+        tokenRecord: tokenRecord
+          ? {
+              id: tokenRecord.id,
+              token: tokenRecord.token,
+              status: tokenRecord.status,
+              expiresAt: tokenRecord.expires_at,
+            }
+          : null,
         expiresIn: 600, // 10 minutes in seconds
         message: 'Token generated successfully. Use this token in the Telegram bot within 10 minutes.',
       });
@@ -151,6 +169,59 @@ export class TelegramController {
       });
     } catch (error) {
       console.error('Error unlinking account:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * GET /telegram/link-tokens
+   * List pending tokens for authenticated user
+   */
+  async listTokens(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const botType = (req.query.botType as 'ARTS' | 'DOWNLOAD') || 'ARTS';
+      const tokens = await telegramLinkService.listTokens(userId, botType);
+
+      return res.status(200).json({
+        tokens: tokens.map((token) => ({
+          id: token.id,
+          token: token.token,
+          status: token.status,
+          expiresAt: token.expires_at,
+        })),
+      });
+    } catch (error) {
+      console.error('Error listing tokens:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * DELETE /telegram/link-tokens/:id
+   * Delete a pending token
+   */
+  async deleteToken(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const botType = (req.query.botType as 'ARTS' | 'DOWNLOAD') || 'ARTS';
+      const tokenId = req.params.id;
+
+      await telegramLinkService.deleteToken(userId, botType, tokenId);
+
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error deleting token:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }

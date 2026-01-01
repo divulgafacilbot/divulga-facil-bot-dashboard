@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
 import { artGeneratorService, ArtFormat } from '../services/image-generation/art-generator.service.js';
 import { brandConfigService } from '../services/brand-config.service.js';
-import { scraperManager } from '../services/scrapers/index.js';
+import { layoutPreferencesService } from '../services/layout-preferences.service.js';
+import { usageCountersService } from '../services/usage-counters.service.js';
+import { scraperRouter } from '../scraping/index.js';
+import { getRequiredScrapeFields } from '../scraping/fields.js';
 import { z } from 'zod';
 
 const generateArtSchema = z.object({
@@ -35,8 +38,13 @@ export class ArtGenerationController {
 
       const { productUrl, format } = validation.data;
 
+      const layoutPreferences = await layoutPreferencesService.getPreferences(userId);
+      const requiredFields = getRequiredScrapeFields(layoutPreferences);
+
       // 1. Scrape product data
-      const scrapedResult = await scraperManager.scrape(productUrl);
+      const scrapedResult = await scraperRouter.scrape(productUrl, {
+        fields: requiredFields,
+      });
 
       if (!scrapedResult.success || !scrapedResult.data) {
         return res.status(400).json({
@@ -55,8 +63,11 @@ export class ArtGenerationController {
         product,
         brandConfig,
         format as ArtFormat,
-        userId
+        userId,
+        layoutPreferences
       );
+
+      await usageCountersService.incrementRenders(userId);
 
       // 4. Send image
       res.setHeader('Content-Type', 'image/png');

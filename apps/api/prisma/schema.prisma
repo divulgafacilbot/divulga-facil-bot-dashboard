@@ -160,6 +160,7 @@ model telegram_bot_links {
 model telegram_links {
   id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id    String    @db.Uuid
+  bot_type   String    @default("ARTS") @db.VarChar(50)
   token      String    @db.VarChar(255)
   expires_at DateTime  @db.Timestamptz(6)
   status     String    @default("PENDING") @db.VarChar(50)
@@ -246,6 +247,7 @@ model user_layout_preferences {
   feed_show_disclaimer   Boolean   @default(false)
   feed_show_sales_quantity Boolean @default(false)
   feed_show_custom_text  Boolean   @default(false)
+  feed_order             Json?
 
   // Story layout preferences
   story_show_title       Boolean   @default(true)
@@ -253,6 +255,7 @@ model user_layout_preferences {
   story_show_original_price Boolean @default(true)
   story_show_coupon      Boolean   @default(true)
   story_show_custom_text Boolean   @default(false)
+  story_order            Json?
 
   created_at             DateTime? @default(now()) @db.Timestamptz(6)
   updated_at             DateTime? @default(now()) @updatedAt @db.Timestamptz(6)

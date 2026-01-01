@@ -11,6 +11,7 @@ export interface LayoutPreferences {
   feedShowDisclaimer: boolean;
   feedShowSalesQuantity: boolean;
   feedShowCustomText: boolean;
+  feedOrder: string[];
 
   // Story preferences
   storyShowTitle: boolean;
@@ -18,6 +19,7 @@ export interface LayoutPreferences {
   storyShowOriginalPrice: boolean;
   storyShowCoupon: boolean;
   storyShowCustomText: boolean;
+  storyOrder: string[];
 }
 
 export interface LayoutPreferencesUpdate extends Partial<LayoutPreferences> {}
@@ -33,6 +35,17 @@ export const DEFAULT_LAYOUT_PREFERENCES: LayoutPreferences = {
   feedShowDisclaimer: false,
   feedShowSalesQuantity: false,
   feedShowCustomText: false,
+  feedOrder: [
+    'title',
+    'description',
+    'price',
+    'originalPrice',
+    'productUrl',
+    'coupon',
+    'disclaimer',
+    'salesQuantity',
+    'customText',
+  ],
 
   // Story defaults
   storyShowTitle: true,
@@ -40,6 +53,7 @@ export const DEFAULT_LAYOUT_PREFERENCES: LayoutPreferences = {
   storyShowOriginalPrice: true,
   storyShowCoupon: true,
   storyShowCustomText: false,
+  storyOrder: ['title', 'price', 'originalPrice', 'coupon', 'customText'],
 };
 
 export class LayoutPreferencesService {
@@ -66,12 +80,18 @@ export class LayoutPreferencesService {
       feedShowDisclaimer: prefs.feed_show_disclaimer,
       feedShowSalesQuantity: prefs.feed_show_sales_quantity,
       feedShowCustomText: prefs.feed_show_custom_text,
+      feedOrder: Array.isArray(prefs.feed_order)
+        ? (prefs.feed_order as string[])
+        : DEFAULT_LAYOUT_PREFERENCES.feedOrder,
 
       storyShowTitle: prefs.story_show_title,
       storyShowPrice: prefs.story_show_price,
       storyShowOriginalPrice: prefs.story_show_original_price,
       storyShowCoupon: prefs.story_show_coupon,
       storyShowCustomText: prefs.story_show_custom_text,
+      storyOrder: Array.isArray(prefs.story_order)
+        ? (prefs.story_order as string[])
+        : DEFAULT_LAYOUT_PREFERENCES.storyOrder,
     };
   }
 
@@ -95,6 +115,7 @@ export class LayoutPreferencesService {
     if (data.feedShowDisclaimer !== undefined) updateData.feed_show_disclaimer = data.feedShowDisclaimer;
     if (data.feedShowSalesQuantity !== undefined) updateData.feed_show_sales_quantity = data.feedShowSalesQuantity;
     if (data.feedShowCustomText !== undefined) updateData.feed_show_custom_text = data.feedShowCustomText;
+    if (data.feedOrder !== undefined) updateData.feed_order = data.feedOrder;
 
     // Story preferences
     if (data.storyShowTitle !== undefined) updateData.story_show_title = data.storyShowTitle;
@@ -102,6 +123,7 @@ export class LayoutPreferencesService {
     if (data.storyShowOriginalPrice !== undefined) updateData.story_show_original_price = data.storyShowOriginalPrice;
     if (data.storyShowCoupon !== undefined) updateData.story_show_coupon = data.storyShowCoupon;
     if (data.storyShowCustomText !== undefined) updateData.story_show_custom_text = data.storyShowCustomText;
+    if (data.storyOrder !== undefined) updateData.story_order = data.storyOrder;
 
     const prefs = await prisma.user_layout_preferences.upsert({
       where: { user_id: userId },
@@ -122,12 +144,18 @@ export class LayoutPreferencesService {
       feedShowDisclaimer: prefs.feed_show_disclaimer,
       feedShowSalesQuantity: prefs.feed_show_sales_quantity,
       feedShowCustomText: prefs.feed_show_custom_text,
+      feedOrder: Array.isArray(prefs.feed_order)
+        ? (prefs.feed_order as string[])
+        : DEFAULT_LAYOUT_PREFERENCES.feedOrder,
 
       storyShowTitle: prefs.story_show_title,
       storyShowPrice: prefs.story_show_price,
       storyShowOriginalPrice: prefs.story_show_original_price,
       storyShowCoupon: prefs.story_show_coupon,
       storyShowCustomText: prefs.story_show_custom_text,
+      storyOrder: Array.isArray(prefs.story_order)
+        ? (prefs.story_order as string[])
+        : DEFAULT_LAYOUT_PREFERENCES.storyOrder,
     };
   }
 

@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { mockProduct } from "@/lib/mock-data";
+import { showToast } from "@/lib/toast";
 import { useSidebar } from "../layout";
 
 const TEMPLATES = [
@@ -37,6 +38,42 @@ type TemplateOption = {
   storyUrl: string;
   source: "system" | "custom";
 };
+
+type RenderFieldId =
+  | "title"
+  | "description"
+  | "price"
+  | "originalPrice"
+  | "productUrl"
+  | "coupon"
+  | "disclaimer"
+  | "salesQuantity"
+  | "customText";
+
+type StoryFieldId = "title" | "price" | "originalPrice" | "coupon" | "customText";
+
+const DEFAULT_FEED_ORDER: RenderFieldId[] = [
+  "title",
+  "description",
+  "price",
+  "originalPrice",
+  "productUrl",
+  "coupon",
+  "disclaimer",
+  "salesQuantity",
+  "customText",
+];
+
+const DEFAULT_STORY_ORDER: StoryFieldId[] = [
+  "title",
+  "price",
+  "originalPrice",
+  "coupon",
+  "customText",
+];
+
+const FEED_ORDER_STORAGE_KEY = "feed_render_order";
+const STORY_ORDER_STORAGE_KEY = "story_render_order";
 
 const SYSTEM_TEMPLATES: TemplateOption[] = TEMPLATES.map((template) => ({
   id: template,
@@ -78,6 +115,12 @@ export default function TemplatesPage() {
   const { sidebarCollapsed } = useSidebar();
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateOption>(SYSTEM_TEMPLATES[0]);
   const [useRowLayout, setUseRowLayout] = useState(false);
+  const [feedOrder, setFeedOrder] = useState<RenderFieldId[]>(DEFAULT_FEED_ORDER);
+  const [storyOrder, setStoryOrder] = useState<StoryFieldId[]>(DEFAULT_STORY_ORDER);
+  const [isCardDetailsCollapsed, setIsCardDetailsCollapsed] = useState(false);
+  const [isStoryDetailsCollapsed, setIsStoryDetailsCollapsed] = useState(false);
+  const [draggingFeedId, setDraggingFeedId] = useState<RenderFieldId | null>(null);
+  const [draggingStoryId, setDraggingStoryId] = useState<StoryFieldId | null>(null);
   const [cardDetails, setCardDetails] = useState({
     title: true,
     description: true,
@@ -125,8 +168,8 @@ export default function TemplatesPage() {
     coupon: "#000000",
     customText: "#000000",
   });
-  const [customCardText, setCustomCardText] = useState("");
-  const [customStoryText, setCustomStoryText] = useState("");
+  const [ctaText, setCtaText] = useState("");
+  const [couponText, setCouponText] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [feedTemplate, setFeedTemplate] = useState<File | null>(null);
   const [storyTemplate, setStoryTemplate] = useState<File | null>(null);
@@ -180,6 +223,62 @@ export default function TemplatesPage() {
     loadCustomTemplates();
   }, [apiBaseUrl]);
 
+  useEffect(() => {
+    const normalizeFeedOrder = (order: string[]) =>
+      order
+        .map((item) => {
+          if (item === "promotionalPrice") return "price";
+          if (item === "fullPrice") return "originalPrice";
+          if (item === "affiliateLink") return "productUrl";
+          return item;
+        })
+        .filter((item): item is RenderFieldId => DEFAULT_FEED_ORDER.includes(item as RenderFieldId));
+
+    const normalizeStoryOrder = (order: string[]) =>
+      order
+        .map((item) => {
+          if (item === "promotionalPrice") return "price";
+          if (item === "fullPrice") return "originalPrice";
+          return item;
+        })
+        .filter((item): item is StoryFieldId => DEFAULT_STORY_ORDER.includes(item as StoryFieldId));
+
+    const storedFeedOrder = localStorage.getItem(FEED_ORDER_STORAGE_KEY);
+    const storedStoryOrder = localStorage.getItem(STORY_ORDER_STORAGE_KEY);
+
+    if (storedFeedOrder) {
+      try {
+        const parsed = JSON.parse(storedFeedOrder) as string[];
+        const normalized = normalizeFeedOrder(parsed);
+        if (normalized.length) {
+          setFeedOrder(normalized);
+        }
+      } catch (error) {
+        console.error("Erro ao ler a ordem do feed:", error);
+      }
+    }
+
+    if (storedStoryOrder) {
+      try {
+        const parsed = JSON.parse(storedStoryOrder) as string[];
+        const normalized = normalizeStoryOrder(parsed);
+        if (normalized.length) {
+          setStoryOrder(normalized);
+        }
+      } catch (error) {
+        console.error("Erro ao ler a ordem do story:", error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(FEED_ORDER_STORAGE_KEY, JSON.stringify(feedOrder));
+  }, [feedOrder]);
+
+  useEffect(() => {
+    localStorage.setItem(STORY_ORDER_STORAGE_KEY, JSON.stringify(storyOrder));
+  }, [storyOrder]);
+
   // Load layout preferences on component mount
   useEffect(() => {
     const loadLayoutPreferences = async () => {
@@ -216,6 +315,37 @@ export default function TemplatesPage() {
           coupon: prefs.storyShowCoupon,
           customText: prefs.storyShowCustomText,
         });
+
+        if (Array.isArray(prefs.feedOrder) && prefs.feedOrder.length) {
+          const normalized = prefs.feedOrder
+            .map((item: string) => {
+              if (item === "promotionalPrice") return "price";
+              if (item === "fullPrice") return "originalPrice";
+              if (item === "affiliateLink") return "productUrl";
+              return item;
+            })
+            .filter((item: string) =>
+              DEFAULT_FEED_ORDER.includes(item as RenderFieldId)
+            ) as RenderFieldId[];
+          if (normalized.length) {
+            setFeedOrder(normalized);
+          }
+        }
+
+        if (Array.isArray(prefs.storyOrder) && prefs.storyOrder.length) {
+          const normalized = prefs.storyOrder
+            .map((item: string) => {
+              if (item === "promotionalPrice") return "price";
+              if (item === "fullPrice") return "originalPrice";
+              return item;
+            })
+            .filter((item: string) =>
+              DEFAULT_STORY_ORDER.includes(item as StoryFieldId)
+            ) as StoryFieldId[];
+          if (normalized.length) {
+            setStoryOrder(normalized);
+          }
+        }
       } catch (error) {
         console.error("Erro ao carregar preferências de layout:", error);
       }
@@ -223,6 +353,37 @@ export default function TemplatesPage() {
 
     loadLayoutPreferences();
   }, [apiBaseUrl]);
+
+  useEffect(() => {
+    const loadBrandConfig = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/me/brand-config`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        setCtaText(data?.ctaText || "");
+        setCouponText(data?.couponText || "");
+        if (data?.templateId) {
+          const templateMatch =
+            customTemplates.find((template) => template.id === data.templateId) ||
+            SYSTEM_TEMPLATES.find((template) => template.id === data.templateId);
+          if (templateMatch) {
+            setSelectedTemplate(templateMatch);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar configurações da marca:", error);
+      }
+    };
+
+    loadBrandConfig();
+  }, [apiBaseUrl, customTemplates]);
 
   // Handle save layout preferences
   const handleSaveLayout = async () => {
@@ -239,6 +400,7 @@ export default function TemplatesPage() {
         feedShowDisclaimer: cardDetails.disclaimer,
         feedShowSalesQuantity: cardDetails.salesQuantity,
         feedShowCustomText: cardDetails.customText,
+        feedOrder,
 
         // Story preferences
         storyShowTitle: storyDetails.title,
@@ -246,6 +408,7 @@ export default function TemplatesPage() {
         storyShowOriginalPrice: storyDetails.fullPrice,
         storyShowCoupon: storyDetails.coupon,
         storyShowCustomText: storyDetails.customText,
+        storyOrder,
       };
 
       const response = await fetch(`${apiBaseUrl}/api/me/layout-preferences`, {
@@ -261,13 +424,45 @@ export default function TemplatesPage() {
         throw new Error("Falha ao salvar preferências de layout");
       }
 
-      // Success feedback - você pode adicionar um toast ou notificação aqui
-      alert("✅ Layout salvo com sucesso! Suas preferências serão usadas na geração de artes.");
+      await fetch(`${apiBaseUrl}/api/me/brand-config`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          couponText,
+          ctaText,
+          showCoupon: cardDetails.coupon || storyDetails.coupon,
+        }),
+      });
+
+      showToast(
+        "Layout salvo com sucesso! Suas preferências serão usadas na geração de artes.",
+        "success"
+      );
     } catch (error) {
       console.error("Erro ao salvar layout:", error);
-      alert("❌ Erro ao salvar layout. Tente novamente.");
+      showToast("Erro ao salvar layout. Tente novamente.", "error");
     } finally {
       setIsSavingLayout(false);
+    }
+  };
+
+  const handleTemplateSelect = async (template: TemplateOption) => {
+    setSelectedTemplate(template);
+    try {
+      await fetch(`${apiBaseUrl}/api/me/brand-config`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ templateId: template.id }),
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar template padrão:", error);
     }
   };
 
@@ -285,6 +480,32 @@ export default function TemplatesPage() {
     }
   };
 
+  const reorderItems = <T extends string>(items: T[], fromId: T, toId: T) => {
+    const updated = [...items];
+    const fromIndex = updated.indexOf(fromId);
+    const toIndex = updated.indexOf(toId);
+
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+      return updated;
+    }
+
+    updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, fromId);
+    return updated;
+  };
+
+  const handleFeedDrop = (targetId: RenderFieldId) => {
+    if (!draggingFeedId) return;
+    setFeedOrder((prev) => reorderItems(prev, draggingFeedId, targetId));
+    setDraggingFeedId(null);
+  };
+
+  const handleStoryDrop = (targetId: StoryFieldId) => {
+    if (!draggingStoryId) return;
+    setStoryOrder((prev) => reorderItems(prev, draggingStoryId, targetId));
+    setDraggingStoryId(null);
+  };
+
   const templatePreviewSrc = selectedTemplate.feedUrl;
 
   const templateStoryPreviewSrc = selectedTemplate.storyUrl;
@@ -300,7 +521,7 @@ export default function TemplatesPage() {
   }, [customTemplates, selectedCustomIds]);
 
   const productImageSrc = useMemo(
-    () => mockProduct.imagem.replace(/^public\//, "/"),
+    () => mockProduct.imageUrl.replace(/^public\//, "/"),
     []
   );
   const formattedSalesQuantity = useMemo(() => {
@@ -310,6 +531,538 @@ export default function TemplatesPage() {
     }
     return `${Math.floor(quantity / 1000)}mil+ vendidos`;
   }, []);
+
+  const renderFeedControl = (fieldId: RenderFieldId) => {
+    const wrapperProps = {
+      draggable: true,
+      onDragStart: () => setDraggingFeedId(fieldId),
+      onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(),
+      onDrop: () => handleFeedDrop(fieldId),
+      className: `flex w-full items-center gap-2 ${
+        draggingFeedId === fieldId ? "opacity-60" : ""
+      }`,
+    };
+
+    const colorPicker = (value: string, onChange: (color: string) => void) => (
+      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
+        <div className="relative">
+          <input
+            type="color"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+          <div
+            data-color-render
+            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
+            style={{ backgroundColor: value }}
+          />
+        </div>
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
+          placeholder="#000000"
+        />
+      </div>
+    );
+
+    const dragHandle = (
+      <div className="flex h-[34px] w-[22px] items-center justify-center rounded-lg border border-[var(--color-border)] bg-white text-[10px] text-[var(--color-text-secondary)]">
+        ⋮⋮
+      </div>
+    );
+
+    switch (fieldId) {
+      case "title":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Título</span>
+              <input
+                type="checkbox"
+                checked={cardDetails.title}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    title: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.title, (color) =>
+              setFeedColors((prev) => ({ ...prev, title: color }))
+            )}
+          </div>
+        );
+      case "description":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Descrição</span>
+              <input
+                type="checkbox"
+                checked={cardDetails.description}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    description: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.description, (color) =>
+              setFeedColors((prev) => ({ ...prev, description: color }))
+            )}
+          </div>
+        );
+      case "price":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Preço promocional</span>
+              <input
+                type="checkbox"
+                checked={cardDetails.promotionalPrice}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    promotionalPrice: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.promotionalPrice, (color) =>
+              setFeedColors((prev) => ({ ...prev, promotionalPrice: color }))
+            )}
+          </div>
+        );
+      case "originalPrice":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Preço cheio</span>
+              <input
+                type="checkbox"
+                checked={cardDetails.fullPrice}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    fullPrice: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.fullPrice, (color) =>
+              setFeedColors((prev) => ({ ...prev, fullPrice: color }))
+            )}
+          </div>
+        );
+      case "productUrl":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Link de afiliado</span>
+              <input
+                type="checkbox"
+                checked={cardDetails.affiliateLink}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    affiliateLink: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.affiliateLink, (color) =>
+              setFeedColors((prev) => ({ ...prev, affiliateLink: color }))
+            )}
+          </div>
+        );
+      case "coupon":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <input
+                id="cupom-de-desconto-card"
+                type="text"
+                value={couponText}
+                onChange={(event) => setCouponText(event.target.value)}
+                placeholder="Cupom de desconto"
+                className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
+              />
+              <input
+                type="checkbox"
+                checked={cardDetails.coupon}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    coupon: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.coupon, (color) =>
+              setFeedColors((prev) => ({ ...prev, coupon: color }))
+            )}
+          </div>
+        );
+      case "disclaimer":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Aviso de promoção</span>
+              <input
+                type="checkbox"
+                checked={cardDetails.disclaimer}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    disclaimer: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.disclaimer, (color) =>
+              setFeedColors((prev) => ({ ...prev, disclaimer: color }))
+            )}
+          </div>
+        );
+      case "salesQuantity":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Quantidade de vendas</span>
+              <input
+                type="checkbox"
+                checked={cardDetails.salesQuantity}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    salesQuantity: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.salesQuantity, (color) =>
+              setFeedColors((prev) => ({ ...prev, salesQuantity: color }))
+            )}
+          </div>
+        );
+      case "customText":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <input
+                id="meu-texto-personalizado-feed"
+                type="text"
+                value={ctaText}
+                onChange={(event) => setCtaText(event.target.value)}
+                placeholder="Meu texto personalizado"
+                className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
+              />
+              <input
+                type="checkbox"
+                checked={cardDetails.customText}
+                onChange={(event) =>
+                  setCardDetails((prev) => ({
+                    ...prev,
+                    customText: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(feedColors.customText, (color) =>
+              setFeedColors((prev) => ({ ...prev, customText: color }))
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderStoryControl = (fieldId: StoryFieldId) => {
+    const wrapperProps = {
+      draggable: true,
+      onDragStart: () => setDraggingStoryId(fieldId),
+      onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(),
+      onDrop: () => handleStoryDrop(fieldId),
+      className: `flex w-full items-center gap-2 ${
+        draggingStoryId === fieldId ? "opacity-60" : ""
+      }`,
+    };
+
+    const colorPicker = (value: string, onChange: (color: string) => void) => (
+      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
+        <div className="relative">
+          <input
+            type="color"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+          <div
+            data-color-render
+            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
+            style={{ backgroundColor: value }}
+          />
+        </div>
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
+          placeholder="#000000"
+        />
+      </div>
+    );
+
+    const dragHandle = (
+      <div className="flex h-[34px] w-[22px] items-center justify-center rounded-lg border border-[var(--color-border)] bg-white text-[10px] text-[var(--color-text-secondary)]">
+        ⋮⋮
+      </div>
+    );
+
+    switch (fieldId) {
+      case "title":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Título</span>
+              <input
+                type="checkbox"
+                checked={storyDetails.title}
+                onChange={(event) =>
+                  setStoryDetails((prev) => ({
+                    ...prev,
+                    title: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(storyColors.title, (color) =>
+              setStoryColors((prev) => ({ ...prev, title: color }))
+            )}
+          </div>
+        );
+      case "price":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Preço promocional</span>
+              <input
+                type="checkbox"
+                checked={storyDetails.promotionalPrice}
+                onChange={(event) =>
+                  setStoryDetails((prev) => ({
+                    ...prev,
+                    promotionalPrice: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(storyColors.promotionalPrice, (color) =>
+              setStoryColors((prev) => ({ ...prev, promotionalPrice: color }))
+            )}
+          </div>
+        );
+      case "originalPrice":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <span>Preço cheio</span>
+              <input
+                type="checkbox"
+                checked={storyDetails.fullPrice}
+                onChange={(event) =>
+                  setStoryDetails((prev) => ({
+                    ...prev,
+                    fullPrice: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(storyColors.fullPrice, (color) =>
+              setStoryColors((prev) => ({ ...prev, fullPrice: color }))
+            )}
+          </div>
+        );
+      case "coupon":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <input
+                id="cupom-de-desconto-story"
+                type="text"
+                value={couponText}
+                onChange={(event) => setCouponText(event.target.value)}
+                placeholder="Cupom de desconto"
+                className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
+              />
+              <input
+                type="checkbox"
+                checked={storyDetails.coupon}
+                onChange={(event) =>
+                  setStoryDetails((prev) => ({
+                    ...prev,
+                    coupon: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(storyColors.coupon, (color) =>
+              setStoryColors((prev) => ({ ...prev, coupon: color }))
+            )}
+          </div>
+        );
+      case "customText":
+        return (
+          <div key={fieldId} {...wrapperProps}>
+            {dragHandle}
+            <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
+              <input
+                type="text"
+                value={ctaText}
+                onChange={(event) => setCtaText(event.target.value)}
+                placeholder="Meu texto personalizado"
+                className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
+              />
+              <input
+                type="checkbox"
+                checked={storyDetails.customText}
+                onChange={(event) =>
+                  setStoryDetails((prev) => ({
+                    ...prev,
+                    customText: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+            {colorPicker(storyColors.customText, (color) =>
+              setStoryColors((prev) => ({ ...prev, customText: color }))
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderFeedPreviewField = (fieldId: RenderFieldId) => {
+    switch (fieldId) {
+      case "title":
+        return cardDetails.title ? (
+          <p key={fieldId} className="font-semibold" style={{ color: feedColors.title }}>
+            🛍️ {mockProduct.title}
+          </p>
+        ) : null;
+      case "description":
+        return cardDetails.description ? (
+          <p key={fieldId} style={{ color: feedColors.description }}>
+            {mockProduct.description}
+          </p>
+        ) : null;
+      case "price":
+        return cardDetails.promotionalPrice ? (
+          <p key={fieldId} style={{ color: feedColors.promotionalPrice }}>
+            💸 por R$ {mockProduct.price.toFixed(2).replace(".", ",")} 🚨🚨
+          </p>
+        ) : null;
+      case "originalPrice":
+        return cardDetails.fullPrice ? (
+          <p key={fieldId} style={{ color: feedColors.fullPrice }}>
+            <span className="font-semibold">Preço cheio:</span>{" "}
+            R$ {mockProduct.originalPrice.toFixed(2).replace(".", ",")}
+          </p>
+        ) : null;
+      case "productUrl":
+        return cardDetails.affiliateLink ? (
+          <div key={fieldId} style={{ color: feedColors.affiliateLink }}>
+            <p style={{ marginBottom: 0 }}>👉Link p/ comprar:</p>
+            <p className="break-all">{mockProduct.productUrl}</p>
+          </div>
+        ) : null;
+      case "coupon":
+        return cardDetails.coupon ? (
+          <p key={fieldId} style={{ color: feedColors.coupon }}>
+            <span className="font-semibold">Cupom:</span>{" "}
+            {couponText.trim() ? couponText : mockProduct.coupon}
+          </p>
+        ) : null;
+      case "disclaimer":
+        return cardDetails.disclaimer ? (
+          <p key={fieldId} className="text-xs italic" style={{ color: feedColors.disclaimer }}>
+            *Promoção sujeita a alteração a qualquer momento
+          </p>
+        ) : null;
+      case "salesQuantity":
+        return cardDetails.salesQuantity ? (
+          <p key={fieldId} style={{ color: feedColors.salesQuantity }}>
+            <span className="font-semibold">Vendas:</span> {formattedSalesQuantity}
+          </p>
+        ) : null;
+      case "customText":
+        return cardDetails.customText && ctaText.trim() ? (
+          <p key={fieldId} style={{ color: feedColors.customText }}>
+            {ctaText}
+          </p>
+        ) : null;
+      default:
+        return null;
+    }
+  };
+
+  const renderStoryPreviewField = (fieldId: StoryFieldId) => {
+    switch (fieldId) {
+      case "title":
+        return storyDetails.title ? (
+          <p key={fieldId} className="text-sm font-bold leading-tight" style={{ color: storyColors.title }}>
+            {mockProduct.title}
+          </p>
+        ) : null;
+      case "price":
+        return storyDetails.promotionalPrice ? (
+          <p key={fieldId} className="text-base font-bold" style={{ color: storyColors.promotionalPrice }}>
+            R$ {mockProduct.price.toFixed(2).replace(".", ",")}
+          </p>
+        ) : null;
+      case "originalPrice":
+        return storyDetails.fullPrice ? (
+          <p key={fieldId} className="text-xs line-through opacity-80" style={{ color: storyColors.fullPrice }}>
+            R$ {mockProduct.originalPrice.toFixed(2).replace(".", ",")}
+          </p>
+        ) : null;
+      case "coupon":
+        return storyDetails.coupon ? (
+          <p key={fieldId} className="rounded-lg bg-black/10 px-2 py-0.5 text-xs font-semibold" style={{ color: storyColors.coupon }}>
+            {couponText.trim() ? couponText : mockProduct.coupon}
+          </p>
+        ) : null;
+      case "customText":
+        return storyDetails.customText && ctaText.trim() ? (
+          <p key={fieldId} className="text-xs font-semibold" style={{ color: storyColors.customText }}>
+            {ctaText}
+          </p>
+        ) : null;
+      default:
+        return null;
+    }
+  };
 
   const validateImageFormat = (
     file: File,
@@ -578,7 +1331,8 @@ export default function TemplatesPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-6">
+      {/* Div de imagem de fundo */}
+      <div id="imagem-de-fundo" className="flex flex-col gap-6">
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -630,7 +1384,7 @@ export default function TemplatesPage() {
               {allTemplates.map((template) => (
                 <button
                   key={template.id}
-                  onClick={() => setSelectedTemplate(template)}
+                  onClick={() => handleTemplateSelect(template)}
                   style={{
                     borderWidth: selectedTemplate.id === template.id ? "4px" : "2px",
                     borderColor:
@@ -697,6 +1451,7 @@ export default function TemplatesPage() {
           </div>
         </div>
 
+        {/* Div definição de Layout */}
         <div className={`rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] ${!useRowLayout ? 'max-w-[700px]' : ''}`}>
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -707,7 +1462,7 @@ export default function TemplatesPage() {
                 Personalize as informações que aparecerão nas artes geradas para cada plataforma.
               </p>
             </div>
-            <button
+            <button id="save-layout-btn"
               onClick={handleSaveLayout}
               disabled={isSavingLayout}
               className="ml-4 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -715,8 +1470,8 @@ export default function TemplatesPage() {
               {isSavingLayout ? (
                 <>
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                   Salvando...
                 </>
@@ -732,439 +1487,29 @@ export default function TemplatesPage() {
           </div>
           <div className={`mt-6 flex gap-6 ${useRowLayout ? 'flex-row' : 'flex-col'}`}>
             {/* Card para Feed/Telegram/WhatsApp */}
-            <div className="max-w-[700px] rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
+            <div id='card-para-feed' className="max-w-[700px] rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
               <div className="flex flex-col gap-6 sm:flex-row">
                 {/* Informações do card */}
-                <div className="w-full sm:w-[400px]">
+                <div id='informacoes-do-card' className="w-full sm:w-[400px]">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
                     Informações do card
                   </p>
-                  <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Título</span>
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.title}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              title: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.title}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                title: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.title }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.title}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              title: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
+                  <button
+                    onClick={() => setIsCardDetailsCollapsed((prev) => !prev)}
+                    className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]"
+                    type="button"
+                  >
+                    {isCardDetailsCollapsed ? "Expandir campos" : "Reordenar campos"}
+                  </button>
+                  {!isCardDetailsCollapsed && (
+                    <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
+                      {feedOrder.map(renderFeedControl)}
                     </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Descrição</span>
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.description}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              description: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.description}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                description: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.description }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.description}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              description: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Preço promocional</span>
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.promotionalPrice}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              promotionalPrice: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.promotionalPrice}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                promotionalPrice: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.promotionalPrice }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.promotionalPrice}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              promotionalPrice: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Preço cheio</span>
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.fullPrice}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              fullPrice: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.fullPrice}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                fullPrice: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.fullPrice }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.fullPrice}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              fullPrice: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Link de afiliado</span>
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.affiliateLink}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              affiliateLink: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.affiliateLink}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                affiliateLink: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.affiliateLink }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.affiliateLink}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              affiliateLink: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Cupom de desconto</span>
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.coupon}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              coupon: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.coupon}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                coupon: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.coupon }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.coupon}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              coupon: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Aviso de promoção</span>
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.disclaimer}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              disclaimer: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.disclaimer}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                disclaimer: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.disclaimer }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.disclaimer}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              disclaimer: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Quantidade de vendas</span>
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.salesQuantity}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              salesQuantity: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.salesQuantity}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                salesQuantity: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.salesQuantity }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.salesQuantity}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              salesQuantity: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <input
-                          type="text"
-                          value={customCardText}
-                          onChange={(event) => setCustomCardText(event.target.value)}
-                          placeholder="Meu texto personalizado"
-                          className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
-                        />
-                        <input
-                          type="checkbox"
-                          checked={cardDetails.customText}
-                          onChange={(event) =>
-                            setCardDetails((prev) => ({
-                              ...prev,
-                              customText: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={feedColors.customText}
-                            onChange={(e) =>
-                              setFeedColors((prev) => ({
-                                ...prev,
-                                customText: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: feedColors.customText }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={feedColors.customText}
-                          onChange={(e) =>
-                            setFeedColors((prev) => ({
-                              ...prev,
-                              customText: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Preview do card */}
-                <div className="w-full sm:w-[250px] flex flex-col items-center">
+                <div id='preview-do-card' className="w-full sm:w-[250px] flex flex-col items-center">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
                     Preview
                   </p>
@@ -1187,7 +1532,7 @@ export default function TemplatesPage() {
                           />
                         )}
                         <div className="absolute inset-0 flex items-center justify-center" style={{ marginTop: '30px' }}>
-                          <div className="relative h-[140px] w-[140px]">
+                          <div id='tamanho-imagem-produto-card' className="relative h-[140px] w-[140px]">
                             <Image
                               src={productImageSrc}
                               alt={mockProduct.title}
@@ -1200,61 +1545,7 @@ export default function TemplatesPage() {
                       </div>
                     </div>
                     <div className="space-y-2 text-sm text-[var(--color-text-secondary)]">
-                      {cardDetails.title && (
-                        <p className="font-semibold" style={{ color: feedColors.title }}>
-                          🛍️ {mockProduct.title}
-                        </p>
-                      )}
-                      {cardDetails.description && (
-                        <p style={{ color: feedColors.description }}>
-                          {mockProduct.description}
-                        </p>
-                      )}
-                      {cardDetails.promotionalPrice && (
-                        <p style={{ color: feedColors.promotionalPrice }}>
-                          💸 por R$ {mockProduct.promotionalPrice.replace('R$ ', '')} 🚨🚨
-                        </p>
-                      )}
-                      {cardDetails.fullPrice && (
-                        <p style={{ color: feedColors.fullPrice }}>
-                          <span className="font-semibold">
-                            Preço cheio:
-                          </span>{" "}
-                          {mockProduct.fullPrice}
-                        </p>
-                      )}
-                      {cardDetails.affiliateLink && (
-                        <div style={{ color: feedColors.affiliateLink }}>
-                          <p style={{ marginBottom: 0 }}>👉Link p/ comprar:</p>
-                          <p className="break-all">{mockProduct.affiliateLink}</p>
-                        </div>
-                      )}
-                      {cardDetails.coupon && (
-                        <p style={{ color: feedColors.coupon }}>
-                          <span className="font-semibold">
-                            Cupom:
-                          </span>{" "}
-                          {mockProduct.coupon}
-                        </p>
-                      )}
-                      {cardDetails.disclaimer && (
-                        <p className="text-xs italic" style={{ color: feedColors.disclaimer }}>
-                          *Promoção sujeita a alteração a qualquer momento
-                        </p>
-                      )}
-                      {cardDetails.salesQuantity && (
-                        <p style={{ color: feedColors.salesQuantity }}>
-                          <span className="font-semibold">
-                            Vendas:
-                          </span>{" "}
-                          {formattedSalesQuantity}
-                        </p>
-                      )}
-                      {cardDetails.customText && customCardText.trim() && (
-                        <p style={{ color: feedColors.customText }}>
-                          {customCardText}
-                        </p>
-                      )}
+                      {feedOrder.map(renderFeedPreviewField)}
                     </div>
                   </div>
                 </div>
@@ -1262,255 +1553,29 @@ export default function TemplatesPage() {
             </div>
 
             {/* Card para Stories */}
-            <div className="max-w-[700px] rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
+            <div id='card-para-stories' className="max-w-[700px] rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4">
               <div className="flex flex-col gap-6 sm:flex-row">
                 {/* Informações do story */}
-                <div className="w-full sm:w-[400px]">
+                <div id='informacoes-do-story' className="w-full sm:w-[400px]">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
                     Informações do story
                   </p>
-                  <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Título</span>
-                        <input
-                          type="checkbox"
-                          checked={storyDetails.title}
-                          onChange={(event) =>
-                            setStoryDetails((prev) => ({
-                              ...prev,
-                              title: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={storyColors.title}
-                            onChange={(e) =>
-                              setStoryColors((prev) => ({
-                                ...prev,
-                                title: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: storyColors.title }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={storyColors.title}
-                          onChange={(e) =>
-                            setStoryColors((prev) => ({
-                              ...prev,
-                              title: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
+                  <button
+                    onClick={() => setIsStoryDetailsCollapsed((prev) => !prev)}
+                    className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]"
+                    type="button"
+                  >
+                    {isStoryDetailsCollapsed ? "Expandir campos" : "Reordenar campos"}
+                  </button>
+                  {!isStoryDetailsCollapsed && (
+                    <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
+                      {storyOrder.map(renderStoryControl)}
                     </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Preço promocional</span>
-                        <input
-                          type="checkbox"
-                          checked={storyDetails.promotionalPrice}
-                          onChange={(event) =>
-                            setStoryDetails((prev) => ({
-                              ...prev,
-                              promotionalPrice: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={storyColors.promotionalPrice}
-                            onChange={(e) =>
-                              setStoryColors((prev) => ({
-                                ...prev,
-                                promotionalPrice: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: storyColors.promotionalPrice }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={storyColors.promotionalPrice}
-                          onChange={(e) =>
-                            setStoryColors((prev) => ({
-                              ...prev,
-                              promotionalPrice: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Preço cheio</span>
-                        <input
-                          type="checkbox"
-                          checked={storyDetails.fullPrice}
-                          onChange={(event) =>
-                            setStoryDetails((prev) => ({
-                              ...prev,
-                              fullPrice: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={storyColors.fullPrice}
-                            onChange={(e) =>
-                              setStoryColors((prev) => ({
-                                ...prev,
-                                fullPrice: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: storyColors.fullPrice }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={storyColors.fullPrice}
-                          onChange={(e) =>
-                            setStoryColors((prev) => ({
-                              ...prev,
-                              fullPrice: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <span>Cupom de desconto</span>
-                        <input
-                          type="checkbox"
-                          checked={storyDetails.coupon}
-                          onChange={(event) =>
-                            setStoryDetails((prev) => ({
-                              ...prev,
-                              coupon: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={storyColors.coupon}
-                            onChange={(e) =>
-                              setStoryColors((prev) => ({
-                                ...prev,
-                                coupon: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: storyColors.coupon }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={storyColors.coupon}
-                          onChange={(e) =>
-                            setStoryColors((prev) => ({
-                              ...prev,
-                              coupon: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <label className="flex flex-1 items-center justify-between rounded-lg border border-[var(--color-border)] bg-white px-3 py-2">
-                        <input
-                          type="text"
-                          value={customStoryText}
-                          onChange={(event) => setCustomStoryText(event.target.value)}
-                          placeholder="Meu texto personalizado"
-                          className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
-                        />
-                        <input
-                          type="checkbox"
-                          checked={storyDetails.customText}
-                          onChange={(event) =>
-                            setStoryDetails((prev) => ({
-                              ...prev,
-                              customText: event.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
-                      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
-                        <div className="relative">
-                          <input
-                            type="color"
-                            value={storyColors.customText}
-                            onChange={(e) =>
-                              setStoryColors((prev) => ({
-                                ...prev,
-                                customText: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                          <div
-                            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-                            style={{ backgroundColor: storyColors.customText }}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={storyColors.customText}
-                          onChange={(e) =>
-                            setStoryColors((prev) => ({
-                              ...prev,
-                              customText: e.target.value,
-                            }))
-                          }
-                          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Preview do story */}
-                <div className="w-full sm:w-[250px] flex flex-col items-center">
+                <div id='preview-do-story' className="w-full sm:w-[250px] flex flex-col items-center">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
                     Preview
                   </p>
@@ -1537,7 +1602,7 @@ export default function TemplatesPage() {
 
                         {/* 4/6 central com conteúdo principal */}
                         <div className="flex flex-col items-center justify-center text-center" style={{ height: 'calc(100% * 4 / 6)', paddingLeft: '15%', paddingRight: '15%' }}>
-                          <div className="relative mb-2 h-[100px] w-[100px] flex-shrink-0">
+                          <div id='tamanho-imagem-produto-story' className="relative mb-2 h-[100px] w-[100px] flex-shrink-0">
                             <Image
                               src={productImageSrc}
                               alt={mockProduct.title}
@@ -1547,31 +1612,7 @@ export default function TemplatesPage() {
                             />
                           </div>
                           <div className="space-y-1 flex-shrink min-h-0">
-                            {storyDetails.title && (
-                              <p className="text-sm font-bold leading-tight" style={{ color: storyColors.title }}>
-                                {mockProduct.title}
-                              </p>
-                            )}
-                            {storyDetails.promotionalPrice && (
-                              <p className="text-base font-bold" style={{ color: storyColors.promotionalPrice }}>
-                                {mockProduct.promotionalPrice}
-                              </p>
-                            )}
-                            {storyDetails.fullPrice && (
-                              <p className="text-xs line-through opacity-80" style={{ color: storyColors.fullPrice }}>
-                                {mockProduct.fullPrice}
-                              </p>
-                            )}
-                            {storyDetails.coupon && (
-                              <p className="rounded-lg bg-black/10 px-2 py-0.5 text-xs font-semibold" style={{ color: storyColors.coupon }}>
-                                {mockProduct.coupon}
-                              </p>
-                            )}
-                            {storyDetails.customText && customStoryText.trim() && (
-                              <p className="text-xs font-semibold" style={{ color: storyColors.customText }}>
-                                {customStoryText}
-                              </p>
-                            )}
+                            {storyOrder.map(renderStoryPreviewField)}
                           </div>
                         </div>
                       </div>

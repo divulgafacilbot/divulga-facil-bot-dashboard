@@ -3,7 +3,7 @@ import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
-import { ProductData } from '../scrapers/types.js';
+import { ProductData } from '../scraping/types.js';
 import { LayoutPreferences } from '../layout-preferences.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -93,186 +93,18 @@ export class ArtGeneratorService {
     layoutPreferences?: LayoutPreferences
   ): Promise<Buffer> {
     // Resize product image to fit in template (smaller, centered)
-    const productImageSize = Math.min(dimensions.width * 0.6, dimensions.height * 0.4);
+    const baseProductImageSize = Math.min(dimensions.width * 0.6, dimensions.height * 0.4);
+    const productImageSize = baseProductImageSize * 1.44;
     const productImageResized = await sharp(productImageBuffer)
       .resize(Math.round(productImageSize), Math.round(productImageSize), {
         fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
+        background: { r: 255, g: 255, b: 255, alpha: 1 }
       })
       .toBuffer();
 
-    // Create SVG overlay for text
-    const textColor = brandConfig.textColor || '#000000';
-    const priceColor = brandConfig.priceColor || textColor;
-
-    const priceFormatted = `R$ ${product.price.toFixed(2).replace('.', ',')}`;
-    const originalPriceText = product.originalPrice
-      ? `R$ ${product.originalPrice.toFixed(2).replace('.', ',')}`
-      : '';
-    const discountText = product.discountPercentage
-      ? `-${product.discountPercentage}%`
-      : '';
-
-    // Create text overlay SVG with conditional fields based on layout preferences
-    let currentY = dimensions.height * 0.60; // Start position for text content
-    const yStep = 60; // Vertical spacing between elements
-
-    const textSvg = `
-      <svg width="${dimensions.width}" height="${dimensions.height}">
-        ${layoutPreferences?.feedShowTitle !== false ? `
-        <!-- Product Title -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(currentY)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="48"
-          font-weight="bold"
-          fill="${textColor}"
-          text-anchor="middle"
-          style="paint-order: stroke; stroke: white; stroke-width: 4px;"
-        >
-          ${this.escapeXml(this.truncateText(product.title, 40))}
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.feedShowDescription !== false && product.description ? `
-        <!-- Product Description -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(currentY + (layoutPreferences?.feedShowTitle !== false ? yStep : 0))}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="28"
-          fill="${textColor}"
-          text-anchor="middle"
-          opacity="0.8"
-          style="paint-order: stroke; stroke: white; stroke-width: 2px;"
-        >
-          ${this.escapeXml(this.truncateText(product.description, 60))}
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.feedShowPrice !== false ? `
-        <!-- Price -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(dimensions.height * 0.75)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="64"
-          font-weight="bold"
-          fill="${priceColor}"
-          text-anchor="middle"
-          style="paint-order: stroke; stroke: white; stroke-width: 4px;"
-        >
-          ${priceFormatted}
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.feedShowOriginalPrice !== false && originalPriceText ? `
-        <!-- Original Price (strikethrough) -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(dimensions.height * 0.82)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="36"
-          fill="${textColor}"
-          text-anchor="middle"
-          opacity="0.7"
-          text-decoration="line-through"
-        >
-          ${originalPriceText}
-        </text>
-        ` : ''}
-
-        ${discountText ? `
-        <!-- Discount Badge -->
-        <rect
-          x="${Math.round(dimensions.width * 0.75)}"
-          y="${Math.round(dimensions.height * 0.15)}"
-          width="180"
-          height="80"
-          fill="#FF0000"
-          rx="10"
-        />
-        <text
-          x="${Math.round(dimensions.width * 0.75 + 90)}"
-          y="${Math.round(dimensions.height * 0.15 + 55)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="42"
-          font-weight="bold"
-          fill="white"
-          text-anchor="middle"
-        >
-          ${discountText}
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.feedShowSalesQuantity !== false && product.salesQuantity ? `
-        <!-- Sales Quantity -->
-        <text
-          x="${Math.round(dimensions.width * 0.15)}"
-          y="${Math.round(dimensions.height * 0.20)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="32"
-          font-weight="bold"
-          fill="${textColor}"
-          text-anchor="start"
-          style="paint-order: stroke; stroke: white; stroke-width: 3px;"
-        >
-          🔥 ${product.salesQuantity.toLocaleString('pt-BR')} vendidos
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.feedShowCoupon !== false && brandConfig.showCoupon && brandConfig.couponText ? `
-        <!-- Coupon -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(dimensions.height * 0.90)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="32"
-          fill="${textColor}"
-          text-anchor="middle"
-          style="paint-order: stroke; stroke: white; stroke-width: 3px;"
-        >
-          🎟️ ${this.escapeXml(brandConfig.couponText)}
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.feedShowDisclaimer !== false && layoutPreferences?.feedShowDisclaimer ? `
-        <!-- Disclaimer -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(dimensions.height * 0.93)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="20"
-          fill="${textColor}"
-          text-anchor="middle"
-          opacity="0.6"
-        >
-          *Oferta sujeita a disponibilidade
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.feedShowCustomText !== false && brandConfig.ctaText ? `
-        <!-- CTA Text -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(dimensions.height * 0.96)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="28"
-          font-weight="bold"
-          fill="${textColor}"
-          text-anchor="middle"
-          style="paint-order: stroke; stroke: white; stroke-width: 3px;"
-        >
-          ${this.escapeXml(brandConfig.ctaText)}
-        </text>
-        ` : ''}
-      </svg>
-    `;
-
     // Composite: template + product image + text
     const productImageX = Math.round((dimensions.width - productImageSize) / 2);
-    const productImageY = Math.round(dimensions.height * 0.15);
+    const productImageY = Math.round(dimensions.height * 0.25);
 
     const result = await sharp(templateBuffer)
       .composite([
@@ -280,11 +112,6 @@ export class ArtGeneratorService {
           input: productImageResized,
           top: productImageY,
           left: productImageX,
-        },
-        {
-          input: Buffer.from(textSvg),
-          top: 0,
-          left: 0,
         },
       ])
       .png()
@@ -313,124 +140,85 @@ export class ArtGeneratorService {
     const productImageResized = await sharp(productImageBuffer)
       .resize(Math.round(productImageSize), Math.round(productImageSize), {
         fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
+        background: { r: 255, g: 255, b: 255, alpha: 1 }
       })
       .toBuffer();
 
     const textColor = brandConfig.textColor || '#000000';
     const priceColor = brandConfig.priceColor || textColor;
 
-    const priceFormatted = `R$ ${product.price.toFixed(2).replace('.', ',')}`;
-    const discountText = product.discountPercentage
-      ? `-${product.discountPercentage}%`
-      : '';
+    const displayPrices = this.normalizePriceDisplay(product);
+    const discountText =
+      displayPrices.originalPrice !== null &&
+      displayPrices.price !== null &&
+      displayPrices.originalPrice > displayPrices.price &&
+      product.discountPercentage
+        ? `-${product.discountPercentage}%`
+        : '';
 
-    // Create text overlay SVG for story with conditional fields based on layout preferences
+    const storyFields = this.getStoryFields(product, brandConfig, layoutPreferences);
+    const gapBetweenImageAndText = 40;
+    let currentY = Math.round(
+      topOffset + contentHeight * 0.05 + productImageSize + gapBetweenImageAndText
+    );
+    const blockSpacing = 24;
+
+    const storyTextElements = storyFields
+      .map((field) => {
+        const lineHeight = field.lineHeight || Math.round(field.fontSize * 1.2);
+        const lines = field.lines || [field.text];
+        const textBlock = `
+          <text
+            x="${dimensions.width / 2}"
+            y="${currentY}"
+            font-family="${brandConfig.fontFamily}, Arial, sans-serif"
+            font-size="${field.fontSize}"
+            font-weight="${field.fontWeight}"
+            fill="${field.color}"
+            text-anchor="middle"
+            ${field.decoration ? `text-decoration="${field.decoration}"` : ""}
+            style="paint-order: stroke; stroke: white; stroke-width: 3px;"
+          >
+            ${lines
+              .map(
+                (line, index) => `
+              <tspan x="${dimensions.width / 2}" ${index === 0 ? "" : `dy="${lineHeight}"`}>
+                ${this.escapeXml(line)}
+              </tspan>
+            `
+              )
+              .join("")}
+          </text>
+        `;
+        currentY += lineHeight * lines.length + blockSpacing;
+        return textBlock;
+      })
+      .join("");
+
     const textSvg = `
       <svg width="${dimensions.width}" height="${dimensions.height}">
-        <!-- Product Image positioned in middle zone -->
-
-        ${layoutPreferences?.storyShowTitle !== false ? `
-        <!-- Product Title (below image) -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(topOffset + contentHeight * 0.6)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="56"
-          font-weight="bold"
-          fill="${textColor}"
-          text-anchor="middle"
-          style="paint-order: stroke; stroke: white; stroke-width: 4px;"
-        >
-          ${this.escapeXml(this.truncateText(product.title, 35))}
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.storyShowPrice !== false ? `
-        <!-- Price -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(topOffset + contentHeight * 0.75)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="72"
-          font-weight="bold"
-          fill="${priceColor}"
-          text-anchor="middle"
-          style="paint-order: stroke; stroke: white; stroke-width: 5px;"
-        >
-          ${priceFormatted}
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.storyShowOriginalPrice !== false && product.originalPrice ? `
-        <!-- Original Price (strikethrough) -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(topOffset + contentHeight * 0.82)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="40"
-          fill="${textColor}"
-          text-anchor="middle"
-          opacity="0.7"
-          text-decoration="line-through"
-        >
-          R$ ${product.originalPrice.toFixed(2).replace('.', ',')}
-        </text>
-        ` : ''}
-
         ${discountText ? `
-        <!-- Discount Badge -->
-        <rect
-          x="${Math.round(dimensions.width * 0.7)}"
-          y="${Math.round(topOffset + contentHeight * 0.1)}"
-          width="200"
-          height="90"
-          fill="#FF0000"
-          rx="10"
-        />
-        <text
-          x="${Math.round(dimensions.width * 0.7 + 100)}"
-          y="${Math.round(topOffset + contentHeight * 0.1 + 60)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="48"
-          font-weight="bold"
-          fill="white"
-          text-anchor="middle"
-        >
-          ${discountText}
-        </text>
+          <rect
+            x="${Math.round(dimensions.width * 0.7)}"
+            y="${Math.round(topOffset + contentHeight * 0.1)}"
+            width="200"
+            height="90"
+            fill="#FF0000"
+            rx="10"
+          />
+          <text
+            x="${Math.round(dimensions.width * 0.7 + 100)}"
+            y="${Math.round(topOffset + contentHeight * 0.1 + 60)}"
+            font-family="${brandConfig.fontFamily}, Arial, sans-serif"
+            font-size="48"
+            font-weight="bold"
+            fill="white"
+            text-anchor="middle"
+          >
+            ${discountText}
+          </text>
         ` : ''}
-
-        ${layoutPreferences?.storyShowCoupon !== false && brandConfig.showCoupon && brandConfig.couponText ? `
-        <!-- Coupon -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(topOffset + contentHeight * 0.88)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="40"
-          fill="${textColor}"
-          text-anchor="middle"
-          style="paint-order: stroke; stroke: white; stroke-width: 3px;"
-        >
-          🎟️ ${this.escapeXml(brandConfig.couponText)}
-        </text>
-        ` : ''}
-
-        ${layoutPreferences?.storyShowCustomText !== false && brandConfig.ctaText ? `
-        <!-- Custom Text / CTA -->
-        <text
-          x="${dimensions.width / 2}"
-          y="${Math.round(topOffset + contentHeight * 0.95)}"
-          font-family="${brandConfig.fontFamily}, Arial, sans-serif"
-          font-size="36"
-          font-weight="bold"
-          fill="${textColor}"
-          text-anchor="middle"
-          style="paint-order: stroke; stroke: white; stroke-width: 3px;"
-        >
-          ${this.escapeXml(brandConfig.ctaText)}
-        </text>
-        ` : ''}
+        ${storyTextElements}
       </svg>
     `;
 
@@ -485,24 +273,53 @@ export class ArtGeneratorService {
       }
     }
 
-    // Fall back to system templates
-    const systemTemplatePath = path.join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      '..',
-      '..',
-      'public',
-      'templates',
-      `${templateId}-${format}.png`
-    );
+    const templateFilename = `${templateId}-${format}.png`;
+    const candidatePaths = [
+      path.join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        'web',
+        'public',
+        'templates',
+        templateFilename
+      ),
+      path.join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        '..',
+        'public',
+        'templates',
+        templateFilename
+      ),
+    ];
 
-    try {
-      return await fs.readFile(systemTemplatePath);
-    } catch (error) {
-      // If template not found, use default
-      const defaultPath = path.join(
+    for (const candidate of candidatePaths) {
+      try {
+        return await fs.readFile(candidate);
+      } catch {
+        // Try next candidate
+      }
+    }
+
+    const defaultCandidates = [
+      path.join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        'web',
+        'public',
+        'templates',
+        `default-${format}.png`
+      ),
+      path.join(
         __dirname,
         '..',
         '..',
@@ -512,9 +329,18 @@ export class ArtGeneratorService {
         'public',
         'templates',
         `default-${format}.png`
-      );
-      return await fs.readFile(defaultPath);
+      ),
+    ];
+
+    for (const candidate of defaultCandidates) {
+      try {
+        return await fs.readFile(candidate);
+      } catch {
+        // Try next candidate
+      }
     }
+
+    throw new Error(`Template not found: ${templateId} (${format})`);
   }
 
   /**
@@ -546,6 +372,231 @@ export class ArtGeneratorService {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
+  }
+
+  buildLegendText(
+    product: ProductData,
+    brandConfig: BrandConfig,
+    layoutPreferences?: LayoutPreferences
+  ): string {
+    const order = layoutPreferences?.feedOrder || [
+      "title",
+      "description",
+      "price",
+      "originalPrice",
+      "productUrl",
+      "coupon",
+      "disclaimer",
+      "salesQuantity",
+      "customText",
+    ];
+
+    const lines: string[] = [];
+    const displayPrices = this.normalizePriceDisplay(product);
+    const priceFormatted = displayPrices.price !== null
+      ? `R$ ${displayPrices.price.toFixed(2).replace('.', ',')}`
+      : null;
+    const originalPriceText = displayPrices.originalPrice !== null
+      ? `R$ ${displayPrices.originalPrice.toFixed(2).replace('.', ',')}`
+      : null;
+
+    order.forEach((field) => {
+      switch (field) {
+        case "title":
+          if (layoutPreferences?.feedShowTitle !== false) {
+            lines.push(`🛍️ *${product.title}*`);
+          }
+          break;
+        case "description":
+          if (layoutPreferences?.feedShowDescription !== false && product.description) {
+            lines.push(product.description);
+          }
+          break;
+        case "price":
+          if (layoutPreferences?.feedShowPrice !== false && priceFormatted) {
+            lines.push(`💸 por ${priceFormatted} 🚨🚨`);
+          }
+          break;
+        case "originalPrice":
+          if (layoutPreferences?.feedShowOriginalPrice !== false && originalPriceText) {
+            lines.push(`Preço cheio: ${originalPriceText}`);
+          }
+          break;
+        case "productUrl":
+          if (layoutPreferences?.feedShowProductUrl !== false) {
+            lines.push(`👉Link p/ comprar: ${product.productUrl}`);
+          }
+          break;
+        case "coupon":
+          if (
+            layoutPreferences?.feedShowCoupon !== false &&
+            brandConfig.showCoupon &&
+            brandConfig.couponText
+          ) {
+            lines.push(`🎟️ Cupom: ${brandConfig.couponText}`);
+          }
+          break;
+        case "disclaimer":
+          if (layoutPreferences?.feedShowDisclaimer) {
+            lines.push("*Promoção sujeita a alteração a qualquer momento");
+          }
+          break;
+        case "salesQuantity":
+          if (layoutPreferences?.feedShowSalesQuantity && product.salesQuantity) {
+            lines.push(`Vendas: ${product.salesQuantity.toLocaleString('pt-BR')} vendidos`);
+          }
+          break;
+        case "customText":
+          if (layoutPreferences?.feedShowCustomText && brandConfig.ctaText) {
+            lines.push(brandConfig.ctaText);
+          }
+          break;
+        default:
+          break;
+      }
+    });
+
+    return lines.join("\n");
+  }
+
+  private getStoryFields(
+    product: ProductData,
+    brandConfig: BrandConfig,
+    layoutPreferences?: LayoutPreferences
+  ) {
+    const order = layoutPreferences?.storyOrder || [
+      "title",
+      "price",
+      "originalPrice",
+      "coupon",
+      "customText",
+    ];
+
+    const displayPrices = this.normalizePriceDisplay(product);
+    const textMaxWidthFactor =
+      product.marketplace === "AMAZON" || product.marketplace === "MAGALU"
+        ? 0.81
+        : 0.9;
+    const fields: Array<{
+      text: string;
+      lines?: string[];
+      lineHeight?: number;
+      fontSize: number;
+      fontWeight: string;
+      color: string;
+      decoration?: string;
+    }> = [];
+
+    order.forEach((field) => {
+      switch (field) {
+        case "title":
+          if (layoutPreferences?.storyShowTitle !== false) {
+            const titleLines = this.wrapText(
+              product.title,
+              Math.round(36 * textMaxWidthFactor)
+            );
+            fields.push({
+              text: titleLines[0] || product.title,
+              lines: titleLines,
+              lineHeight: 62,
+              fontSize: 52,
+              fontWeight: "bold",
+              color: brandConfig.textColor || "#000000",
+            });
+          }
+          break;
+        case "price":
+          if (layoutPreferences?.storyShowPrice !== false && displayPrices.price !== null) {
+            fields.push({
+              text: `R$ ${displayPrices.price.toFixed(2).replace(".", ",")}`,
+              fontSize: 72,
+              fontWeight: "bold",
+              color: brandConfig.priceColor || brandConfig.textColor || "#000000",
+            });
+          }
+          break;
+        case "originalPrice":
+          if (
+            layoutPreferences?.storyShowOriginalPrice !== false &&
+            displayPrices.originalPrice !== null
+          ) {
+            fields.push({
+              text: `R$ ${displayPrices.originalPrice.toFixed(2).replace(".", ",")}`,
+              fontSize: 40,
+              fontWeight: "normal",
+              color: brandConfig.textColor || "#000000",
+              decoration: "line-through",
+            });
+          }
+          break;
+        case "coupon":
+          if (
+            layoutPreferences?.storyShowCoupon !== false &&
+            brandConfig.showCoupon &&
+            brandConfig.couponText
+          ) {
+            fields.push({
+              text: `🎟️ ${brandConfig.couponText}`,
+              fontSize: 40,
+              fontWeight: "bold",
+              color: brandConfig.textColor || "#000000",
+            });
+          }
+          break;
+        case "customText":
+          if (layoutPreferences?.storyShowCustomText !== false && brandConfig.ctaText) {
+            fields.push({
+              text: brandConfig.ctaText,
+              fontSize: 36,
+              fontWeight: "bold",
+              color: brandConfig.textColor || "#000000",
+            });
+          }
+          break;
+        default:
+          break;
+      }
+    });
+
+    return fields;
+  }
+
+  private normalizePriceDisplay(product: ProductData): {
+    price: number | null;
+    originalPrice: number | null;
+  } {
+    const price = Number.isFinite(product.price) ? product.price : null;
+    const originalPrice = Number.isFinite(product.originalPrice ?? NaN)
+      ? product.originalPrice!
+      : null;
+
+    if (price !== null && originalPrice !== null && price > originalPrice) {
+      return { price: originalPrice, originalPrice: null };
+    }
+
+    return { price, originalPrice };
+  }
+
+  private wrapText(text: string, maxChars: number): string[] {
+    const words = text.split(/\s+/).filter(Boolean);
+    const lines: string[] = [];
+    let currentLine = "";
+
+    words.forEach((word) => {
+      const next = currentLine ? `${currentLine} ${word}` : word;
+      if (next.length > maxChars && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = next;
+      }
+    });
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines.length ? lines : [text];
   }
 }
 

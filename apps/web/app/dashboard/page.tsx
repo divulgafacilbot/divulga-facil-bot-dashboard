@@ -1,8 +1,40 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
+  const [activeArtsBots, setActiveArtsBots] = useState(0);
+  const [activeDownloadBots, setActiveDownloadBots] = useState(0);
+  const [artsGenerated, setArtsGenerated] = useState(0);
+  const [downloadsGenerated, setDownloadsGenerated] = useState(0);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/me/metrics`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        setActiveArtsBots(data?.activeBots?.arts || 0);
+        setActiveDownloadBots(data?.activeBots?.download || 0);
+        setArtsGenerated(data?.usage?.renders || 0);
+        setDownloadsGenerated(data?.usage?.downloads || 0);
+      } catch (error) {
+        console.error("Erro ao carregar métricas:", error);
+      }
+    };
+
+    loadMetrics();
+  }, [apiBaseUrl]);
+
   return (
     <>
       {/* Welcome Header */}
@@ -20,7 +52,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
-              Bots ativos
+              Bots de arte ativos
             </p>
             <div className="rounded-lg bg-[color:rgba(245,61,45,0.1)] p-2">
               <svg
@@ -38,22 +70,21 @@ export default function DashboardPage() {
               </svg>
             </div>
           </div>
-          <p className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
-            0
+          <p id="contador-de-bots-de-artes-ativos" className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
+            {activeArtsBots}
           </p>
           <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
-            Nenhum bot configurado ainda
+            Nenhum bot de artes configurado ainda
           </p>
         </div>
-
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
-              Templates
+              Bots de download ativos
             </p>
-            <div className="rounded-lg bg-[color:rgba(45,106,239,0.1)] p-2">
+            <div className="rounded-lg bg-[color:rgba(245,61,45,0.1)] p-2">
               <svg
-                className="h-5 w-5 text-[var(--color-secondary)]"
+                className="h-5 w-5 text-[var(--color-primary)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -62,23 +93,24 @@ export default function DashboardPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M7.5 3.75h6l4.5 4.5v11.25A2.25 2.25 0 0115.75 21.75H7.5A2.25 2.25 0 015.25 19.5V6A2.25 2.25 0 017.5 3.75z"
+                  d="M7.5 4.5h9a3 3 0 013 3v9a3 3 0 01-3 3h-9a3 3 0 01-3-3v-9a3 3 0 013-3z"
                 />
               </svg>
             </div>
           </div>
-          <p className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
-            0
+          <p id="contador-de-bots-de-download-ativos" className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
+            {activeDownloadBots}
           </p>
           <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
-            Configure seus templates
+            Nenhum bot de download configurado ainda
           </p>
         </div>
+
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
-              Publicações
+              Artes geradas
             </p>
             <div className="rounded-lg bg-[color:rgba(34,197,94,0.1)] p-2">
               <svg
@@ -96,8 +128,38 @@ export default function DashboardPage() {
               </svg>
             </div>
           </div>
-          <p className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
-            0
+          <p id="contador-de-artes-geradas" className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
+            {artsGenerated}
+          </p>
+          <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
+            Neste mês
+          </p>
+        </div>
+
+
+        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+              Quantidade de downloads
+            </p>
+            <div className="rounded-lg bg-[color:rgba(34,197,94,0.1)] p-2">
+              <svg
+                className="h-5 w-5 text-[var(--color-success)]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+          </div>
+          <p id="contador-de-downloads-gerados" className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
+            {downloadsGenerated}
           </p>
           <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
             Neste mês

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
 import { requireAuth } from '../auth.middleware';
+import { jwtConfig } from '../../config/jwt';
 import jwt from 'jsonwebtoken';
 
 // Mock jwt
@@ -34,7 +35,7 @@ describe('Auth Middleware - requireAuth', () => {
     requireAuth(mockRequest as Request, mockResponse as Response, nextFunction);
 
     // Assert
-    expect(jwt.verify).toHaveBeenCalledWith('valid-token', process.env.JWT_SECRET);
+    expect(jwt.verify).toHaveBeenCalledWith('valid-token', jwtConfig.secret);
     expect(mockRequest.user).toEqual({ id: 'user-123' });
     expect(nextFunction).toHaveBeenCalled();
     expect(mockResponse.status).not.toHaveBeenCalled();
@@ -50,7 +51,7 @@ describe('Auth Middleware - requireAuth', () => {
     requireAuth(mockRequest as Request, mockResponse as Response, nextFunction);
 
     // Assert
-    expect(jwt.verify).toHaveBeenCalledWith('valid-token', process.env.JWT_SECRET);
+    expect(jwt.verify).toHaveBeenCalledWith('valid-token', jwtConfig.secret);
     expect(mockRequest.user).toEqual({ id: 'user-456' });
     expect(nextFunction).toHaveBeenCalled();
   });
@@ -133,7 +134,7 @@ describe('Auth Middleware - requireAuth', () => {
     requireAuth(mockRequest as Request, mockResponse as Response, nextFunction);
 
     // Assert
-    expect(jwt.verify).toHaveBeenCalledWith('cookie-token', process.env.JWT_SECRET);
+    expect(jwt.verify).toHaveBeenCalledWith('cookie-token', jwtConfig.secret);
     expect(mockRequest.user?.id).toBe('cookie-user');
   });
 });
