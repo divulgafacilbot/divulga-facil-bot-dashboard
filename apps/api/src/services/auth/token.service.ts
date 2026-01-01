@@ -11,7 +11,7 @@ export interface JWTPayload {
 export class TokenService {
   static generateJWT(payload: JWTPayload): string {
     return jwt.sign(payload, jwtConfig.secret as Secret, {
-      expiresIn: jwtConfig.expiresIn as any,
+      expiresIn: jwtConfig.expiresIn as SignOptions["expiresIn"],
     });
   }
 

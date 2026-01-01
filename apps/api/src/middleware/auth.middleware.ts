@@ -50,11 +50,11 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
     };
 
     next();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Auth middleware error:', error);
 
     // Check if it's a token expiration error
-    if (error.name === 'TokenExpiredError') {
+    if (error instanceof Error && error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 

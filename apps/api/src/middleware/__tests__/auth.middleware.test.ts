@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
 import { requireAuth } from '../auth.middleware';
+import { jwtConfig } from '../../config/jwt';
 import jwt from 'jsonwebtoken';
 
 // Mock jwt
@@ -20,7 +21,7 @@ describe('Auth Middleware - requireAuth', () => {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
     };
-    nextFunction = vi.fn();
+    nextFunction = vi.fn() as unknown as NextFunction;
     vi.clearAllMocks();
   });
 
@@ -28,13 +29,13 @@ describe('Auth Middleware - requireAuth', () => {
     // Arrange
     const mockPayload = { userId: 'user-123' };
     mockRequest.cookies = { token: 'valid-token' };
-    (jwt.verify as any).mockReturnValue(mockPayload);
+    vi.mocked(jwt.verify).mockReturnValue(mockPayload);
 
     // Act
     requireAuth(mockRequest as Request, mockResponse as Response, nextFunction);
 
     // Assert
-    expect(jwt.verify).toHaveBeenCalledWith('valid-token', process.env.JWT_SECRET);
+    expect(jwt.verify).toHaveBeenCalledWith('valid-token', jwtConfig.secret);
     expect(mockRequest.user).toEqual({ id: 'user-123' });
     expect(nextFunction).toHaveBeenCalled();
     expect(mockResponse.status).not.toHaveBeenCalled();
@@ -44,13 +45,13 @@ describe('Auth Middleware - requireAuth', () => {
     // Arrange
     const mockPayload = { userId: 'user-456' };
     mockRequest.headers = { authorization: 'Bearer valid-token' };
-    (jwt.verify as any).mockReturnValue(mockPayload);
+    vi.mocked(jwt.verify).mockReturnValue(mockPayload);
 
     // Act
     requireAuth(mockRequest as Request, mockResponse as Response, nextFunction);
 
     // Assert
-    expect(jwt.verify).toHaveBeenCalledWith('valid-token', process.env.JWT_SECRET);
+    expect(jwt.verify).toHaveBeenCalledWith('valid-token', jwtConfig.secret);
     expect(mockRequest.user).toEqual({ id: 'user-456' });
     expect(nextFunction).toHaveBeenCalled();
   });
@@ -72,7 +73,7 @@ describe('Auth Middleware - requireAuth', () => {
   it('should return 401 when token is invalid', () => {
     // Arrange
     mockRequest.cookies = { token: 'invalid-token' };
-    (jwt.verify as any).mockImplementation(() => {
+    vi.mocked(jwt.verify).mockImplementation(() => {
       throw new Error('Invalid token');
     });
 
@@ -90,8 +91,8 @@ describe('Auth Middleware - requireAuth', () => {
   it('should return 401 when token is expired', () => {
     // Arrange
     mockRequest.cookies = { token: 'expired-token' };
-    (jwt.verify as any).mockImplementation(() => {
-      const error: any = new Error('Token expired');
+    vi.mocked(jwt.verify).mockImplementation(() => {
+      const error = new Error('Token expired') as Error & { name: string };
       error.name = 'TokenExpiredError';
       throw error;
     });
@@ -112,7 +113,7 @@ describe('Auth Middleware - requireAuth', () => {
     const userId = 'test-user-id-789';
     const mockPayload = { userId };
     mockRequest.cookies = { token: 'valid-token' };
-    (jwt.verify as any).mockReturnValue(mockPayload);
+    vi.mocked(jwt.verify).mockReturnValue(mockPayload);
 
     // Act
     requireAuth(mockRequest as Request, mockResponse as Response, nextFunction);
@@ -127,13 +128,13 @@ describe('Auth Middleware - requireAuth', () => {
     const cookiePayload = { userId: 'cookie-user' };
     mockRequest.cookies = { token: 'cookie-token' };
     mockRequest.headers = { authorization: 'Bearer header-token' };
-    (jwt.verify as any).mockReturnValue(cookiePayload);
+    vi.mocked(jwt.verify).mockReturnValue(cookiePayload);
 
     // Act
     requireAuth(mockRequest as Request, mockResponse as Response, nextFunction);
 
     // Assert
-    expect(jwt.verify).toHaveBeenCalledWith('cookie-token', process.env.JWT_SECRET);
+    expect(jwt.verify).toHaveBeenCalledWith('cookie-token', jwtConfig.secret);
     expect(mockRequest.user?.id).toBe('cookie-user');
   });
 });

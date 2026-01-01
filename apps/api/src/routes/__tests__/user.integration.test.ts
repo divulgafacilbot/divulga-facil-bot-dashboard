@@ -234,7 +234,7 @@ describe('User Integration Tests - GET /me', () => {
   it('should NOT accept userId from query params (security test)', async () => {
     // Try to access User B's data by passing their ID
     const response = await request(app)
-      .get(`/me?userId=${userBId}`)
+      .get(`/api/me?userId=${userBId}`)
       .set('Authorization', `Bearer ${userAToken}`);
 
     // Should still return User A's data (from token), NOT User B's

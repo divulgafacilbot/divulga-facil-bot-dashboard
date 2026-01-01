@@ -27,7 +27,7 @@ describe('User Service - getUserById', () => {
       passwordHash: 'hashed_password', // Should be excluded from DTO
     };
 
-    (prisma.user.findUnique as any).mockResolvedValue(mockUser);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
 
     // Act
     const result = await getUserById(mockUser.id);
@@ -52,7 +52,7 @@ describe('User Service - getUserById', () => {
 
   it('should return null when user does not exist', async () => {
     // Arrange
-    (prisma.user.findUnique as any).mockResolvedValue(null);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
     // Act
     const result = await getUserById('nonexistent-id');
@@ -71,7 +71,7 @@ describe('User Service - getUserById', () => {
       createdAt: new Date(),
     };
 
-    (prisma.user.findUnique as any).mockResolvedValue(mockUser);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
 
     // Act
     const result = await getUserById(mockUser.id);
@@ -90,7 +90,7 @@ describe('User Service - getUserById', () => {
       createdAt: new Date(),
     };
 
-    (prisma.user.findUnique as any).mockResolvedValue(mockUser);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
 
     // Act
     const result = await getUserById(mockUser.id);
@@ -110,7 +110,7 @@ describe('User Service - getUserById', () => {
       passwordHash: 'should_not_be_returned',
     };
 
-    (prisma.user.findUnique as any).mockResolvedValue(mockUser);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
 
     // Act
     const result = await getUserById(mockUser.id);
@@ -121,7 +121,7 @@ describe('User Service - getUserById', () => {
 
   it('should handle database errors gracefully', async () => {
     // Arrange
-    (prisma.user.findUnique as any).mockRejectedValue(new Error('Database error'));
+    vi.mocked(prisma.user.findUnique).mockRejectedValue(new Error('Database error'));
 
     // Act & Assert
     await expect(getUserById('user-id')).rejects.toThrow('Database error');
