@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { telegramLinkService } from '../services/telegram/link-service.js';
 import { linkTokenRequestSchema, confirmLinkSchema } from '../validators/telegram.schema.js';
+import { BOT_TYPES, type BotType } from '../constants/bot-types.js';
 
 export class TelegramController {
   /**
@@ -80,7 +81,7 @@ export class TelegramController {
 
       // Note: botType should be inferred from the bot that's calling this endpoint
       // For now, we'll assume ARTS bot (will be passed as query param or header by bot)
-      const botType = (req.query.botType as 'ARTS' | 'DOWNLOAD') || 'ARTS';
+      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
 
       // Confirm link
       const result = await telegramLinkService.confirmLink(
@@ -119,7 +120,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as 'ARTS' | 'DOWNLOAD') || 'ARTS';
+      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
 
       const link = await telegramLinkService.getLink(userId, botType);
 
@@ -153,7 +154,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as 'ARTS' | 'DOWNLOAD') || 'ARTS';
+      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
 
       const success = await telegramLinkService.unlinkAccount(userId, botType);
 
@@ -185,7 +186,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as 'ARTS' | 'DOWNLOAD') || 'ARTS';
+      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
       const tokens = await telegramLinkService.listTokens(userId, botType);
 
       return res.status(200).json({
@@ -214,7 +215,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as 'ARTS' | 'DOWNLOAD') || 'ARTS';
+      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
       const tokenId = req.params.id;
 
       await telegramLinkService.deleteToken(userId, botType, tokenId);

@@ -12,7 +12,7 @@ export interface LoginHistoryEntry {
   failureReason: string | null;
   loginAt: Date;
   location: string | null;
-  deviceInfo: any;
+  deviceInfo: DeviceInfo | null;
 }
 
 export interface DeviceInfo {
@@ -47,7 +47,7 @@ export class LoginHistoryService {
           userAgent: userAgent || null,
           success,
           failureReason: failureReason || null,
-          deviceInfo: deviceInfo as any,
+          deviceInfo,
           location: null, // Could be enhanced with IP geolocation service
         },
       });

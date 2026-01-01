@@ -37,7 +37,17 @@ export class BrandConfigService {
    * Creates new config if doesn't exist
    */
   async updateConfig(userId: string, data: BrandConfigUpdate) {
-    const updateData: any = {};
+    const updateData: Partial<{
+      template_id: string;
+      bg_color: string;
+      text_color: string;
+      price_color: string | null;
+      font_family: string;
+      show_coupon: boolean;
+      coupon_text: string | null;
+      cta_text: string | null;
+      custom_image_url: string | null;
+    }> = {};
 
     if (data.templateId !== undefined) updateData.template_id = data.templateId;
     if (data.bgColor !== undefined) updateData.bg_color = data.bgColor;

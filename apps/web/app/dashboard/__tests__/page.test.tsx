@@ -3,6 +3,29 @@ import { render, screen, waitFor } from '@testing-library/react';
 import DashboardPage from '../page';
 import * as apiClient from '../../../lib/api/user';
 
+type DashboardUser = {
+  email: string;
+};
+
+type LayoutProps = {
+  children: React.ReactNode;
+  user: DashboardUser;
+};
+
+type ErrorMessageProps = {
+  message: string;
+};
+
+type CardProps = {
+  children: React.ReactNode;
+};
+
+type EmptyStateProps = {
+  message: string;
+  action?: string;
+  href?: string;
+};
+
 // Mock the API client
 jest.mock('../../../lib/api/user');
 
@@ -17,7 +40,7 @@ jest.mock('next/navigation', () => ({
 // Mock child components
 jest.mock('../../../components/dashboard/DashboardLayout', () => ({
   __esModule: true,
-  default: ({ children, user }: any) => (
+  default: ({ children, user }: LayoutProps) => (
     <div data-testid="dashboard-layout">
       <div data-testid="user-email">{user.email}</div>
       {children}
@@ -30,15 +53,17 @@ jest.mock('../../../components/ui/LoadingSpinner', () => ({
 }));
 
 jest.mock('../../../components/ui/ErrorMessage', () => ({
-  ErrorMessage: ({ message }: any) => <div data-testid="error-message">{message}</div>,
+  ErrorMessage: ({ message }: ErrorMessageProps) => (
+    <div data-testid="error-message">{message}</div>
+  ),
 }));
 
 jest.mock('../../../components/ui/Card', () => ({
-  Card: ({ children }: any) => <div data-testid="card">{children}</div>,
+  Card: ({ children }: CardProps) => <div data-testid="card">{children}</div>,
 }));
 
 jest.mock('../../../components/ui/EmptyState', () => ({
-  EmptyState: ({ message, action, href }: any) => (
+  EmptyState: ({ message, action, href }: EmptyStateProps) => (
     <div data-testid="empty-state">
       <p>{message}</p>
       {action && href && <a href={href}>{action}</a>}

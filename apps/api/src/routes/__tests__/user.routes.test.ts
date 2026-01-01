@@ -11,6 +11,8 @@ vi.mock('../../middleware/auth.middleware');
 
 describe('User Routes - GET /me', () => {
   let app: express.Application;
+  const requireAuthMock = vi.mocked(requireAuth);
+  const getUserByIdMock = vi.mocked(userService.getUserById);
 
   beforeEach(() => {
     app = express();
@@ -19,7 +21,7 @@ describe('User Routes - GET /me', () => {
     vi.clearAllMocks();
 
     // Default: requireAuth passes and sets req.user
-    (requireAuth as any).mockImplementation((req: any, res: any, next: any) => {
+    requireAuthMock.mockImplementation((req, _res, next) => {
       req.user = { id: 'default-user-id' };
       next();
     });
@@ -37,12 +39,12 @@ describe('User Routes - GET /me', () => {
       telegram: { linked: false },
     };
 
-    (requireAuth as any).mockImplementation((req: any, res: any, next: any) => {
+    requireAuthMock.mockImplementation((req, _res, next) => {
       req.user = { id: 'user-123' };
       next();
     });
 
-    (userService.getUserById as any).mockResolvedValue(mockUser);
+    getUserByIdMock.mockResolvedValue(mockUser);
 
     // Act
     const response = await request(app).get('/api/me');
@@ -55,7 +57,7 @@ describe('User Routes - GET /me', () => {
 
   it('should return 401 when no authentication token provided', async () => {
     // Arrange
-    (requireAuth as any).mockImplementation((req: any, res: any, next: any) => {
+    requireAuthMock.mockImplementation((_req, res, _next) => {
       res.status(401).json({ error: 'Authentication required' });
     });
 
@@ -70,12 +72,12 @@ describe('User Routes - GET /me', () => {
 
   it('should return 404 when user does not exist', async () => {
     // Arrange
-    (requireAuth as any).mockImplementation((req: any, res: any, next: any) => {
+    requireAuthMock.mockImplementation((req, _res, next) => {
       req.user = { id: 'nonexistent-user' };
       next();
     });
 
-    (userService.getUserById as any).mockResolvedValue(null);
+    getUserByIdMock.mockResolvedValue(null);
 
     // Act
     const response = await request(app).get('/api/me');
@@ -98,12 +100,12 @@ describe('User Routes - GET /me', () => {
       telegram: { linked: false },
     };
 
-    (requireAuth as any).mockImplementation((req: any, res: any, next: any) => {
+    requireAuthMock.mockImplementation((req, _res, next) => {
       req.user = { id: sessionUserId };
       next();
     });
 
-    (userService.getUserById as any).mockResolvedValue(mockUser);
+    getUserByIdMock.mockResolvedValue(mockUser);
 
     // Act - Try to pass different userId in query (should be ignored)
     const response = await request(app)
@@ -129,7 +131,7 @@ describe('User Routes - GET /me', () => {
       telegram: { linked: false },
     };
 
-    (userService.getUserById as any).mockResolvedValue(mockUser);
+    getUserByIdMock.mockResolvedValue(mockUser);
 
     // Act
     const response = await request(app).get('/api/me');
@@ -150,7 +152,7 @@ describe('User Routes - GET /me', () => {
       telegram: { linked: false },
     };
 
-    (userService.getUserById as any).mockResolvedValue(mockUser);
+    getUserByIdMock.mockResolvedValue(mockUser);
 
     // Act
     const response = await request(app).get('/api/me');
@@ -161,7 +163,7 @@ describe('User Routes - GET /me', () => {
 
   it('should return 500 on server error', async () => {
     // Arrange
-    (userService.getUserById as any).mockRejectedValue(new Error('Database connection failed'));
+    getUserByIdMock.mockRejectedValue(new Error('Database connection failed'));
 
     // Act
     const response = await request(app).get('/api/me');
@@ -183,7 +185,7 @@ describe('User Routes - GET /me', () => {
       telegram: { linked: false },
     };
 
-    (userService.getUserById as any).mockResolvedValue(mockUser);
+    getUserByIdMock.mockResolvedValue(mockUser);
 
     // Act
     const response = await request(app).get('/api/me');

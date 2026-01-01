@@ -1,10 +1,10 @@
-import sharp from 'sharp';
 import axios from 'axios';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
-import { ProductData } from '../scraping/types.js';
+import path from 'path';
+import sharp from 'sharp';
+import { fileURLToPath } from 'url';
 import { LayoutPreferences } from '../layout-preferences.service.js';
+import { ProductData } from '../scraping/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -132,11 +132,61 @@ export class ArtGeneratorService {
     layoutPreferences?: LayoutPreferences
   ): Promise<Buffer> {
     // Story layout: 1/6 top, 4/6 middle (content), 1/6 bottom
-    const contentHeight = Math.round(dimensions.height * (4 / 6));
-    const topOffset = Math.round(dimensions.height / 6);
+    const contentHeight = Math.round(dimensions.height * (30 / 50));
+    const topOffset = Math.round(dimensions.height / 5.5);
+    const contentTop = topOffset;
 
     // Resize product image to fit in content area
-    const productImageSize = Math.min(dimensions.width * 0.8, contentHeight * 0.5);
+    let productImageSize = Math.min(dimensions.width * 0.8, contentHeight * 0.45);
+    const textColor = brandConfig.textColor || '#000000';
+    const priceColor = brandConfig.priceColor || textColor;
+
+    const storyFields = this.getStoryFields(product, brandConfig, layoutPreferences);
+    const textBlocks = storyFields.map((field) => ({
+      ...field,
+      lines: field.lines || [field.text],
+      lineHeight: field.lineHeight || Math.round(field.fontSize * 1.2),
+    }));
+
+    const minGap = 16;
+    const blockSpacing = 18;
+    const baseTextHeight = textBlocks.reduce((total, block, index) => {
+      const blockHeight = block.lineHeight * block.lines.length;
+      const spacing = index === 0 ? 0 : blockSpacing;
+      return total + blockHeight + spacing;
+    }, 0);
+
+    let maxTextHeight = contentHeight - productImageSize - minGap * 2;
+    if (maxTextHeight < 0) {
+      productImageSize = Math.min(productImageSize, Math.round(contentHeight * 0.35));
+      maxTextHeight = contentHeight - productImageSize - minGap * 2;
+    }
+
+    const textScale =
+      baseTextHeight > 0 && maxTextHeight > 0
+        ? Math.min(1, maxTextHeight / baseTextHeight)
+        : 1;
+
+    const scaledBlockSpacing = Math.max(8, Math.round(blockSpacing * textScale));
+    const scaledBlocks = textBlocks.map((block) => ({
+      ...block,
+      fontSize: Math.max(18, Math.round(block.fontSize * textScale)),
+      lineHeight: Math.max(20, Math.round(block.lineHeight * textScale)),
+    }));
+
+    const scaledTextHeight = scaledBlocks.reduce((total, block, index) => {
+      const blockHeight = block.lineHeight * block.lines.length;
+      const spacing = index === 0 ? 0 : scaledBlockSpacing;
+      return total + blockHeight + spacing;
+    }, 0);
+
+    const totalElementsHeight = productImageSize + scaledTextHeight;
+    const elementCount = 1 + scaledBlocks.length;
+    const spaceAround = Math.max(
+      0,
+      Math.floor((contentHeight - totalElementsHeight) / (elementCount + 1))
+    );
+
     const productImageResized = await sharp(productImageBuffer)
       .resize(Math.round(productImageSize), Math.round(productImageSize), {
         fit: 'contain',
@@ -144,33 +194,25 @@ export class ArtGeneratorService {
       })
       .toBuffer();
 
-    const textColor = brandConfig.textColor || '#000000';
-    const priceColor = brandConfig.priceColor || textColor;
-
     const displayPrices = this.normalizePriceDisplay(product);
     const discountText =
       displayPrices.originalPrice !== null &&
-      displayPrices.price !== null &&
-      displayPrices.originalPrice > displayPrices.price &&
-      product.discountPercentage
+        displayPrices.price !== null &&
+        displayPrices.originalPrice > displayPrices.price &&
+        product.discountPercentage
         ? `-${product.discountPercentage}%`
         : '';
 
-    const storyFields = this.getStoryFields(product, brandConfig, layoutPreferences);
-    const gapBetweenImageAndText = 40;
-    let currentY = Math.round(
-      topOffset + contentHeight * 0.05 + productImageSize + gapBetweenImageAndText
-    );
-    const blockSpacing = 24;
-
-    const storyTextElements = storyFields
-      .map((field) => {
-        const lineHeight = field.lineHeight || Math.round(field.fontSize * 1.2);
+    let currentY = Math.round(contentTop + spaceAround + productImageSize + spaceAround);
+    const storyTextElements = scaledBlocks
+      .map((field, index) => {
         const lines = field.lines || [field.text];
+        const blockTop = currentY + (index === 0 ? 0 : scaledBlockSpacing);
+        currentY = blockTop + field.lineHeight * lines.length;
         const textBlock = `
           <text
             x="${dimensions.width / 2}"
-            y="${currentY}"
+            y="${blockTop + field.lineHeight}"
             font-family="${brandConfig.fontFamily}, Arial, sans-serif"
             font-size="${field.fontSize}"
             font-weight="${field.fontWeight}"
@@ -180,17 +222,16 @@ export class ArtGeneratorService {
             style="paint-order: stroke; stroke: white; stroke-width: 3px;"
           >
             ${lines
-              .map(
-                (line, index) => `
-              <tspan x="${dimensions.width / 2}" ${index === 0 ? "" : `dy="${lineHeight}"`}>
+            .map(
+              (line, lineIndex) => `
+              <tspan x="${dimensions.width / 2}" ${lineIndex === 0 ? "" : `dy="${field.lineHeight}"`}>
                 ${this.escapeXml(line)}
               </tspan>
             `
-              )
-              .join("")}
+            )
+            .join("")}
           </text>
         `;
-        currentY += lineHeight * lines.length + blockSpacing;
         return textBlock;
       })
       .join("");
@@ -224,7 +265,7 @@ export class ArtGeneratorService {
 
     // Position product image in center of content area
     const productImageX = Math.round((dimensions.width - productImageSize) / 2);
-    const productImageY = Math.round(topOffset + contentHeight * 0.05);
+    const productImageY = Math.round(contentTop + spaceAround);
 
     const result = await sharp(templateBuffer)
       .composite([
@@ -379,15 +420,11 @@ export class ArtGeneratorService {
     brandConfig: BrandConfig,
     layoutPreferences?: LayoutPreferences
   ): string {
-    const order = layoutPreferences?.feedOrder || [
+    const order = layoutPreferences?.storyOrder || [
       "title",
-      "description",
       "price",
       "originalPrice",
-      "productUrl",
       "coupon",
-      "disclaimer",
-      "salesQuantity",
       "customText",
     ];
 
@@ -456,7 +493,7 @@ export class ArtGeneratorService {
       }
     });
 
-    return lines.join("\n");
+    return lines.join("\n\n");
   }
 
   private getStoryFields(
@@ -464,14 +501,6 @@ export class ArtGeneratorService {
     brandConfig: BrandConfig,
     layoutPreferences?: LayoutPreferences
   ) {
-    const order = layoutPreferences?.storyOrder || [
-      "title",
-      "price",
-      "originalPrice",
-      "coupon",
-      "customText",
-    ];
-
     const displayPrices = this.normalizePriceDisplay(product);
     const textMaxWidthFactor =
       product.marketplace === "AMAZON" || product.marketplace === "MAGALU"
@@ -486,6 +515,14 @@ export class ArtGeneratorService {
       color: string;
       decoration?: string;
     }> = [];
+
+    const order = layoutPreferences?.storyOrder || [
+      "title",
+      "price",
+      "originalPrice",
+      "coupon",
+      "customText",
+    ];
 
     order.forEach((field) => {
       switch (field) {

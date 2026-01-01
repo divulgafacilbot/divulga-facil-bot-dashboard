@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
 import { PasswordService } from '../services/auth/password.service.js';
 import { RefreshTokenService } from '../services/auth/refresh-token.service.js';
@@ -67,8 +68,8 @@ export class UserController {
       });
 
       res.json({ message: 'Senha atualizada com sucesso' });
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Falha na validação', details: error.errors });
       }
       console.error('Change password error:', error);

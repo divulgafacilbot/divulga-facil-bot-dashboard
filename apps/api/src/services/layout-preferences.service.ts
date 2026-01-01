@@ -103,7 +103,24 @@ export class LayoutPreferencesService {
     userId: string,
     data: LayoutPreferencesUpdate
   ): Promise<LayoutPreferences> {
-    const updateData: any = {};
+    const updateData: Partial<{
+      feed_show_title: boolean;
+      feed_show_description: boolean;
+      feed_show_price: boolean;
+      feed_show_original_price: boolean;
+      feed_show_product_url: boolean;
+      feed_show_coupon: boolean;
+      feed_show_disclaimer: boolean;
+      feed_show_sales_quantity: boolean;
+      feed_show_custom_text: boolean;
+      feed_order: string[];
+      story_show_title: boolean;
+      story_show_price: boolean;
+      story_show_original_price: boolean;
+      story_show_coupon: boolean;
+      story_show_custom_text: boolean;
+      story_order: string[];
+    }> = {};
 
     // Feed preferences
     if (data.feedShowTitle !== undefined) updateData.feed_show_title = data.feedShowTitle;

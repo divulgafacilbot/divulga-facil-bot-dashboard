@@ -97,6 +97,7 @@ export type TelemetryEventType =
   | 'DOWNLOAD_JOB_SUCCESS'
   | 'DOWNLOAD_JOB_FAILED'
   | 'SCRAPE_FALLBACK_PLAYWRIGHT'
+  | 'SCRAPE_FALLBACK_SCRAPFLY'
   | 'SCRAPE_BLOCKED'
   | 'PLAN_EXPIRED'
   | 'PLAN_RENEWED'
@@ -112,6 +113,6 @@ export interface TelemetryEvent {
   userId?: string;
   telegramUserId?: number;
   origin: 'dashboard' | 'bot_arts' | 'bot_download' | 'webhook' | 'admin';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
 }

@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { BOT_TYPES } from '../constants/bot-types.js';
 
 // Bot type validation
-export const botTypeSchema = z.enum(['ARTS', 'DOWNLOAD'], {
+export const botTypeSchema = z.enum([BOT_TYPES.ARTS, BOT_TYPES.DOWNLOAD], {
   errorMap: () => ({ message: 'Bot type must be either ARTS or DOWNLOAD' }),
 });
 

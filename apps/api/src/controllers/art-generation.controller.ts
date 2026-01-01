@@ -44,6 +44,8 @@ export class ArtGenerationController {
       // 1. Scrape product data
       const scrapedResult = await scraperRouter.scrape(productUrl, {
         fields: requiredFields,
+        userId,
+        origin: 'dashboard',
       });
 
       if (!scrapedResult.success || !scrapedResult.data) {

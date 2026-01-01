@@ -1,5 +1,6 @@
 import { prisma } from '../../db/prisma.js';
 import crypto from 'crypto';
+import type { BotType } from '../../constants/bot-types.js';
 
 // Token expires after 10 minutes
 const TOKEN_EXPIRATION_MS = 10 * 60 * 1000;
@@ -9,7 +10,7 @@ export class TelegramLinkService {
    * Generate a unique link token for a user
    * Token expires after 10 minutes
    */
-  async generateLinkToken(userId: string, botType: 'ARTS' | 'DOWNLOAD'): Promise<string> {
+  async generateLinkToken(userId: string, botType: BotType): Promise<string> {
     // Generate secure random token (32 bytes = 64 hex chars)
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + TOKEN_EXPIRATION_MS);
@@ -47,7 +48,7 @@ export class TelegramLinkService {
    * Validate a token and check if it's still valid
    * Returns the userId if valid, null if invalid/expired
    */
-  async validateToken(token: string, botType: 'ARTS' | 'DOWNLOAD'): Promise<string | null> {
+  async validateToken(token: string, botType: BotType): Promise<string | null> {
     const link = await prisma.telegram_links.findFirst({
       where: {
         token,
@@ -70,7 +71,7 @@ export class TelegramLinkService {
     token: string,
     telegramUserId: string,
     chatId: string,
-    botType: 'ARTS' | 'DOWNLOAD'
+    botType: BotType
   ): Promise<{ success: boolean; userId?: string; error?: string }> {
     // Validate token first
     const userId = await this.validateToken(token, botType);
@@ -152,7 +153,7 @@ export class TelegramLinkService {
    * Get existing link for a user and bot type
    * Returns null if no active link exists
    */
-  async getLink(userId: string, botType: 'ARTS' | 'DOWNLOAD') {
+  async getLink(userId: string, botType: BotType) {
     const link = await prisma.telegram_bot_links.findUnique({
       where: {
         user_id_bot_type: {
@@ -168,7 +169,7 @@ export class TelegramLinkService {
   /**
    * Unlink a Telegram account from a user
    */
-  async unlinkAccount(userId: string, botType: 'ARTS' | 'DOWNLOAD'): Promise<boolean> {
+  async unlinkAccount(userId: string, botType: BotType): Promise<boolean> {
     try {
       await prisma.telegram_bot_links.delete({
         where: {
@@ -185,7 +186,7 @@ export class TelegramLinkService {
     }
   }
 
-  async listTokens(userId: string, botType: 'ARTS' | 'DOWNLOAD') {
+  async listTokens(userId: string, botType: BotType) {
     return prisma.telegram_links.findMany({
       where: {
         user_id: userId,
@@ -201,7 +202,7 @@ export class TelegramLinkService {
     });
   }
 
-  async deleteToken(userId: string, botType: 'ARTS' | 'DOWNLOAD', tokenId: string) {
+  async deleteToken(userId: string, botType: BotType, tokenId: string) {
     return prisma.telegram_links.deleteMany({
       where: {
         id: tokenId,

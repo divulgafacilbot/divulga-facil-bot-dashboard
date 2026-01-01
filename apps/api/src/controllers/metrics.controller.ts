@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma.js";
 import { usageCountersService } from "../services/usage-counters.service.js";
+import { BOT_TYPES } from "../constants/bot-types.js";
 
 export class MetricsController {
   async getMetrics(req: Request, res: Response) {
@@ -11,20 +12,27 @@ export class MetricsController {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const [artsCount, downloadCount, usage] = await Promise.all([
+      const [artsCount, downloadCount, usage, scrapflyFallbacks] = await Promise.all([
         prisma.telegram_bot_links.count({
           where: {
             user_id: userId,
-            bot_type: "ARTS",
+            bot_type: BOT_TYPES.ARTS,
           },
         }),
         prisma.telegram_bot_links.count({
           where: {
             user_id: userId,
-            bot_type: "DOWNLOAD",
+            bot_type: BOT_TYPES.DOWNLOAD,
           },
         }),
         usageCountersService.getMonthlyUsage(userId),
+        // ToDo - colocar no dashboard admin quando ele estiver feito - métrica de uso do scrapify
+        prisma.telemetry_events.count({
+          where: {
+            user_id: userId,
+            event_type: "SCRAPE_FALLBACK_SCRAPFLY",
+          },
+        }),
       ]);
 
       return res.status(200).json({
@@ -33,6 +41,9 @@ export class MetricsController {
           download: downloadCount,
         },
         usage,
+        scrapingFallbacks: {
+          scrapfly: scrapflyFallbacks,
+        },
       });
     } catch (error) {
       console.error("Erro ao obter métricas:", error);

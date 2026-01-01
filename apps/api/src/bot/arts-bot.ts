@@ -7,6 +7,7 @@ import { artGeneratorService } from '../services/image-generation/art-generator.
 import { layoutPreferencesService } from '../services/layout-preferences.service.js';
 import { telegramLinkService } from '../services/telegram/link-service.js';
 import { usageCountersService } from '../services/usage-counters.service.js';
+import { BOT_TYPES } from '../constants/bot-types.js';
 
 const TELEGRAM_BOT_ARTS_TOKEN = process.env.TELEGRAM_BOT_ARTS_TOKEN;
 
@@ -27,7 +28,7 @@ artsBot.command('start', async (ctx) => {
     const link = await prisma.telegram_bot_links.findFirst({
       where: {
         telegram_user_id: telegramUserId,
-        bot_type: 'ARTS',
+        bot_type: BOT_TYPES.ARTS,
       },
     });
     isLinked = !!link;
@@ -93,7 +94,12 @@ artsBot.command('codigo', async (ctx) => {
   }
 
   // Confirm link
-  const result = await telegramLinkService.confirmLink(token, telegramUserId, chatId, 'ARTS');
+  const result = await telegramLinkService.confirmLink(
+    token,
+    telegramUserId,
+    chatId,
+    BOT_TYPES.ARTS
+  );
 
   if (!result.success) {
     await ctx.reply(`❌ Falha na vinculação: ${result.error}`);
@@ -182,7 +188,7 @@ artsBot.on('message:text', async (ctx) => {
     botLink = await prisma.telegram_bot_links.findFirst({
       where: {
         telegram_user_id: telegramUserId,
-        bot_type: 'ARTS',
+        bot_type: BOT_TYPES.ARTS,
       },
     });
   }
@@ -198,7 +204,7 @@ artsBot.on('message:text', async (ctx) => {
         text.trim(),
         telegramUserId,
         chatId,
-        'ARTS'
+        BOT_TYPES.ARTS
       );
 
       if (!result.success) {
@@ -245,7 +251,12 @@ artsBot.on('message:text', async (ctx) => {
     const requiredFields = getRequiredScrapeFields(layoutPreferences);
 
     // Scrape product data
-    const result = await scraperRouter.scrape(url, { fields: requiredFields });
+    const result = await scraperRouter.scrape(url, {
+      fields: requiredFields,
+      userId: botLink.user_id,
+      telegramUserId: ctx.from?.id,
+      origin: "bot_arts",
+    });
 
     if (!result.success || !result.data) {
       await ctx.api.editMessageText(
@@ -275,7 +286,6 @@ artsBot.on('message:text', async (ctx) => {
 💰 Preço: ${priceFormatted}${originalPriceText}${discountText}
 🏪 Marketplace: ${product.marketplace.replace(/_/g, ' ')}
 ${product.rating ? `⭐ Avaliação: ${product.rating}${product.reviewCount ? ` (${product.reviewCount} avaliações)` : ''}` : ''}
-${product.inStock ? '✅ Em estoque' : '❌ Fora de estoque'}
 
 🎨 *Gerando arte personalizada...*
 `;

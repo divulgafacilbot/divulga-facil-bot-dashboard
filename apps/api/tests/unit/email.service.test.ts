@@ -23,7 +23,12 @@ describe('EmailService', () => {
 
     it('should include token in reset URL', async () => {
       // Test that email contains correct reset URL
-      const spy = vi.spyOn(EmailService as any, 'sendEmail');
+      const spy = vi.spyOn(
+        EmailService as typeof EmailService & {
+          sendEmail: (to: string, subject: string, html: string) => Promise<unknown>;
+        },
+        'sendEmail'
+      );
 
       await EmailService.sendPasswordResetEmail(
         'test@example.com',

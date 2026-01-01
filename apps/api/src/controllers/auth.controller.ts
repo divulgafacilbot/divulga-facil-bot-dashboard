@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
 import { PasswordService } from '../services/auth/password.service.js';
 import { TokenService } from '../services/auth/token.service.js';
@@ -54,7 +55,7 @@ export class AuthController {
         res.status(201).json({
           message: 'Conta criada com sucesso! Verifique seu e-mail para ativar sua conta.',
         });
-      } catch (emailError: any) {
+      } catch (emailError: unknown) {
         console.error('Failed to send verification email:', emailError);
         // User was created but email failed - inform them
         res.status(201).json({
@@ -62,8 +63,8 @@ export class AuthController {
           warning: 'Email não enviado',
         });
       }
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Falha na validação', details: error.errors });
       }
       console.error('Register error:', error);
@@ -146,8 +147,8 @@ export class AuthController {
           emailVerified: user.emailVerified,
         },
       });
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Falha na validação', details: error.errors });
       }
       console.error('Login error:', error);
@@ -169,7 +170,7 @@ export class AuthController {
       res.clearCookie(jwtConfig.refreshTokenCookieName);
 
       res.json({ message: 'Logout realizado com sucesso' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Logout error:', error);
       res.status(500).json({ error: 'Erro interno do servidor' });
     }
@@ -204,8 +205,8 @@ export class AuthController {
       res.json({
         message: 'Se o e-mail existir, um link de redefinição foi enviado',
       });
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Falha na validação', details: error.errors });
       }
       console.error('Forgot password error:', error);
@@ -249,8 +250,8 @@ export class AuthController {
       ]);
 
       res.json({ message: 'Senha redefinida com sucesso' });
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Falha na validação', details: error.errors });
       }
       console.error('Reset password error:', error);
@@ -269,8 +270,8 @@ export class AuthController {
       }
 
       res.json({ message: 'E-mail verificado com sucesso!' });
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Falha na validação', details: error.errors });
       }
       console.error('Verify email error:', error);
@@ -288,7 +289,7 @@ export class AuthController {
         const token = await EmailVerificationService.createVerificationToken(user.id);
         try {
           await EmailVerificationService.sendVerificationEmail(email, token);
-        } catch (emailError: any) {
+        } catch (emailError: unknown) {
           console.error('Failed to resend verification email:', emailError);
           return res.status(500).json({
             error: 'Falha ao enviar e-mail de verificação. Verifique as configurações de SMTP.',
@@ -300,8 +301,8 @@ export class AuthController {
       res.json({
         message: 'Se o e-mail existir e não estiver verificado, um link foi enviado',
       });
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Falha na validação', details: error.errors });
       }
       console.error('Resend verification error:', error);
@@ -340,7 +341,7 @@ export class AuthController {
       res.cookie(jwtConfig.cookieName, newJwt, jwtConfig.cookieOptions);
 
       res.json({ message: 'Token renovado com sucesso' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Refresh token error:', error);
       res.status(500).json({ error: 'Erro interno do servidor' });
     }

@@ -52,6 +52,9 @@ export interface ScrapeOptions {
   fields?: ScrapeField[];
   originalUrl?: string;
   skipPlaywright?: boolean;
+  userId?: string;
+  telegramUserId?: string | number;
+  origin?: string;
 }
 
 export interface ScraperResult {

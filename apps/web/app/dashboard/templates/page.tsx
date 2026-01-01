@@ -8,6 +8,12 @@ import { showToast } from "@/lib/toast";
 import { useSidebar } from "../layout";
 
 const TEMPLATES = [
+  "meli1",
+  "meli2",
+  "magalu",
+  "magalu2",
+  "shopee",
+  "Shopee2",
   "amazon",
   "amazon1",
   "black2",
@@ -15,16 +21,12 @@ const TEMPLATES = [
   "degrade",
   "green",
   "greenblack",
-  "magalu",
-  "magalu2",
   "pink",
   "pinkblack",
   "purple",
   "purple2",
   "promo",
   "red",
-  "Shopee2",
-  "shopee",
   "vinho",
   "yellow",
   "yellow2",
@@ -96,10 +98,6 @@ const TemplateImage = ({
   width?: number;
   height?: number;
 }) => {
-  if (src.startsWith("http")) {
-    return <img src={src} alt={alt} className={className} />;
-  }
-
   return (
     <Image
       src={src}
@@ -107,6 +105,8 @@ const TemplateImage = ({
       width={width}
       height={height}
       className={className}
+      unoptimized={src.startsWith("http")}
+      loader={src.startsWith("http") ? ({ src }) => src : undefined}
     />
   );
 };
@@ -117,10 +117,14 @@ export default function TemplatesPage() {
   const [useRowLayout, setUseRowLayout] = useState(false);
   const [feedOrder, setFeedOrder] = useState<RenderFieldId[]>(DEFAULT_FEED_ORDER);
   const [storyOrder, setStoryOrder] = useState<StoryFieldId[]>(DEFAULT_STORY_ORDER);
-  const [isCardDetailsCollapsed, setIsCardDetailsCollapsed] = useState(false);
-  const [isStoryDetailsCollapsed, setIsStoryDetailsCollapsed] = useState(false);
+  const [isCardReorderMode, setIsCardReorderMode] = useState(false);
+  const [isStoryReorderMode, setIsStoryReorderMode] = useState(false);
   const [draggingFeedId, setDraggingFeedId] = useState<RenderFieldId | null>(null);
   const [draggingStoryId, setDraggingStoryId] = useState<StoryFieldId | null>(null);
+  const [dragOverFeedId, setDragOverFeedId] = useState<RenderFieldId | null>(null);
+  const [dragOverStoryId, setDragOverStoryId] = useState<StoryFieldId | null>(null);
+  const feedDragHandleActive = useRef(false);
+  const storyDragHandleActive = useRef(false);
   const [cardDetails, setCardDetails] = useState({
     title: true,
     description: true,
@@ -495,15 +499,19 @@ export default function TemplatesPage() {
   };
 
   const handleFeedDrop = (targetId: RenderFieldId) => {
-    if (!draggingFeedId) return;
+    if (!isCardReorderMode || !draggingFeedId) return;
     setFeedOrder((prev) => reorderItems(prev, draggingFeedId, targetId));
     setDraggingFeedId(null);
+    setDragOverFeedId(null);
+    feedDragHandleActive.current = false;
   };
 
   const handleStoryDrop = (targetId: StoryFieldId) => {
-    if (!draggingStoryId) return;
+    if (!isStoryReorderMode || !draggingStoryId) return;
     setStoryOrder((prev) => reorderItems(prev, draggingStoryId, targetId));
     setDraggingStoryId(null);
+    setDragOverStoryId(null);
+    storyDragHandleActive.current = false;
   };
 
   const templatePreviewSrc = selectedTemplate.feedUrl;
@@ -534,17 +542,43 @@ export default function TemplatesPage() {
 
   const renderFeedControl = (fieldId: RenderFieldId) => {
     const wrapperProps = {
-      draggable: true,
-      onDragStart: () => setDraggingFeedId(fieldId),
-      onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(),
+      "data-div-reorder-category-checkbox": true,
+      draggable: isCardReorderMode,
+      onDragOver: (event: DragEvent<HTMLDivElement>) => {
+        if (isCardReorderMode) {
+          event.preventDefault();
+        }
+      },
+      onDragStart: (event: DragEvent<HTMLDivElement>) => {
+        if (!isCardReorderMode || !feedDragHandleActive.current) {
+          event.preventDefault();
+          return;
+        }
+        setDraggingFeedId(fieldId);
+      },
+      onDragEnter: () => {
+        if (isCardReorderMode) {
+          setDragOverFeedId(fieldId);
+        }
+      },
+      onDragLeave: () => {
+        if (isCardReorderMode) {
+          setDragOverFeedId((current) => (current === fieldId ? null : current));
+        }
+      },
       onDrop: () => handleFeedDrop(fieldId),
-      className: `flex w-full items-center gap-2 ${
-        draggingFeedId === fieldId ? "opacity-60" : ""
-      }`,
+      className: `flex w-full items-center gap-2 transition-transform duration-150 ${draggingFeedId === fieldId ? "opacity-60" : ""
+        } ${isCardReorderMode && dragOverFeedId === fieldId ? "translate-y-4" : ""}`,
     };
 
     const colorPicker = (value: string, onChange: (color: string) => void) => (
-      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
+      <div
+        data-color-render
+        className={`flex items-center rounded-lg border border-[var(--color-border)] bg-white ${isCardReorderMode
+          ? "h-[40px] w-[40px] justify-center"
+          : "w-[110px] gap-1 px-[4px] py-[4px]"
+          }`}
+      >
         <div className="relative">
           <input
             type="color"
@@ -553,26 +587,45 @@ export default function TemplatesPage() {
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
           <div
-            data-color-render
             className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
             style={{ backgroundColor: value }}
           />
         </div>
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-          placeholder="#000000"
-        />
+        {!isCardReorderMode && (
+          <input
+            type="text"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
+            placeholder="#000000"
+          />
+        )}
       </div>
     );
 
-    const dragHandle = (
-      <div className="flex h-[34px] w-[22px] items-center justify-center rounded-lg border border-[var(--color-border)] bg-white text-[10px] text-[var(--color-text-secondary)]">
-        ⋮⋮
+    const dragHandle = isCardReorderMode ? (
+      <div
+        data-reorder-btn
+        onMouseDown={() => {
+          feedDragHandleActive.current = true;
+        }}
+        onMouseUp={() => {
+          feedDragHandleActive.current = false;
+        }}
+        onMouseLeave={() => {
+          feedDragHandleActive.current = false;
+        }}
+        className="flex h-[40px] w-[40px] items-center justify-center rounded-lg border border-[var(--color-border)] bg-white"
+      >
+        <Image
+          src="/reordenar-icon.png"
+          alt=""
+          width={25}
+          height={25}
+          draggable={false}
+        />
       </div>
-    );
+    ) : null;
 
     switch (fieldId) {
       case "title":
@@ -695,7 +748,7 @@ export default function TemplatesPage() {
                 type="text"
                 value={couponText}
                 onChange={(event) => setCouponText(event.target.value)}
-                placeholder="Cupom de desconto"
+                placeholder="Digite seu Cupom de desconto"
                 className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
               />
               <input
@@ -794,17 +847,43 @@ export default function TemplatesPage() {
 
   const renderStoryControl = (fieldId: StoryFieldId) => {
     const wrapperProps = {
-      draggable: true,
-      onDragStart: () => setDraggingStoryId(fieldId),
-      onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(),
+      "data-div-reorder-category-checkbox": true,
+      draggable: isStoryReorderMode,
+      onDragOver: (event: DragEvent<HTMLDivElement>) => {
+        if (isStoryReorderMode) {
+          event.preventDefault();
+        }
+      },
+      onDragStart: (event: DragEvent<HTMLDivElement>) => {
+        if (!isStoryReorderMode || !storyDragHandleActive.current) {
+          event.preventDefault();
+          return;
+        }
+        setDraggingStoryId(fieldId);
+      },
+      onDragEnter: () => {
+        if (isStoryReorderMode) {
+          setDragOverStoryId(fieldId);
+        }
+      },
+      onDragLeave: () => {
+        if (isStoryReorderMode) {
+          setDragOverStoryId((current) => (current === fieldId ? null : current));
+        }
+      },
       onDrop: () => handleStoryDrop(fieldId),
-      className: `flex w-full items-center gap-2 ${
-        draggingStoryId === fieldId ? "opacity-60" : ""
-      }`,
+      className: `flex w-full items-center gap-2 transition-transform duration-150 ${draggingStoryId === fieldId ? "opacity-60" : ""
+        } ${isStoryReorderMode && dragOverStoryId === fieldId ? "translate-y-4" : ""}`,
     };
 
     const colorPicker = (value: string, onChange: (color: string) => void) => (
-      <div className="flex w-[110px] items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-[4px] py-[4px]">
+      <div
+        data-color-render
+        className={`flex items-center rounded-lg border border-[var(--color-border)] bg-white ${isStoryReorderMode
+          ? "h-[40px] w-[40px] justify-center"
+          : "w-[110px] gap-1 px-[4px] py-[4px]"
+          }`}
+      >
         <div className="relative">
           <input
             type="color"
@@ -813,26 +892,45 @@ export default function TemplatesPage() {
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
           <div
-            data-color-render
             className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
             style={{ backgroundColor: value }}
           />
         </div>
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-          placeholder="#000000"
-        />
+        {!isStoryReorderMode && (
+          <input
+            type="text"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
+            placeholder="#000000"
+          />
+        )}
       </div>
     );
 
-    const dragHandle = (
-      <div className="flex h-[34px] w-[22px] items-center justify-center rounded-lg border border-[var(--color-border)] bg-white text-[10px] text-[var(--color-text-secondary)]">
-        ⋮⋮
+    const dragHandle = isStoryReorderMode ? (
+      <div
+        data-reorder-btn
+        onMouseDown={() => {
+          storyDragHandleActive.current = true;
+        }}
+        onMouseUp={() => {
+          storyDragHandleActive.current = false;
+        }}
+        onMouseLeave={() => {
+          storyDragHandleActive.current = false;
+        }}
+        className="flex h-[40px] w-[40px] items-center justify-center rounded-lg border border-[var(--color-border)] bg-white"
+      >
+        <Image
+          src="/reordenar-icon.png"
+          alt=""
+          width={25}
+          height={25}
+          draggable={false}
+        />
       </div>
-    );
+    ) : null;
 
     switch (fieldId) {
       case "title":
@@ -911,7 +1009,7 @@ export default function TemplatesPage() {
                 type="text"
                 value={couponText}
                 onChange={(event) => setCouponText(event.target.value)}
-                placeholder="Cupom de desconto"
+                placeholder="Digite seu Cupom de Desconto"
                 className="w-full bg-transparent text-sm text-[var(--color-text-secondary)] outline-none"
               />
               <input
@@ -1491,21 +1589,38 @@ export default function TemplatesPage() {
               <div className="flex flex-col gap-6 sm:flex-row">
                 {/* Informações do card */}
                 <div id='informacoes-do-card' className="w-full sm:w-[400px]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
-                    Informações do card
-                  </p>
-                  <button
-                    onClick={() => setIsCardDetailsCollapsed((prev) => !prev)}
-                    className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]"
-                    type="button"
-                  >
-                    {isCardDetailsCollapsed ? "Expandir campos" : "Reordenar campos"}
-                  </button>
-                  {!isCardDetailsCollapsed && (
-                    <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
-                      {feedOrder.map(renderFeedControl)}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <p
+                        id="informacoes-do-card-title"
+                        className="mb-0 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]"
+                      >
+                        Informações do card
+                      </p>
+                      <div className="relative">
+                        <div className="group  flex h-5 w-5 items-center justify-center rounded-full border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-text-secondary)]">
+                          i
+                          <div className="pointer-events-none absolute -top-2 left-1/2 w-[240px] -translate-x-1/2 -translate-y-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs text-[var(--color-text-secondary)] opacity-0 shadow-[var(--shadow-sm)] transition-opacity group-hover:opacity-100">
+                            A maioria dos links de afiliado não possui algumas informações como <strong>descrição</strong> e <strong>quantidade de vendas</strong>. A arte gerada só terá as opções que efetivamente existirem no link enviado.
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  )}
+                    <button
+                      id="reordenar-informacoes-do-card"
+                      onClick={() => setIsCardReorderMode((prev) => !prev)}
+                      className={`rounded-lg border px-2 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${isCardReorderMode
+                        ? "border-green-600 bg-green-600 text-white"
+                        : "border-[var(--color-border)] text-[var(--color-text-secondary)]"
+                        }`}
+                      type="button"
+                    >
+                      {isCardReorderMode ? "Salvar" : "Reordenar"}
+                    </button>
+                  </div>
+                  <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
+                    {feedOrder.map(renderFeedControl)}
+                  </div>
                 </div>
 
                 {/* Preview do card */}
@@ -1516,21 +1631,19 @@ export default function TemplatesPage() {
                   <div className="mt-4 space-y-4">
                     <div className="relative h-[250px] w-[200px] overflow-hidden border border-[var(--color-border)] bg-white">
                       <div className="relative h-full w-full">
-                        {selectedTemplate.source === "custom" ? (
-                          <img
-                            src={templatePreviewSrc}
-                            alt="Template selecionado"
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          <Image
-                            src={templatePreviewSrc}
-                            alt="Template selecionado"
-                            fill
-                            className="object-contain"
-                            sizes="(max-width: 1024px) 70vw, 320px"
-                          />
-                        )}
+                        <Image
+                          src={templatePreviewSrc}
+                          alt="Template selecionado"
+                          fill
+                          className="object-contain"
+                          sizes="(max-width: 1024px) 70vw, 320px"
+                          unoptimized={selectedTemplate.source === "custom"}
+                          loader={
+                            selectedTemplate.source === "custom"
+                              ? ({ src }) => src
+                              : undefined
+                          }
+                        />
                         <div className="absolute inset-0 flex items-center justify-center" style={{ marginTop: '30px' }}>
                           <div id='tamanho-imagem-produto-card' className="relative h-[140px] w-[140px]">
                             <Image
@@ -1557,21 +1670,28 @@ export default function TemplatesPage() {
               <div className="flex flex-col gap-6 sm:flex-row">
                 {/* Informações do story */}
                 <div id='informacoes-do-story' className="w-full sm:w-[400px]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
-                    Informações do story
-                  </p>
-                  <button
-                    onClick={() => setIsStoryDetailsCollapsed((prev) => !prev)}
-                    className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]"
-                    type="button"
-                  >
-                    {isStoryDetailsCollapsed ? "Expandir campos" : "Reordenar campos"}
-                  </button>
-                  {!isStoryDetailsCollapsed && (
-                    <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
-                      {storyOrder.map(renderStoryControl)}
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between">
+                    <p
+                      id="informacoes-do-story-title"
+                      className="mb-0 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]"
+                    >
+                      Informações do story
+                    </p>
+                    <button
+                      id="reordenar-informacoes-do-story"
+                      onClick={() => setIsStoryReorderMode((prev) => !prev)}
+                      className={`rounded-lg border px-2 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${isStoryReorderMode
+                        ? "border-green-600 bg-green-600 text-white"
+                        : "border-[var(--color-border)] text-[var(--color-text-secondary)]"
+                        }`}
+                      type="button"
+                    >
+                      {isStoryReorderMode ? "Salvar" : "Reordenar"}
+                    </button>
+                  </div>
+                  <div className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
+                    {storyOrder.map(renderStoryControl)}
+                  </div>
                 </div>
 
                 {/* Preview do story */}
@@ -1581,27 +1701,25 @@ export default function TemplatesPage() {
                   </p>
                   <div className="mt-4">
                     <div className="relative h-[400px] w-[225px] overflow-hidden border border-[var(--color-border)] bg-white">
-                      {selectedTemplate.source === "custom" ? (
-                        <img
-                          src={templateStoryPreviewSrc}
-                          alt="Template story selecionado"
-                          className="h-full w-full object-contain"
-                        />
-                      ) : (
-                        <Image
-                          src={templateStoryPreviewSrc}
-                          alt="Template story selecionado"
-                          fill
-                          className="object-contain"
-                          sizes="225px"
-                        />
-                      )}
+                      <Image
+                        src={templateStoryPreviewSrc}
+                        alt="Template story selecionado"
+                        fill
+                        className="object-contain"
+                        sizes="225px"
+                        unoptimized={selectedTemplate.source === "custom"}
+                        loader={
+                          selectedTemplate.source === "custom"
+                            ? ({ src }) => src
+                            : undefined
+                        }
+                      />
                       <div className="absolute inset-0 flex flex-col">
                         {/* 1/6 superior vazio */}
-                        <div style={{ height: 'calc(100% / 6)' }} />
+                        <div style={{ height: 'calc(100% / 5.5)' }} />
 
                         {/* 4/6 central com conteúdo principal */}
-                        <div className="flex flex-col items-center justify-center text-center" style={{ height: 'calc(100% * 4 / 6)', paddingLeft: '15%', paddingRight: '15%' }}>
+                        <div className="flex flex-col items-center justify-around text-center" style={{ height: 'calc(100% * 30 / 50)', paddingLeft: '15%', paddingRight: '15%' }}>
                           <div id='tamanho-imagem-produto-story' className="relative mb-2 h-[100px] w-[100px] flex-shrink-0">
                             <Image
                               src={productImageSrc}

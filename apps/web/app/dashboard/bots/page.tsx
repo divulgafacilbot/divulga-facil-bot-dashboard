@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { showToast } from "@/lib/toast";
+import { BOT_TYPES } from "@/lib/constants";
 
 type LinkToken = {
   id: string;
@@ -19,10 +20,13 @@ export default function BotsPage() {
 
   const fetchTokens = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/telegram/link-tokens?botType=ARTS`, {
+      const response = await fetch(
+        `${apiBaseUrl}/api/telegram/link-tokens?botType=${BOT_TYPES.ARTS}`,
+        {
         method: "GET",
         credentials: "include",
-      });
+        }
+      );
 
       if (!response.ok) {
         return;
@@ -61,7 +65,7 @@ export default function BotsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ botType: "ARTS" }),
+        body: JSON.stringify({ botType: BOT_TYPES.ARTS }),
       });
 
       const data = await response.json();

@@ -117,8 +117,8 @@ export class TemplatesController {
           source: 'custom',
         },
       });
-    } catch (error: any) {
-      if (error?.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Nome do template inválido' });
       }
 
@@ -205,8 +205,8 @@ export class TemplatesController {
           source: 'custom',
         },
       });
-    } catch (error: any) {
-      if (error?.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Nome do template inválido' });
       }
       console.error('Update template error:', error);

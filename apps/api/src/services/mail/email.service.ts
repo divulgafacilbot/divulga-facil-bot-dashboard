@@ -19,15 +19,22 @@ export class EmailService {
       });
       console.log(`✅ Email sent successfully to ${to}. Message ID: ${info.messageId}`);
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const details =
+        error && typeof error === 'object'
+          ? {
+              code: (error as { code?: string }).code,
+              command: (error as { command?: string }).command,
+            }
+          : {};
       console.error('❌ Email send error:', {
         to,
         subject,
-        error: error.message,
-        code: error.code,
-        command: error.command,
+        error: message,
+        ...details,
       });
-      return { success: false, error: error.message || String(error) };
+      return { success: false, error: message };
     }
   }
 
