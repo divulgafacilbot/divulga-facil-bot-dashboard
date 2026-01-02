@@ -476,14 +476,15 @@ async function fetchTelegramPreview(
     console.log('[Telegram] Tentando gerar link preview via sendMessage...');
     const previewMsg = await ctx.api.sendMessage(ctx.chat.id, url, {
       disable_notification: true,
-      disable_web_page_preview: false,
       link_preview_options: { is_disabled: false },
     });
 
-    const webPage =
-      (previewMsg as Record<string, unknown>)?.['web_page'] ||
-      (previewMsg as Record<string, unknown>)?.['link_preview'] ||
-      (previewMsg as Record<string, unknown>)?.['linkPreview'];
+    const previewPayload = previewMsg as unknown as {
+      web_page?: TelegramWebPage;
+      link_preview?: TelegramWebPage;
+      linkPreview?: TelegramWebPage;
+    };
+    const webPage = previewPayload.web_page || previewPayload.link_preview || previewPayload.linkPreview;
 
     await ctx.api.deleteMessage(ctx.chat.id, previewMsg.message_id).catch(() => {});
 
@@ -1144,10 +1145,10 @@ artsBot.on('message:text', async (ctx) => {
     }
 
     // Format product info message
-    const hasPrice = typeof product.price === "number" && Number.isFinite(product.price);
-    const priceFormatted = hasPrice
-      ? `R$ ${product.price.toFixed(2).replace('.', ',')}`
-      : "";
+    const priceValue =
+      typeof product.price === "number" && Number.isFinite(product.price) ? product.price : null;
+    const hasPrice = priceValue !== null;
+    const priceFormatted = hasPrice ? `R$ ${priceValue.toFixed(2).replace('.', ',')}` : "";
     const originalPriceText =
       hasPrice && typeof product.originalPrice === "number"
         ? `\n~~R$ ${product.originalPrice.toFixed(2).replace('.', ',')}~~`
