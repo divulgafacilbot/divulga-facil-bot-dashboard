@@ -61,7 +61,7 @@
   1. HTML direto (axios + cheerio)
       - Responde com página de login.
       - Não contém preço nem os dados do produto.
-  2. Scrapfly com render_js
+  2. ScraperAPI com render
       - Retornou HTTP 200, mas o conteúdo ainda era a página de login.
       - Logs mostraram title de login e ausência de dados do produto.
       - Não foi possível extrair preço.
