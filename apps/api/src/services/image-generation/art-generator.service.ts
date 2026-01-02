@@ -209,6 +209,30 @@ export class ArtGeneratorService {
         const lines = field.lines || [field.text];
         const blockTop = currentY + (index === 0 ? 0 : scaledBlockSpacing);
         currentY = blockTop + field.lineHeight * lines.length;
+        const lineWidth = Math.round(dimensions.width * textMaxWidthFactor * 0.8);
+        const lineOffset = Math.round(field.fontSize * 0.3);
+        const lineStrokeWidth = Math.max(2, Math.round(field.fontSize / 10));
+        const decorationLines =
+          field.decoration === "line-through"
+            ? lines
+                .map((_, lineIndex) => {
+                  const baseY = blockTop + field.lineHeight + lineIndex * field.lineHeight;
+                  const lineY = baseY - lineOffset;
+                  const x1 = Math.round(dimensions.width / 2 - lineWidth / 2);
+                  const x2 = Math.round(dimensions.width / 2 + lineWidth / 2);
+                  return `
+                    <line
+                      x1="${x1}"
+                      y1="${lineY}"
+                      x2="${x2}"
+                      y2="${lineY}"
+                      stroke="${field.color}"
+                      stroke-width="${lineStrokeWidth}"
+                    />
+                  `;
+                })
+                .join("")
+            : "";
         const textBlock = `
           <text
             x="${dimensions.width / 2}"
@@ -218,7 +242,6 @@ export class ArtGeneratorService {
             font-weight="${field.fontWeight}"
             fill="${field.color}"
             text-anchor="middle"
-            ${field.decoration ? `text-decoration="${field.decoration}"` : ""}
             style="paint-order: stroke; stroke: white; stroke-width: 3px;"
           >
             ${lines
@@ -231,6 +254,7 @@ export class ArtGeneratorService {
             )
             .join("")}
           </text>
+          ${decorationLines}
         `;
         return textBlock;
       })
@@ -466,12 +490,12 @@ export class ArtGeneratorService {
           break;
         case "price":
           if (layoutPreferences?.feedShowPrice !== false && priceFormatted) {
-            lines.push(`💸 por ${priceFormatted} 🚨🚨`);
+            lines.push(`💸 por <b>${priceFormatted}</b> 🚨🚨`);
           }
           break;
         case "originalPrice":
           if (layoutPreferences?.feedShowOriginalPrice !== false && originalPriceText) {
-            lines.push(`Preço cheio: ${originalPriceText}`);
+            lines.push(`Preço cheio: <s>${originalPriceText}</s>`);
           }
           break;
         case "productUrl":

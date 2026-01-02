@@ -1012,14 +1012,20 @@ export default function TemplatesPage() {
       case "price":
         return cardDetails.promotionalPrice ? (
           <p key={fieldId} style={{ color: "#000000" }}>
-            💸 por R$ {mockProduct.price.toFixed(2).replace(".", ",")} 🚨🚨
+            💸 por{" "}
+            <span className="font-semibold">
+              R$ {mockProduct.price.toFixed(2).replace(".", ",")}
+            </span>{" "}
+            🚨🚨
           </p>
         ) : null;
       case "originalPrice":
         return cardDetails.fullPrice ? (
           <p key={fieldId} style={{ color: "#000000" }}>
-            <span className="font-semibold">De:</span>{" "}
-            R$ {mockProduct.originalPrice.toFixed(2).replace(".", ",")}
+            De:{" "}
+            <span className="line-through">
+              R$ {mockProduct.originalPrice.toFixed(2).replace(".", ",")}
+            </span>
           </p>
         ) : null;
       case "productUrl":
