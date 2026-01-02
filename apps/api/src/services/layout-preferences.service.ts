@@ -31,7 +31,12 @@ export type StoryTextColors = {
   customText: string;
 };
 
-export interface LayoutPreferencesUpdate extends Partial<LayoutPreferences> {}
+export type LayoutPreferencesUpdate = Omit<
+  Partial<LayoutPreferences>,
+  "storyColors"
+> & {
+  storyColors?: Partial<StoryTextColors>;
+};
 
 export const DEFAULT_LAYOUT_PREFERENCES: LayoutPreferences = {
   // Feed defaults
