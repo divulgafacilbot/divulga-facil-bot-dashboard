@@ -936,24 +936,39 @@ export class MagaluScraper extends BaseScraper {
       this.scrapflyCache.delete(resolvedUrl);
     }
 
-    const shouldRenderJs =
+    const defaultRenderJs =
       (process.env.SCRAPFLY_RENDER_JS || "false").trim().toLowerCase() === "true";
-    try {
-      console.log("[Magalu] Tentando Scrapfly...");
+    const fetchScrapflyHtml = async (renderJs: boolean) => {
       const response = await axios.get(endpoint, {
         timeout: this.MAGALU_REQUEST_TIMEOUT * 2,
         params: {
           key: apiKey,
           url: resolvedUrl,
-          render_js: shouldRenderJs ? "true" : "false",
+          render_js: renderJs ? "true" : "false",
           country: "br",
         },
       });
 
-      const html = (response.data as { result?: { content?: string } })?.result?.content;
+      return (response.data as { result?: { content?: string } })?.result?.content || "";
+    };
+    try {
+      console.log("[Magalu] Tentando Scrapfly...");
+      let renderJs = defaultRenderJs;
+      let html = await fetchScrapflyHtml(renderJs);
       if (!html) {
         console.log("[Magalu] Scrapfly não retornou HTML");
         return null;
+      }
+
+      const needsJsRender =
+        !renderJs &&
+        (!html.includes("__NEXT_DATA__") ||
+          /validate\.perfdrive|shieldsquare/i.test(html));
+
+      if (needsJsRender) {
+        console.log("[Magalu] Scrapfly detectou bloqueio/HTML incompleto, tentando com render_js...");
+        renderJs = true;
+        html = await fetchScrapflyHtml(true);
       }
 
       const $ = cheerio.load(html) as cheerio.CheerioAPI;
@@ -972,7 +987,7 @@ export class MagaluScraper extends BaseScraper {
           metadata: {
             marketplace: this.marketplaceName,
             url: resolvedUrl,
-            renderJs: shouldRenderJs,
+            renderJs,
             cached: false,
           },
         });
