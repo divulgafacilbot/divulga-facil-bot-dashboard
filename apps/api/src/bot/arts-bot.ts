@@ -345,13 +345,13 @@ ${product.rating ? `⭐ Avaliação: ${product.rating}${product.reviewCount ? ` 
 
       await ctx.replyWithPhoto(new InputFile(feedArtBuffer, 'product-feed.png'), {
         caption: `${legendText}`,
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
       });
 
       // Send story art
       await ctx.replyWithPhoto(new InputFile(storyArtBuffer, 'product-story.png'), {
         caption: '',
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         reply_markup: new InlineKeyboard().url('Ver Produto', product.productUrl),
       });
 
@@ -361,7 +361,13 @@ ${product.rating ? `⭐ Avaliação: ${product.rating}${product.reviewCount ? ` 
       // Sucesso silencioso: evita mensagem extra após enviar as artes.
     } catch (artError) {
       console.error('Error generating custom art:', artError);
-      const fallbackMessage = `⚠️ *Erro ao gerar arte personalizada*\n\nAqui está a imagem original do produto:\n\n${product.title}\n\n💰 ${priceFormatted}${discountText}`;
+      const safeTitle = product.title
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+      const fallbackMessage = `⚠️ <b>Erro ao gerar arte personalizada</b>\n\nAqui está a imagem original do produto:\n\n${safeTitle}\n\n💰 ${priceFormatted}${discountText}`;
       const hasValidImageUrl = (() => {
         try {
           const parsed = new URL(product.imageUrl);
@@ -374,7 +380,7 @@ ${product.rating ? `⭐ Avaliação: ${product.rating}${product.reviewCount ? ` 
       if (hasValidImageUrl) {
         await ctx.replyWithPhoto(product.imageUrl, {
           caption: fallbackMessage,
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           reply_markup: new InlineKeyboard().url('Ver Produto', product.productUrl),
         });
       } else {
