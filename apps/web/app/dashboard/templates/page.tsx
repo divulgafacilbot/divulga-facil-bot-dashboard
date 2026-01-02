@@ -1018,7 +1018,7 @@ export default function TemplatesPage() {
       case "originalPrice":
         return cardDetails.fullPrice ? (
           <p key={fieldId} style={{ color: "#000000" }}>
-            <span className="font-semibold">Preço cheio:</span>{" "}
+            <span className="font-semibold">De:</span>{" "}
             R$ {mockProduct.originalPrice.toFixed(2).replace(".", ",")}
           </p>
         ) : null;
