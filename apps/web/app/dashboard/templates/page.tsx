@@ -154,17 +154,6 @@ export default function TemplatesPage() {
     coupon: true,
     customText: false,
   });
-  const [feedColors, setFeedColors] = useState({
-    title: "#000000",
-    description: "#000000",
-    promotionalPrice: "#000000",
-    fullPrice: "#000000",
-    affiliateLink: "#000000",
-    coupon: "#000000",
-    disclaimer: "#000000",
-    salesQuantity: "#000000",
-    customText: "#000000",
-  });
   const [storyColors, setStoryColors] = useState({
     title: "#000000",
     promotionalPrice: "#000000",
@@ -319,6 +308,9 @@ export default function TemplatesPage() {
           coupon: prefs.storyShowCoupon,
           customText: prefs.storyShowCustomText,
         });
+        if (prefs.storyColors) {
+          setStoryColors((prev) => ({ ...prev, ...prefs.storyColors }));
+        }
 
         if (Array.isArray(prefs.feedOrder) && prefs.feedOrder.length) {
           const normalized = prefs.feedOrder
@@ -413,6 +405,7 @@ export default function TemplatesPage() {
         storyShowCoupon: storyDetails.coupon,
         storyShowCustomText: storyDetails.customText,
         storyOrder,
+        storyColors,
       };
 
       const response = await fetch(`${apiBaseUrl}/api/me/layout-preferences`, {
@@ -571,38 +564,6 @@ export default function TemplatesPage() {
         } ${isCardReorderMode && dragOverFeedId === fieldId ? "translate-y-4" : ""}`,
     };
 
-    const colorPicker = (value: string, onChange: (color: string) => void) => (
-      <div
-        data-color-render
-        className={`flex items-center rounded-lg border border-[var(--color-border)] bg-white ${isCardReorderMode
-          ? "h-[40px] w-[40px] justify-center"
-          : "w-[110px] gap-1 px-[4px] py-[4px]"
-          }`}
-      >
-        <div className="relative">
-          <input
-            type="color"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          />
-          <div
-            className="h-[30px] w-[30px] cursor-pointer rounded border-2 border-[var(--color-border)]"
-            style={{ backgroundColor: value }}
-          />
-        </div>
-        {!isCardReorderMode && (
-          <input
-            type="text"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            className="w-[65px] border-b border-[var(--color-border)] bg-transparent text-xs text-black outline-none"
-            placeholder="#000000"
-          />
-        )}
-      </div>
-    );
-
     const dragHandle = isCardReorderMode ? (
       <div
         data-reorder-btn
@@ -645,9 +606,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.title, (color) =>
-              setFeedColors((prev) => ({ ...prev, title: color }))
-            )}
           </div>
         );
       case "description":
@@ -667,9 +625,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.description, (color) =>
-              setFeedColors((prev) => ({ ...prev, description: color }))
-            )}
           </div>
         );
       case "price":
@@ -689,9 +644,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.promotionalPrice, (color) =>
-              setFeedColors((prev) => ({ ...prev, promotionalPrice: color }))
-            )}
           </div>
         );
       case "originalPrice":
@@ -711,9 +663,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.fullPrice, (color) =>
-              setFeedColors((prev) => ({ ...prev, fullPrice: color }))
-            )}
           </div>
         );
       case "productUrl":
@@ -733,9 +682,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.affiliateLink, (color) =>
-              setFeedColors((prev) => ({ ...prev, affiliateLink: color }))
-            )}
           </div>
         );
       case "coupon":
@@ -762,9 +708,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.coupon, (color) =>
-              setFeedColors((prev) => ({ ...prev, coupon: color }))
-            )}
           </div>
         );
       case "disclaimer":
@@ -784,9 +727,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.disclaimer, (color) =>
-              setFeedColors((prev) => ({ ...prev, disclaimer: color }))
-            )}
           </div>
         );
       case "salesQuantity":
@@ -806,9 +746,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.salesQuantity, (color) =>
-              setFeedColors((prev) => ({ ...prev, salesQuantity: color }))
-            )}
           </div>
         );
       case "customText":
@@ -835,9 +772,6 @@ export default function TemplatesPage() {
                 }
               />
             </label>
-            {colorPicker(feedColors.customText, (color) =>
-              setFeedColors((prev) => ({ ...prev, customText: color }))
-            )}
           </div>
         );
       default:
@@ -1065,58 +999,58 @@ export default function TemplatesPage() {
     switch (fieldId) {
       case "title":
         return cardDetails.title ? (
-          <p key={fieldId} className="font-semibold" style={{ color: feedColors.title }}>
+          <p key={fieldId} className="font-semibold" style={{ color: "#000000" }}>
             🛍️ {mockProduct.title}
           </p>
         ) : null;
       case "description":
         return cardDetails.description ? (
-          <p key={fieldId} style={{ color: feedColors.description }}>
+          <p key={fieldId} style={{ color: "#000000" }}>
             {mockProduct.description}
           </p>
         ) : null;
       case "price":
         return cardDetails.promotionalPrice ? (
-          <p key={fieldId} style={{ color: feedColors.promotionalPrice }}>
+          <p key={fieldId} style={{ color: "#000000" }}>
             💸 por R$ {mockProduct.price.toFixed(2).replace(".", ",")} 🚨🚨
           </p>
         ) : null;
       case "originalPrice":
         return cardDetails.fullPrice ? (
-          <p key={fieldId} style={{ color: feedColors.fullPrice }}>
+          <p key={fieldId} style={{ color: "#000000" }}>
             <span className="font-semibold">Preço cheio:</span>{" "}
             R$ {mockProduct.originalPrice.toFixed(2).replace(".", ",")}
           </p>
         ) : null;
       case "productUrl":
         return cardDetails.affiliateLink ? (
-          <div key={fieldId} style={{ color: feedColors.affiliateLink }}>
+          <div key={fieldId} style={{ color: "#000000" }}>
             <p style={{ marginBottom: 0 }}>👉Link p/ comprar:</p>
             <p className="break-all">{mockProduct.productUrl}</p>
           </div>
         ) : null;
       case "coupon":
         return cardDetails.coupon ? (
-          <p key={fieldId} style={{ color: feedColors.coupon }}>
+          <p key={fieldId} style={{ color: "#000000" }}>
             <span className="font-semibold">Cupom:</span>{" "}
             {couponText.trim() ? couponText : mockProduct.coupon}
           </p>
         ) : null;
       case "disclaimer":
         return cardDetails.disclaimer ? (
-          <p key={fieldId} className="text-xs italic" style={{ color: feedColors.disclaimer }}>
+          <p key={fieldId} className="text-xs italic" style={{ color: "#000000" }}>
             *Promoção sujeita a alteração a qualquer momento
           </p>
         ) : null;
       case "salesQuantity":
         return cardDetails.salesQuantity ? (
-          <p key={fieldId} style={{ color: feedColors.salesQuantity }}>
+          <p key={fieldId} style={{ color: "#000000" }}>
             <span className="font-semibold">Vendas:</span> {formattedSalesQuantity}
           </p>
         ) : null;
       case "customText":
         return cardDetails.customText && ctaText.trim() ? (
-          <p key={fieldId} style={{ color: feedColors.customText }}>
+          <p key={fieldId} style={{ color: "#000000" }}>
             {ctaText}
           </p>
         ) : null;

@@ -256,6 +256,7 @@ model user_layout_preferences {
   story_show_coupon      Boolean   @default(true)
   story_show_custom_text Boolean   @default(false)
   story_order            Json?
+  story_colors           Json?
 
   created_at             DateTime? @default(now()) @db.Timestamptz(6)
   updated_at             DateTime? @default(now()) @updatedAt @db.Timestamptz(6)

@@ -191,14 +191,11 @@ export class TelegramLinkService {
       where: {
         user_id: userId,
         bot_type: botType,
-        status: 'PENDING',
-        expires_at: {
-          gt: new Date(),
-        },
       },
       orderBy: {
-        created_at: 'asc',
+        created_at: 'desc',
       },
+      take: 2,
     });
   }
 
@@ -210,6 +207,30 @@ export class TelegramLinkService {
         bot_type: botType,
       },
     });
+  }
+
+  async refreshToken(userId: string, botType: BotType, tokenId: string) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + TOKEN_EXPIRATION_MS);
+
+    const updated = await prisma.telegram_links.updateMany({
+      where: {
+        id: tokenId,
+        user_id: userId,
+        bot_type: botType,
+      },
+      data: {
+        token,
+        expires_at: expiresAt,
+        status: 'PENDING',
+      },
+    });
+
+    if (!updated.count) {
+      throw new Error('Token not found');
+    }
+
+    return { token, expiresAt };
   }
 }
 

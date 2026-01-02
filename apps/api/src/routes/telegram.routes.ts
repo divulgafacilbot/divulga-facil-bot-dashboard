@@ -10,6 +10,9 @@ router.post('/telegram/link-token', authMiddleware, telegramController.generateL
 // GET /telegram/link-tokens - List pending tokens (requires auth)
 router.get('/telegram/link-tokens', authMiddleware, telegramController.listTokens.bind(telegramController));
 
+// POST /telegram/link-tokens/:id/refresh - Refresh token (requires auth)
+router.post('/telegram/link-tokens/:id/refresh', authMiddleware, telegramController.refreshToken.bind(telegramController));
+
 // DELETE /telegram/link-tokens/:id - Delete token (requires auth)
 router.delete('/telegram/link-tokens/:id', authMiddleware, telegramController.deleteToken.bind(telegramController));
 
