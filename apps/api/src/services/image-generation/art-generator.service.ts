@@ -433,6 +433,17 @@ export class ArtGeneratorService {
     ];
 
     const lines: string[] = [];
+    const safeTitle = this.escapeXml(product.title);
+    const safeDescription = product.description
+      ? this.escapeXml(product.description)
+      : null;
+    const safeProductUrl = this.escapeXml(product.productUrl);
+    const safeCouponText = brandConfig.couponText
+      ? this.escapeXml(brandConfig.couponText)
+      : null;
+    const safeCtaText = brandConfig.ctaText
+      ? this.escapeXml(brandConfig.ctaText)
+      : null;
     const displayPrices = this.normalizePriceDisplay(product);
     const priceFormatted = displayPrices.price !== null
       ? `R$ ${displayPrices.price.toFixed(2).replace('.', ',')}`
@@ -445,12 +456,12 @@ export class ArtGeneratorService {
       switch (field) {
         case "title":
           if (layoutPreferences?.feedShowTitle !== false) {
-            lines.push(`🛍️ *${product.title}*`);
+            lines.push(`🛍️ <b>${safeTitle}</b>`);
           }
           break;
         case "description":
-          if (layoutPreferences?.feedShowDescription !== false && product.description) {
-            lines.push(product.description);
+          if (layoutPreferences?.feedShowDescription !== false && safeDescription) {
+            lines.push(safeDescription);
           }
           break;
         case "price":
@@ -465,21 +476,23 @@ export class ArtGeneratorService {
           break;
         case "productUrl":
           if (layoutPreferences?.feedShowProductUrl !== false) {
-            lines.push(`👉Link p/ comprar: ${product.productUrl}`);
+            lines.push(
+              `👉Link p/ comprar: <a href="${safeProductUrl}">${safeProductUrl}</a>`
+            );
           }
           break;
         case "coupon":
           if (
             layoutPreferences?.feedShowCoupon !== false &&
             brandConfig.showCoupon &&
-            brandConfig.couponText
+            safeCouponText
           ) {
-            lines.push(`🎟️ Cupom: ${brandConfig.couponText}`);
+            lines.push(`🎟️ Cupom: ${safeCouponText}`);
           }
           break;
         case "disclaimer":
           if (layoutPreferences?.feedShowDisclaimer) {
-            lines.push("*Promoção sujeita a alteração a qualquer momento");
+            lines.push("<i>Promoção sujeita a alteração a qualquer momento</i>");
           }
           break;
         case "salesQuantity":
@@ -488,8 +501,8 @@ export class ArtGeneratorService {
           }
           break;
         case "customText":
-          if (layoutPreferences?.feedShowCustomText && brandConfig.ctaText) {
-            lines.push(brandConfig.ctaText);
+          if (layoutPreferences?.feedShowCustomText && safeCtaText) {
+            lines.push(safeCtaText);
           }
           break;
         default:
