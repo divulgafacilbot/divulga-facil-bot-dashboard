@@ -420,11 +420,15 @@ export class ArtGeneratorService {
     brandConfig: BrandConfig,
     layoutPreferences?: LayoutPreferences
   ): string {
-    const order = layoutPreferences?.storyOrder || [
+    const order = layoutPreferences?.feedOrder || [
       "title",
+      "description",
       "price",
       "originalPrice",
+      "productUrl",
       "coupon",
+      "disclaimer",
+      "salesQuantity",
       "customText",
     ];
 
