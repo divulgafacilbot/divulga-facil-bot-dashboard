@@ -177,7 +177,9 @@ export class LayoutPreferencesService {
     if (data.storyShowCoupon !== undefined) updateData.story_show_coupon = data.storyShowCoupon;
     if (data.storyShowCustomText !== undefined) updateData.story_show_custom_text = data.storyShowCustomText;
     if (data.storyOrder !== undefined) updateData.story_order = data.storyOrder;
-    if (data.storyColors !== undefined) updateData.story_colors = data.storyColors;
+    if (data.storyColors !== undefined) {
+      updateData.story_colors = this.normalizeStoryColors(data.storyColors);
+    }
 
     const prefs = await prisma.user_layout_preferences.upsert({
       where: { user_id: userId },
