@@ -4,4 +4,4 @@
  * Exports all user-related service functions
  */
 
-export * from './userService';
+export * from './userService.js';

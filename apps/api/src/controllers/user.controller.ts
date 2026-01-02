@@ -6,7 +6,7 @@ import { RefreshTokenService } from '../services/auth/refresh-token.service.js';
 import { LoginHistoryService } from '../services/auth/login-history.service.js';
 import { changePasswordSchema } from '../utils/validation.js';
 import { jwtConfig } from '../config/jwt.js';
-import { getUserById } from '../services/user/userService';
+import { getUserById } from '../services/user/userService.js';
 
 export class UserController {
   /**
