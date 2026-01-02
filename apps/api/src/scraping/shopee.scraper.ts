@@ -647,13 +647,14 @@ export class ShopeeScraper extends BaseScraper {
       if (data.sections) {
         for (const section of data.sections) {
           if (section.data?.item) {
-            const items = Array.isArray(section.data.item)
-              ? section.data.item
-              : [section.data.item];
+            const items = (
+              Array.isArray(section.data.item)
+                ? section.data.item
+                : [section.data.item]
+            ) as Array<Record<string, unknown>>;
             itemData = items.find(
               (item) => {
-                const record = item as Record<string, unknown>;
-                const itemIdValue = record.itemid ?? record.item_id;
+                const itemIdValue = item.itemid ?? item.item_id;
                 return String(itemIdValue) === String(itemId);
               }
             );

@@ -4,7 +4,7 @@ import path from 'path';
 import sharp from 'sharp';
 import { fileURLToPath } from 'url';
 import { LayoutPreferences } from '../layout-preferences.service.js';
-import { ProductData } from '../scraping/types.js';
+import { ProductData } from '../../scraping/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

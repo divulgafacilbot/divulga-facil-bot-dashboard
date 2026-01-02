@@ -5,6 +5,7 @@ import { layoutPreferencesService } from '../services/layout-preferences.service
 import { usageCountersService } from '../services/usage-counters.service.js';
 import { scraperRouter } from '../scraping/index.js';
 import { getRequiredScrapeFields } from '../scraping/fields.js';
+import { MarketplaceEnum } from '../scraping/types.js';
 import { z } from 'zod';
 
 const generateArtSchema = z.object({
@@ -103,7 +104,7 @@ export class ArtGenerationController {
         discountPercentage: 53,
         imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
         productUrl: 'https://example.com/product',
-        marketplace: 'SHOPEE' as const,
+        marketplace: MarketplaceEnum.SHOPEE,
         rating: 4.5,
         reviewCount: 1234,
         inStock: true,

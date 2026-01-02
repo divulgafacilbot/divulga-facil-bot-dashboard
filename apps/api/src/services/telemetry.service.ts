@@ -1,11 +1,12 @@
 import { prisma } from "../db/prisma.js";
+import type { Prisma } from "@prisma/client";
 
 type TelemetryPayload = {
   eventType: string;
   userId?: string;
   telegramUserId?: string | number;
   origin?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Prisma.InputJsonValue;
 };
 
 class TelemetryService {
