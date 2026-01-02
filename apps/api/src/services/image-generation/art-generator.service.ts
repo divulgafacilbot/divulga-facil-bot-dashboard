@@ -135,6 +135,10 @@ export class ArtGeneratorService {
     const contentHeight = Math.round(dimensions.height * (30 / 50));
     const topOffset = Math.round(dimensions.height / 5.5);
     const contentTop = topOffset;
+    const textMaxWidthFactor =
+      product.marketplace === "AMAZON" || product.marketplace === "MAGALU"
+        ? 0.81
+        : 0.9;
 
     // Resize product image to fit in content area
     let productImageSize = Math.min(dimensions.width * 0.8, contentHeight * 0.45);
