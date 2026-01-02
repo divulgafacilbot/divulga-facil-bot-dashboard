@@ -2,13 +2,13 @@ import { prisma } from '../../db/prisma.js';
 import crypto from 'crypto';
 import type { BotType } from '../../constants/bot-types.js';
 
-// Token expires after 10 minutes
-const TOKEN_EXPIRATION_MS = 10 * 60 * 1000;
+// Tokens are long-lived; use a far-future expiry to keep them valid.
+const TOKEN_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 365 * 100;
 
 export class TelegramLinkService {
   /**
    * Generate a unique link token for a user
-   * Token expires after 10 minutes
+   * Tokens are long-lived and limited to 2 per user/bot.
    */
   async generateLinkToken(userId: string, botType: BotType): Promise<string> {
     // Generate secure random token (32 bytes = 64 hex chars)
@@ -19,10 +19,6 @@ export class TelegramLinkService {
       where: {
         user_id: userId,
         bot_type: botType,
-        status: 'PENDING',
-        expires_at: {
-          gt: new Date(),
-        },
       },
     });
 
@@ -99,41 +95,25 @@ export class TelegramLinkService {
         };
       }
 
-      // Use transaction to ensure atomicity
-      await prisma.$transaction(async (tx) => {
-        // Update telegram_links status to CONFIRMED
-        await tx.telegram_links.updateMany({
-          where: {
-            token,
-            status: 'PENDING',
-            bot_type: botType,
-          },
-          data: {
-            status: 'CONFIRMED',
-          },
-        });
-
-        // Create or update telegram_bot_links
-        await tx.telegram_bot_links.upsert({
-          where: {
-            user_id_bot_type: {
-              user_id: userId,
-              bot_type: botType,
-            },
-          },
-          update: {
-            telegram_user_id: telegramUserId,
-            chat_id: chatId,
-            linked_at: new Date(),
-          },
-          create: {
+      await prisma.telegram_bot_links.upsert({
+        where: {
+          user_id_bot_type: {
             user_id: userId,
-            telegram_user_id: telegramUserId,
-            chat_id: chatId,
             bot_type: botType,
-            linked_at: new Date(),
           },
-        });
+        },
+        update: {
+          telegram_user_id: telegramUserId,
+          chat_id: chatId,
+          linked_at: new Date(),
+        },
+        create: {
+          user_id: userId,
+          telegram_user_id: telegramUserId,
+          chat_id: chatId,
+          bot_type: botType,
+          linked_at: new Date(),
+        },
       });
 
       return {
@@ -187,7 +167,7 @@ export class TelegramLinkService {
   }
 
   async listTokens(userId: string, botType: BotType) {
-    return prisma.telegram_links.findMany({
+    const tokens = await prisma.telegram_links.findMany({
       where: {
         user_id: userId,
         bot_type: botType,
@@ -195,8 +175,19 @@ export class TelegramLinkService {
       orderBy: {
         created_at: 'desc',
       },
-      take: 2,
     });
+    const keep = tokens.slice(0, 2);
+    const remove = tokens.slice(2);
+
+    if (remove.length) {
+      await prisma.telegram_links.deleteMany({
+        where: {
+          id: { in: remove.map((token) => token.id) },
+        },
+      });
+    }
+
+    return keep.reverse();
   }
 
   async deleteToken(userId: string, botType: BotType, tokenId: string) {

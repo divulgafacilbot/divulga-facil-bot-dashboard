@@ -57,7 +57,7 @@ export default function BotsPage() {
   };
 
   const handleGenerateToken = async () => {
-    if (isGenerating) return;
+    if (artTokens.length >= 2 || isGenerating) return;
     setIsGenerating(true);
     try {
       const response = await fetch(`${apiBaseUrl}/api/telegram/link-token`, {
@@ -204,7 +204,7 @@ export default function BotsPage() {
                 className="mt-6 space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]"
               >
                 <p>
-                  Conecte no Telegram com um token temporário e envie:{" "}
+                  Conecte no Telegram com um token e envie:{" "}
                   <span className="font-semibold text-[var(--color-text-main)]">
                     /start SEU_TOKEN
                   </span>
