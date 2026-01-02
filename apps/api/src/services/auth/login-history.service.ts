@@ -1,5 +1,5 @@
 import { prisma } from '../../db/prisma.js';
-import type { LoginHistory } from '@prisma/client';
+import type { LoginHistory, Prisma } from '@prisma/client';
 import { UAParser } from 'ua-parser-js';
 
 export interface LoginHistoryEntry {
@@ -12,7 +12,7 @@ export interface LoginHistoryEntry {
   failureReason: string | null;
   loginAt: Date;
   location: string | null;
-  deviceInfo: DeviceInfo | null;
+  deviceInfo: Prisma.JsonValue | null;
 }
 
 export interface DeviceInfo {
@@ -47,7 +47,7 @@ export class LoginHistoryService {
           userAgent: userAgent || null,
           success,
           failureReason: failureReason || null,
-          deviceInfo,
+          deviceInfo: deviceInfo ?? undefined,
           location: null, // Could be enhanced with IP geolocation service
         },
       });
@@ -109,7 +109,9 @@ export class LoginHistoryService {
   /**
    * Parses user agent string to extract device information
    */
-  private static parseUserAgent(userAgent?: string): DeviceInfo | null {
+  private static parseUserAgent(
+    userAgent?: string
+  ): Prisma.InputJsonValue | null {
     if (!userAgent) return null;
 
     try {
