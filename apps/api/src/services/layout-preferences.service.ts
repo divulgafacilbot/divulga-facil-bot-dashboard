@@ -20,7 +20,16 @@ export interface LayoutPreferences {
   storyShowCoupon: boolean;
   storyShowCustomText: boolean;
   storyOrder: string[];
+  storyColors: StoryTextColors;
 }
+
+export type StoryTextColors = {
+  title: string;
+  promotionalPrice: string;
+  fullPrice: string;
+  coupon: string;
+  customText: string;
+};
 
 export interface LayoutPreferencesUpdate extends Partial<LayoutPreferences> {}
 
@@ -54,9 +63,29 @@ export const DEFAULT_LAYOUT_PREFERENCES: LayoutPreferences = {
   storyShowCoupon: true,
   storyShowCustomText: false,
   storyOrder: ['title', 'price', 'originalPrice', 'coupon', 'customText'],
+  storyColors: {
+    title: '#000000',
+    promotionalPrice: '#000000',
+    fullPrice: '#000000',
+    coupon: '#000000',
+    customText: '#000000',
+  },
 };
 
 export class LayoutPreferencesService {
+  private normalizeStoryColors(value: unknown): StoryTextColors {
+    if (!value || typeof value !== 'object') {
+      return DEFAULT_LAYOUT_PREFERENCES.storyColors;
+    }
+    const record = value as Partial<StoryTextColors>;
+    return {
+      ...DEFAULT_LAYOUT_PREFERENCES.storyColors,
+      ...Object.fromEntries(
+        Object.entries(record).filter(([, color]) => typeof color === 'string')
+      ),
+    } as StoryTextColors;
+  }
+
   /**
    * Get layout preferences for a user
    * Returns defaults if user has no preferences
@@ -92,6 +121,7 @@ export class LayoutPreferencesService {
       storyOrder: Array.isArray(prefs.story_order)
         ? (prefs.story_order as string[])
         : DEFAULT_LAYOUT_PREFERENCES.storyOrder,
+      storyColors: this.normalizeStoryColors(prefs.story_colors),
     };
   }
 
@@ -120,6 +150,7 @@ export class LayoutPreferencesService {
       story_show_coupon: boolean;
       story_show_custom_text: boolean;
       story_order: string[];
+      story_colors: StoryTextColors;
     }> = {};
 
     // Feed preferences
@@ -141,6 +172,7 @@ export class LayoutPreferencesService {
     if (data.storyShowCoupon !== undefined) updateData.story_show_coupon = data.storyShowCoupon;
     if (data.storyShowCustomText !== undefined) updateData.story_show_custom_text = data.storyShowCustomText;
     if (data.storyOrder !== undefined) updateData.story_order = data.storyOrder;
+    if (data.storyColors !== undefined) updateData.story_colors = data.storyColors;
 
     const prefs = await prisma.user_layout_preferences.upsert({
       where: { user_id: userId },
@@ -173,6 +205,7 @@ export class LayoutPreferencesService {
       storyOrder: Array.isArray(prefs.story_order)
         ? (prefs.story_order as string[])
         : DEFAULT_LAYOUT_PREFERENCES.storyOrder,
+      storyColors: this.normalizeStoryColors(prefs.story_colors),
     };
   }
 

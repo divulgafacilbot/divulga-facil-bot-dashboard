@@ -226,6 +226,42 @@ export class TelegramController {
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
+
+  /**
+   * POST /telegram/link-tokens/:id/refresh
+   * Refresh a token keeping the same record id
+   */
+  async refreshToken(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
+      const tokenId = req.params.id;
+
+      const result = await telegramLinkService.refreshToken(userId, botType, tokenId);
+      const tokens = await telegramLinkService.listTokens(userId, botType);
+      const tokenRecord = tokens.find((item) => item.id === tokenId);
+
+      return res.status(200).json({
+        token: result.token,
+        tokenRecord: tokenRecord
+          ? {
+              id: tokenRecord.id,
+              token: tokenRecord.token,
+              status: tokenRecord.status,
+              expiresAt: tokenRecord.expires_at,
+            }
+          : null,
+      });
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 }
 
 export const telegramController = new TelegramController();

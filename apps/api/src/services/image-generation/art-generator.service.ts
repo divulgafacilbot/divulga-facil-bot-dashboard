@@ -541,6 +541,8 @@ export class ArtGeneratorService {
       "customText",
     ];
 
+    const storyColors = layoutPreferences?.storyColors;
+
     order.forEach((field) => {
       switch (field) {
         case "title":
@@ -549,13 +551,21 @@ export class ArtGeneratorService {
               product.title,
               Math.round(36 * textMaxWidthFactor)
             );
+            const truncatedTitleLines = titleLines.slice(0, 4);
+            const wasTruncated = titleLines.length > 4;
+            if (wasTruncated) {
+              const lastIndex = truncatedTitleLines.length - 1;
+              const lastLine = truncatedTitleLines[lastIndex] || "";
+              const maxChars = Math.round(36 * textMaxWidthFactor);
+              truncatedTitleLines[lastIndex] = this.truncateText(lastLine, maxChars);
+            }
             fields.push({
-              text: titleLines[0] || product.title,
-              lines: titleLines,
+              text: truncatedTitleLines[0] || product.title,
+              lines: truncatedTitleLines,
               lineHeight: 62,
               fontSize: 52,
               fontWeight: "bold",
-              color: brandConfig.textColor || "#000000",
+              color: storyColors?.title || brandConfig.textColor || "#000000",
             });
           }
           break;
@@ -565,7 +575,11 @@ export class ArtGeneratorService {
               text: `R$ ${displayPrices.price.toFixed(2).replace(".", ",")}`,
               fontSize: 72,
               fontWeight: "bold",
-              color: brandConfig.priceColor || brandConfig.textColor || "#000000",
+              color:
+                storyColors?.promotionalPrice ||
+                brandConfig.priceColor ||
+                brandConfig.textColor ||
+                "#000000",
             });
           }
           break;
@@ -578,7 +592,7 @@ export class ArtGeneratorService {
               text: `R$ ${displayPrices.originalPrice.toFixed(2).replace(".", ",")}`,
               fontSize: 40,
               fontWeight: "normal",
-              color: brandConfig.textColor || "#000000",
+              color: storyColors?.fullPrice || brandConfig.textColor || "#000000",
               decoration: "line-through",
             });
           }
@@ -593,7 +607,7 @@ export class ArtGeneratorService {
               text: `🎟️ ${brandConfig.couponText}`,
               fontSize: 40,
               fontWeight: "bold",
-              color: brandConfig.textColor || "#000000",
+              color: storyColors?.coupon || brandConfig.textColor || "#000000",
             });
           }
           break;
@@ -603,7 +617,7 @@ export class ArtGeneratorService {
               text: brandConfig.ctaText,
               fontSize: 36,
               fontWeight: "bold",
-              color: brandConfig.textColor || "#000000",
+              color: storyColors?.customText || brandConfig.textColor || "#000000",
             });
           }
           break;

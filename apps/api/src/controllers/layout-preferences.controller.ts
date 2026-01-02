@@ -2,6 +2,19 @@ import { Request, Response } from 'express';
 import { layoutPreferencesService } from '../services/layout-preferences.service.js';
 import { z } from 'zod';
 
+const hexColorRegex = /^#([0-9a-fA-F]{3}){1,2}$/;
+const colorSchema = z.string().regex(hexColorRegex, 'Invalid hex color format');
+
+const storyColorsSchema = z
+  .object({
+    title: colorSchema,
+    promotionalPrice: colorSchema,
+    fullPrice: colorSchema,
+    coupon: colorSchema,
+    customText: colorSchema,
+  })
+  .partial();
+
 const layoutPreferencesSchema = z.object({
   // Feed preferences
   feedShowTitle: z.boolean().optional(),
@@ -22,6 +35,7 @@ const layoutPreferencesSchema = z.object({
   storyShowCoupon: z.boolean().optional(),
   storyShowCustomText: z.boolean().optional(),
   storyOrder: z.array(z.string()).optional(),
+  storyColors: storyColorsSchema.optional(),
 });
 
 export class LayoutPreferencesController {

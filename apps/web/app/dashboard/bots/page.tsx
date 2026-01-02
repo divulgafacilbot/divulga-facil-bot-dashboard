@@ -16,6 +16,7 @@ export default function BotsPage() {
   const [artTokens, setArtTokens] = useState<LinkToken[]>([]);
   const [tokenVisibility, setTokenVisibility] = useState<Record<string, boolean>>({});
   const [isGenerating, setIsGenerating] = useState(false);
+  const [refreshingTokenId, setRefreshingTokenId] = useState<string | null>(null);
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
   const fetchTokens = async () => {
@@ -56,7 +57,7 @@ export default function BotsPage() {
   };
 
   const handleGenerateToken = async () => {
-    if (artTokens.length >= 2 || isGenerating) return;
+    if (isGenerating) return;
     setIsGenerating(true);
     try {
       const response = await fetch(`${apiBaseUrl}/api/telegram/link-token`, {
@@ -76,11 +77,7 @@ export default function BotsPage() {
       }
 
       if (data?.token) {
-        if (data?.tokenRecord) {
-          setArtTokens((prev) => [...prev, data.tokenRecord]);
-        } else {
-          await fetchTokens();
-        }
+        await fetchTokens();
         await handleCopyToken(data.token);
       }
     } catch (error) {
@@ -108,6 +105,37 @@ export default function BotsPage() {
     } catch (error) {
       console.error("Erro ao deletar token:", error);
       showToast("Erro ao deletar token", "error");
+    }
+  };
+
+  const handleRefreshToken = async (tokenId: string) => {
+    if (isGenerating || refreshingTokenId) return;
+    setRefreshingTokenId(tokenId);
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/api/telegram/link-tokens/${tokenId}/refresh?botType=${BOT_TYPES.ARTS}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data?.error || "Erro ao atualizar token", "error");
+        return;
+      }
+
+      if (data?.token) {
+        await fetchTokens();
+        await handleCopyToken(data.token);
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar token:", error);
+      showToast("Erro ao atualizar token", "error");
+    } finally {
+      setRefreshingTokenId(null);
     }
   };
 
@@ -219,6 +247,28 @@ export default function BotsPage() {
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                         {tokenVisibility[token.id] ? "Ocultar" : "Ver"}
+                      </button>
+                      <button
+                        onClick={() => handleRefreshToken(token.id)}
+                        className="flex items-center gap-1 rounded-md border border-yellow-200 bg-yellow-50 px-2 py-1 text-[10px] font-semibold text-yellow-700 transition hover:bg-yellow-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        type="button"
+                        aria-label="Atualizar token"
+                        disabled={isGenerating || refreshingTokenId === token.id}
+                      >
+                        <svg
+                          className="h-3 w-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8 8 0 104.582 9M20 20v-5h-.581"
+                          />
+                        </svg>
+                        Atualizar
                       </button>
                       <button
                         onClick={() => handleCopyToken(token.token)}
