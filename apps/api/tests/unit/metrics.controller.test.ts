@@ -46,7 +46,7 @@ describe("metricsController.getMetrics", () => {
       activeBots: { arts: 2, download: 1 },
       usage: { renders: 5, downloads: 3 },
       scrapingFallbacks: {
-        scrapfly: 4,
+        scraperapi: 4,
       },
     });
   });

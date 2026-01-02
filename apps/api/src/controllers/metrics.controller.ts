@@ -12,7 +12,7 @@ export class MetricsController {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const [artsCount, downloadCount, usage, scrapflyFallbacks] = await Promise.all([
+      const [artsCount, downloadCount, usage, scraperApiFallbacks] = await Promise.all([
         prisma.telegram_bot_links.count({
           where: {
             user_id: userId,
@@ -26,11 +26,11 @@ export class MetricsController {
           },
         }),
         usageCountersService.getMonthlyUsage(userId),
-        // ToDo - colocar no dashboard admin quando ele estiver feito - métrica de uso do scrapify
+        // ToDo - colocar no dashboard admin quando ele estiver feito - métrica de uso do ScraperAPI
         prisma.telemetry_events.count({
           where: {
             user_id: userId,
-            event_type: "SCRAPE_FALLBACK_SCRAPFLY",
+            event_type: "SCRAPE_FALLBACK_SCRAPERAPI",
           },
         }),
       ]);
@@ -42,7 +42,7 @@ export class MetricsController {
         },
         usage,
         scrapingFallbacks: {
-          scrapfly: scrapflyFallbacks,
+          scraperapi: scraperApiFallbacks,
         },
       });
     } catch (error) {

@@ -10,9 +10,9 @@ export class MagaluScraper extends BaseScraper {
   readonly marketplace = MarketplaceEnum.MAGALU;
   readonly marketplaceName = "Magalu";
   private readonly MAGALU_REQUEST_TIMEOUT = 20000;
-  private readonly SCRAPFLY_SUCCESS_TTL_MS = 10 * 60 * 1000;
-  private readonly SCRAPFLY_FAILURE_TTL_MS = 2 * 60 * 1000;
-  private scrapflyCache = new Map<string, { data: ProductData | null; expiresAt: number }>();
+  private readonly SCRAPER_API_SUCCESS_TTL_MS = 10 * 60 * 1000;
+  private readonly SCRAPER_API_FAILURE_TTL_MS = 2 * 60 * 1000;
+  private scraperApiCache = new Map<string, { data: ProductData | null; expiresAt: number }>();
 
   canHandle(url: string): boolean {
     return (
@@ -47,9 +47,9 @@ export class MagaluScraper extends BaseScraper {
         ?.responseUrl;
       if (responseUrl?.includes("validate.perfdrive.com")) {
         console.log("[Magalu] Bloqueado por validate.perfdrive.com no redirect do axios");
-        const scrapflyData = await this.scrapeWithScrapfly(resolvedUrl, originalUrl, options);
-        if (scrapflyData) {
-          return { success: true, data: scrapflyData };
+        const scraperApiData = await this.scrapeWithScraperApi(resolvedUrl, originalUrl, options);
+        if (scraperApiData) {
+          return { success: true, data: scraperApiData };
         }
         return {
           success: false,
@@ -113,9 +113,9 @@ export class MagaluScraper extends BaseScraper {
       if (data) {
         if (!this.isValidImageUrl(data.imageUrl)) {
           console.log("[Magalu] Imagem inválida extraída via Playwright:", data.imageUrl);
-          const scrapflyData = await this.scrapeWithScrapfly(urlToScrape, originalUrl, options);
-          if (scrapflyData) {
-            return { success: true, data: scrapflyData };
+          const scraperApiData = await this.scrapeWithScraperApi(urlToScrape, originalUrl, options);
+          if (scraperApiData) {
+            return { success: true, data: scraperApiData };
           }
           return {
             success: false,
@@ -126,16 +126,16 @@ export class MagaluScraper extends BaseScraper {
         return { success: true, data };
       }
       console.log("[Magalu] Playwright não conseguiu extrair dados");
-      const scrapflyData = await this.scrapeWithScrapfly(urlToScrape, originalUrl, options);
-      if (scrapflyData) {
-        return { success: true, data: scrapflyData };
+      const scraperApiData = await this.scrapeWithScraperApi(urlToScrape, originalUrl, options);
+      if (scraperApiData) {
+        return { success: true, data: scraperApiData };
       }
       return { success: false, error: "Não foi possível extrair dados do produto" };
     } catch (error) {
       console.error("[Magalu] Erro no Playwright:", error);
-      const scrapflyData = await this.scrapeWithScrapfly(resolvedUrl, originalUrl, options);
-      if (scrapflyData) {
-        return { success: true, data: scrapflyData };
+      const scraperApiData = await this.scrapeWithScraperApi(resolvedUrl, originalUrl, options);
+      if (scraperApiData) {
+        return { success: true, data: scraperApiData };
       }
       return {
         success: false,
@@ -889,7 +889,7 @@ export class MagaluScraper extends BaseScraper {
     }
 
     // Verificar se preço é razoável (entre R$ 1 e R$ 100.000)
-    if (data.price < 1 || data.price > 100000) {
+    if (typeof data.price !== "number" || data.price < 1 || data.price > 100000) {
       return false;
     }
 
@@ -907,24 +907,24 @@ export class MagaluScraper extends BaseScraper {
     return true;
   }
 
-  private async scrapeWithScrapfly(
+  private async scrapeWithScraperApi(
     resolvedUrl: string,
     originalUrl: string,
     options?: ScrapeOptions
   ): Promise<ProductData | null> {
-    const apiKey = process.env.SCRAPFLY_API_KEY;
+    const apiKey = process.env.SCRAPERAPI_API_KEY;
     if (!apiKey) {
-      console.log("[Magalu] Scrapfly ignorado: SCRAPFLY_API_KEY não configurada");
+      console.log("[Magalu] ScraperAPI ignorado: SCRAPERAPI_API_KEY não configurada");
       return null;
     }
 
-    const endpoint = process.env.SCRAPFLY_API_URL || "https://api.scrapfly.io/scrape";
-    const cached = this.scrapflyCache.get(resolvedUrl);
+    const endpoint = process.env.SCRAPERAPI_API_URL || "https://api.scraperapi.com";
+    const cached = this.scraperApiCache.get(resolvedUrl);
     if (cached) {
       if (cached.expiresAt > Date.now()) {
         if (cached.data) {
           await telemetryService.logEvent({
-            eventType: "SCRAPE_FALLBACK_SCRAPFLY",
+            eventType: "SCRAPE_FALLBACK_SCRAPERAPI",
             userId: options?.userId,
             telegramUserId: options?.telegramUserId,
             origin: options?.origin,
@@ -933,30 +933,36 @@ export class MagaluScraper extends BaseScraper {
         }
         return cached.data;
       }
-      this.scrapflyCache.delete(resolvedUrl);
+      this.scraperApiCache.delete(resolvedUrl);
     }
 
     const defaultRenderJs =
-      (process.env.SCRAPFLY_RENDER_JS || "false").trim().toLowerCase() === "true";
-    const fetchScrapflyHtml = async (renderJs: boolean) => {
+      (process.env.SCRAPERAPI_RENDER_JS || "false").trim().toLowerCase() === "true";
+    const fetchScraperApiHtml = async (renderJs: boolean) => {
       const response = await axios.get(endpoint, {
         timeout: this.MAGALU_REQUEST_TIMEOUT * 2,
         params: {
-          key: apiKey,
+          api_key: apiKey,
           url: resolvedUrl,
-          render_js: renderJs ? "true" : "false",
-          country: "br",
+          render: renderJs ? "true" : "false",
+          country_code: "br",
         },
       });
 
-      return (response.data as { result?: { content?: string } })?.result?.content || "";
+      if (typeof response.data === "string") {
+        return response.data;
+      }
+      if (response.data && typeof response.data === "object" && "content" in response.data) {
+        return String((response.data as { content?: string }).content || "");
+      }
+      return String(response.data || "");
     };
     try {
-      console.log("[Magalu] Tentando Scrapfly...");
+      console.log("[Magalu] Tentando ScraperAPI...");
       let renderJs = defaultRenderJs;
-      let html = await fetchScrapflyHtml(renderJs);
+      let html = await fetchScraperApiHtml(renderJs);
       if (!html) {
-        console.log("[Magalu] Scrapfly não retornou HTML");
+        console.log("[Magalu] ScraperAPI não retornou HTML");
         return null;
       }
 
@@ -966,21 +972,21 @@ export class MagaluScraper extends BaseScraper {
           /validate\.perfdrive|shieldsquare/i.test(html));
 
       if (needsJsRender) {
-        console.log("[Magalu] Scrapfly detectou bloqueio/HTML incompleto, tentando com render_js...");
+        console.log("[Magalu] ScraperAPI detectou bloqueio/HTML incompleto, tentando com render...");
         renderJs = true;
-        html = await fetchScrapflyHtml(true);
+        html = await fetchScraperApiHtml(true);
       }
 
       const $ = cheerio.load(html) as cheerio.CheerioAPI;
       const data = this.extractProductData($, resolvedUrl, originalUrl, options);
       if (data && this.isValidImageUrl(data.imageUrl)) {
-        console.log("[Magalu] Dados extraídos com sucesso via Scrapfly!");
-        this.scrapflyCache.set(resolvedUrl, {
+        console.log("[Magalu] Dados extraídos com sucesso via ScraperAPI!");
+        this.scraperApiCache.set(resolvedUrl, {
           data,
-          expiresAt: Date.now() + this.SCRAPFLY_SUCCESS_TTL_MS,
+          expiresAt: Date.now() + this.SCRAPER_API_SUCCESS_TTL_MS,
         });
         await telemetryService.logEvent({
-          eventType: "SCRAPE_FALLBACK_SCRAPFLY",
+          eventType: "SCRAPE_FALLBACK_SCRAPERAPI",
           userId: options?.userId,
           telegramUserId: options?.telegramUserId,
           origin: options?.origin,
@@ -994,17 +1000,17 @@ export class MagaluScraper extends BaseScraper {
         return data;
       }
 
-      console.log("[Magalu] Scrapfly não conseguiu extrair dados válidos");
-      this.scrapflyCache.set(resolvedUrl, {
+      console.log("[Magalu] ScraperAPI não conseguiu extrair dados válidos");
+      this.scraperApiCache.set(resolvedUrl, {
         data: null,
-        expiresAt: Date.now() + this.SCRAPFLY_FAILURE_TTL_MS,
+        expiresAt: Date.now() + this.SCRAPER_API_FAILURE_TTL_MS,
       });
       return null;
     } catch (error) {
-      console.log("[Magalu] Scrapfly falhou:", error);
-      this.scrapflyCache.set(resolvedUrl, {
+      console.log("[Magalu] ScraperAPI falhou:", error);
+      this.scraperApiCache.set(resolvedUrl, {
         data: null,
-        expiresAt: Date.now() + this.SCRAPFLY_FAILURE_TTL_MS,
+        expiresAt: Date.now() + this.SCRAPER_API_FAILURE_TTL_MS,
       });
       return null;
     }

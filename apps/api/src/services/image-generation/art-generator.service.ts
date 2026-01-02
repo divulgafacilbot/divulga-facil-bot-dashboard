@@ -661,10 +661,14 @@ export class ArtGeneratorService {
     price: number | null;
     originalPrice: number | null;
   } {
-    const price = Number.isFinite(product.price) ? product.price : null;
-    const originalPrice = Number.isFinite(product.originalPrice ?? NaN)
-      ? product.originalPrice!
-      : null;
+    const price =
+      typeof product.price === "number" && Number.isFinite(product.price)
+        ? product.price
+        : null;
+    const originalPrice =
+      typeof product.originalPrice === "number" && Number.isFinite(product.originalPrice)
+        ? product.originalPrice
+        : null;
 
     if (price !== null && originalPrice !== null && price > originalPrice) {
       return { price: originalPrice, originalPrice: null };
