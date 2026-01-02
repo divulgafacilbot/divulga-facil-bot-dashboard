@@ -889,7 +889,7 @@ export class MagaluScraper extends BaseScraper {
     }
 
     // Verificar se preço é razoável (entre R$ 1 e R$ 100.000)
-    if (data.price < 1 || data.price > 100000) {
+    if (typeof data.price !== "number" || data.price < 1 || data.price > 100000) {
       return false;
     }
 

@@ -17,7 +17,41 @@ export class ShopeeScraper extends BaseScraper {
 
   async scrape(url: string, options?: ScrapeOptions) {
     const resolvedUrl = await this.resolveUrl(url);
-    const ids = this.extractIds(resolvedUrl) || this.extractIds(url);
+    let ids = this.extractIds(resolvedUrl) || this.extractIds(url);
+    let searchData: ProductData | null = null;
+    const preferSearch = true;
+    const disableShopeeRequests = true;
+
+    if (disableShopeeRequests) {
+      return {
+        success: false,
+        error: "Shopee scraping desativado: usando fallback do Telegram/Google.",
+      };
+    }
+
+    if (!ids) {
+      const candidate =
+        (await this.fetchSearchCandidate(resolvedUrl)) || (await this.fetchSearchCandidate(url));
+      if (candidate) {
+        const shopId = candidate.item.shopid ?? candidate.item.shop_id;
+        const itemId = candidate.item.itemid ?? candidate.item.item_id;
+        if (shopId && itemId) {
+          ids = { shopId: String(shopId), itemId: String(itemId) };
+          console.log(`[Shopee] IDs resolvidos via search: ${ids.shopId}/${ids.itemId}`);
+        }
+        searchData = this.mapApiData(candidate.item, url, options);
+        if (searchData && !ids) {
+          return { success: true, data: searchData };
+        }
+      }
+    }
+    if (preferSearch && !searchData) {
+      searchData = await this.fetchFromSearchBySlug(resolvedUrl, url, options);
+      if (searchData) {
+        const enriched = await this.enrichPriceIfMissing(searchData);
+        return { success: true, data: enriched };
+      }
+    }
     const canonicalUrl = ids
       ? `https://shopee.com.br/product/${ids.shopId}/${ids.itemId}`
       : resolvedUrl;
@@ -30,7 +64,15 @@ export class ShopeeScraper extends BaseScraper {
         options
       );
       if (apiResult) {
-        return { success: true, data: apiResult };
+        const enriched = await this.enrichPriceIfMissing(apiResult);
+        return { success: true, data: enriched };
+      }
+      if (!searchData) {
+        searchData = await this.fetchFromSearchBySlug(resolvedUrl, url, options);
+      }
+      if (searchData) {
+        const enriched = await this.enrichPriceIfMissing(searchData);
+        return { success: true, data: enriched };
       }
     }
 
@@ -38,6 +80,11 @@ export class ShopeeScraper extends BaseScraper {
       ...options,
       originalUrl: options?.originalUrl || url,
     });
+
+    if (result.success && result.data) {
+      const enriched = await this.enrichPriceIfMissing(result.data);
+      return { success: true, data: enriched };
+    }
 
     // Se falhou, retornar mensagem clara
     if (!result.success && result.error?.includes("Failed to extract")) {
@@ -106,12 +153,12 @@ export class ShopeeScraper extends BaseScraper {
               ? jsonData.aggregateRating?.reviewCount || undefined
               : undefined;
 
-            if (title && imageUrl && price) {
+            if (title && imageUrl) {
               console.log("[Shopee] ✅ Extração bem-sucedida via JSON-LD!");
               return {
                 title,
                 description,
-                price,
+                price: price ?? null,
                 imageUrl,
                 productUrl: originalUrl,
                 marketplace: MarketplaceEnum.SHOPEE,
@@ -165,7 +212,7 @@ export class ShopeeScraper extends BaseScraper {
 
       const price = this.extractPrice(priceText);
 
-      if (!title || !imageUrl || !price) {
+      if (!title || !imageUrl) {
         console.log("[Shopee] ❌ Dados essenciais não encontrados no HTML:", {
           hasTitle: !!title,
           hasImage: !!imageUrl,
@@ -193,10 +240,18 @@ export class ShopeeScraper extends BaseScraper {
       const salesQuantity = includeSalesQuantity ? this.extractReviewCount(salesText) : undefined;
 
       console.log("[Shopee] ✅ Extração bem-sucedida via HTML seletores!");
+      const pageTitle = $("title").text().trim().toLowerCase();
+      const isLoginPage =
+        pageTitle.includes("login") || pageTitle.includes("faça login");
+
+      if (!price && isLoginPage && title.toLowerCase().includes("login")) {
+        return null;
+      }
+
       return {
         title,
         description,
-        price,
+        price: price ?? null,
         imageUrl,
         productUrl: originalUrl,
         marketplace: MarketplaceEnum.SHOPEE,
@@ -368,6 +423,302 @@ export class ShopeeScraper extends BaseScraper {
     return null;
   }
 
+  private extractSlug(url: string): string | null {
+    try {
+      const parsed = new URL(url);
+      const path = parsed.pathname.replace(/\/+$/, "");
+      if (!path || path === "/" || path.includes("/product/")) {
+        return null;
+      }
+      const lastSegment = path.split("/").filter(Boolean).pop();
+      if (!lastSegment) return null;
+      const cleaned = lastSegment.replace(/-i\.\d+\.\d+$/i, "");
+      const normalized = cleaned.replace(/[^a-zA-Z0-9-]+/g, "-").replace(/-+/g, "-");
+      return normalized.length >= 3 ? normalized : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private normalizeText(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  private scoreNameMatch(slug: string, name: string): number {
+    const normalizedSlug = this.normalizeText(slug);
+    const normalizedName = this.normalizeText(name);
+    if (!normalizedSlug || !normalizedName) return 0;
+
+    if (normalizedName === normalizedSlug) return 120;
+    if (normalizedName.includes(normalizedSlug)) return 80;
+
+    const slugTokens = normalizedSlug.split(" ").filter((token) => token.length > 2);
+    if (slugTokens.length === 0) return 0;
+
+    let matches = 0;
+    for (const token of slugTokens) {
+      if (normalizedName.includes(token)) {
+        matches += 1;
+      }
+    }
+
+    const ratioScore = Math.round((matches / slugTokens.length) * 40);
+    const tokenScore = matches * 6;
+    return ratioScore + tokenScore;
+  }
+
+  private async fetchSearchCandidate(
+    url: string
+  ): Promise<{ item: Record<string, unknown>; score: number } | null> {
+    const slug = this.extractSlug(url);
+    if (!slug) {
+      return null;
+    }
+
+    const keyword = slug.replace(/-/g, " ").trim();
+    if (!keyword) return null;
+
+    try {
+      const response = await axios.get("https://shopee.com.br/api/v4/search/search_items", {
+        timeout: this.REQUEST_TIMEOUT,
+        params: {
+          by: "relevancy",
+          keyword,
+          limit: "50",
+          new: "0",
+          order: "desc",
+          page_type: "search",
+          scenario: "PAGE_GLOBAL_SEARCH",
+          version: "2",
+        },
+        headers: {
+          "User-Agent": this.USER_AGENT,
+          "Accept-Language": "pt-BR,pt;q=0.9",
+          Accept: "application/json",
+          Referer: "https://shopee.com.br/",
+        },
+      });
+
+      const data = response.data?.data;
+      if (!data) return null;
+
+      const itemsRaw = Array.isArray(data.items) ? data.items : [];
+      const items = itemsRaw
+        .map((entry: Record<string, unknown>) => {
+          const itemBasic = entry.item_basic as Record<string, unknown> | undefined;
+          return itemBasic || entry;
+        })
+        .filter(Boolean) as Array<Record<string, unknown>>;
+
+      if (items.length === 0) return null;
+
+      let best: { item: Record<string, unknown>; score: number } | null = null;
+      for (const item of items) {
+        const nameValue = item.name ?? item.item_name;
+        const name = typeof nameValue === "string" ? nameValue : "";
+        const score = this.scoreNameMatch(slug, name);
+        if (!best || score > best.score) {
+          best = { item, score };
+        }
+      }
+
+      if (!best || best.score < 18) {
+        return null;
+      }
+
+      return best;
+    } catch (error) {
+      console.log("[Shopee] Erro ao resolver IDs via search:", error);
+      return null;
+    }
+  }
+
+  private async fetchFromSearchBySlug(
+    url: string,
+    originalUrl: string,
+    options?: ScrapeOptions
+  ): Promise<ProductData | null> {
+    const candidate = await this.fetchSearchCandidate(url);
+    if (!candidate) {
+      return null;
+    }
+    return this.mapApiData(candidate.item, originalUrl, options);
+  }
+
+  private async enrichPriceIfMissing(product: ProductData): Promise<ProductData> {
+    if (typeof product.price === "number" && Number.isFinite(product.price)) {
+      return product;
+    }
+
+    const title = product.title?.trim();
+    if (!title) {
+      return product;
+    }
+
+    const googlePrice = await this.fetchPriceFromGoogleCse(title);
+    if (googlePrice !== null) {
+      return { ...product, price: googlePrice };
+    }
+
+    const serpPrice = await this.fetchPriceFromSerpApi(title);
+    if (serpPrice !== null) {
+      return { ...product, price: serpPrice };
+    }
+
+    return product;
+  }
+
+  private normalizeTitleForMatch(value: string): string {
+    const cleaned = value
+      .toLowerCase()
+      .replace(/\s+[\-|–|—]\s*shopee.*$/i, "")
+      .replace(/\s+\|\s*shopee.*$/i, "")
+      .replace(/\s+–\s*shopee.*$/i, "")
+      .replace(/\s+—\s*shopee.*$/i, "")
+      .replace(/\s+shopee.*$/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    return cleaned;
+  }
+
+  private isExactTitleMatch(expected: string, candidate: string): boolean {
+    if (!expected || !candidate) return false;
+    const normalizedExpected = this.normalizeTitleForMatch(expected);
+    const normalizedCandidate = this.normalizeTitleForMatch(candidate);
+    return normalizedExpected === normalizedCandidate;
+  }
+
+  private extractPriceFromText(text: string): number | null {
+    if (!text) return null;
+    const match = text.match(/R\$\s*[0-9\.\,]+/);
+    if (!match) return null;
+    return this.extractPrice(match[0]);
+  }
+
+  private extractPriceFromPagemap(
+    pagemap: Record<string, unknown> | undefined
+  ): number | null {
+    if (!pagemap) return null;
+    const metatags = Array.isArray(pagemap.metatags) ? pagemap.metatags[0] : undefined;
+    const product = Array.isArray(pagemap.product) ? pagemap.product[0] : undefined;
+    const offer = Array.isArray(pagemap.offer) ? pagemap.offer[0] : undefined;
+    const offers = Array.isArray(pagemap.offers) ? pagemap.offers[0] : undefined;
+
+    const raw =
+      (metatags?.["product:price:amount"] as string | undefined) ||
+      (metatags?.["og:price:amount"] as string | undefined) ||
+      (metatags?.["product:price"] as string | undefined) ||
+      (product?.price as string | number | undefined) ||
+      (offer?.price as string | number | undefined) ||
+      (offers?.price as string | number | undefined);
+
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return raw;
+    }
+    if (typeof raw === "string") {
+      return this.extractPrice(raw);
+    }
+    return null;
+  }
+
+  private async fetchPriceFromGoogleCse(title: string): Promise<number | null> {
+    const apiKey = process.env.GOOGLE_CSE_API_KEY;
+    const cseId = process.env.GOOGLE_CSE_ID;
+    if (!apiKey || !cseId) return null;
+
+    try {
+      const response = await axios.get("https://www.googleapis.com/customsearch/v1", {
+        timeout: this.REQUEST_TIMEOUT,
+        params: {
+          key: apiKey,
+          cx: cseId,
+          q: `${title} shopee`,
+          num: 5,
+        },
+        headers: {
+          "User-Agent": this.USER_AGENT,
+          "Accept-Language": "pt-BR,pt;q=0.9",
+          Accept: "application/json",
+        },
+      });
+
+      const items = Array.isArray(response.data?.items) ? response.data.items : [];
+      for (const item of items) {
+        if (!this.isExactTitleMatch(title, item.title || "")) {
+          continue;
+        }
+
+        const priceFromPagemap = this.extractPriceFromPagemap(item.pagemap);
+        if (priceFromPagemap !== null) {
+          return priceFromPagemap;
+        }
+
+        const priceFromSnippet = this.extractPriceFromText(item.snippet || "");
+        if (priceFromSnippet !== null) {
+          return priceFromSnippet;
+        }
+      }
+    } catch (error) {
+      console.log("[Shopee] Erro ao buscar preco no Google CSE:", error);
+    }
+
+    return null;
+  }
+
+  private async fetchPriceFromSerpApi(title: string): Promise<number | null> {
+    const apiKey = process.env.SERPAPI_API_KEY;
+    if (!apiKey) return null;
+
+    try {
+      const response = await axios.get("https://serpapi.com/search.json", {
+        timeout: this.REQUEST_TIMEOUT,
+        params: {
+          engine: "google",
+          q: `${title} shopee`,
+          api_key: apiKey,
+          hl: "pt",
+          gl: "br",
+        },
+        headers: {
+          "User-Agent": this.USER_AGENT,
+          "Accept-Language": "pt-BR,pt;q=0.9",
+          Accept: "application/json",
+        },
+      });
+
+      const results = Array.isArray(response.data?.organic_results)
+        ? response.data.organic_results
+        : [];
+      for (const result of results) {
+        if (!this.isExactTitleMatch(title, result.title || "")) {
+          continue;
+        }
+
+        const richSnippet =
+          result.rich_snippet?.top?.extensions?.join(" ") ||
+          result.rich_snippet?.bottom?.extensions?.join(" ") ||
+          "";
+        const priceFromRich = this.extractPriceFromText(richSnippet);
+        if (priceFromRich !== null) {
+          return priceFromRich;
+        }
+
+        const priceFromSnippet = this.extractPriceFromText(result.snippet || "");
+        if (priceFromSnippet !== null) {
+          return priceFromSnippet;
+        }
+      }
+    } catch (error) {
+      console.log("[Shopee] Erro ao buscar preco no SerpAPI:", error);
+    }
+
+    return null;
+  }
+
   private normalizePrice(value?: number | null): number | null {
     if (!value) return null;
     if (value > 1000000) return value / 100000;
@@ -411,9 +762,9 @@ export class ShopeeScraper extends BaseScraper {
     );
 
     const discountPercentage =
-      originalPrice && price ? this.calculateDiscount(originalPrice, price) : undefined;
+      originalPrice && price !== null ? this.calculateDiscount(originalPrice, price) : undefined;
 
-    if (!title || !imageUrl || !price) {
+    if (!title || !imageUrl) {
       return null;
     }
 
@@ -427,9 +778,9 @@ export class ShopeeScraper extends BaseScraper {
       description: includeDescription
         ? (itemData.description as string | undefined) || undefined
         : undefined,
-      price,
-      originalPrice: originalPrice || undefined,
-      discountPercentage,
+      price: price ?? null,
+      originalPrice: price !== null ? originalPrice || undefined : undefined,
+      discountPercentage: price !== null ? discountPercentage : undefined,
       imageUrl,
       productUrl: originalUrl,
       marketplace: MarketplaceEnum.SHOPEE,

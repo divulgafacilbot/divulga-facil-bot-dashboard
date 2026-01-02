@@ -34,8 +34,8 @@ export type ScrapeField =
 export interface ProductData {
   title: string;
   description?: string;
-  price: number;
-  originalPrice?: number;
+  price: number | null;
+  originalPrice?: number | null;
   discountPercentage?: number;
   imageUrl: string;
   productUrl: string;
