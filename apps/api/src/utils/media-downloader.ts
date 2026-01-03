@@ -11,13 +11,14 @@ if (!fs.existsSync(TEMP_DIR)) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 }
 
+export type DownloadOptions = { headers?: Record<string, string>; strategy?: 'direct' | 'youtube' };
+
 export async function downloadMediaToFile(
   url: string,
   filename: string,
-  headersOrOptions?: Record<string, string> | { headers?: Record<string, string>; strategy?: 'direct' | 'youtube' }
+  options?: DownloadOptions
 ): Promise<string> {
-  const options = normalizeDownloadOptions(headersOrOptions);
-  if (options.strategy === 'youtube') {
+  if (options?.strategy === 'youtube') {
     return downloadYouTubeToFile(url, filename);
   }
 
@@ -27,7 +28,7 @@ export async function downloadMediaToFile(
     // Check file size first
     let contentLength = 0;
     try {
-      const headResponse = await axios.head(url, { headers: options.headers });
+      const headResponse = await axios.head(url, { headers: options?.headers });
       contentLength = parseInt(headResponse.headers['content-length'] || '0', 10);
     } catch (headError) {
       // Some providers block HEAD requests; continue without size precheck.
@@ -45,7 +46,7 @@ export async function downloadMediaToFile(
     const response = await axios.get(url, {
       responseType: 'stream',
       timeout: 30000,
-      headers: options.headers,
+      headers: options?.headers,
     });
 
     const writer = fs.createWriteStream(tempPath);
@@ -74,23 +75,6 @@ export function cleanupTempFile(filePath: string): void {
   } catch (error) {
     console.error(`❌ Erro ao remover arquivo temporário ${filePath}:`, error);
   }
-}
-
-function normalizeDownloadOptions(
-  headersOrOptions?: Record<string, string> | { headers?: Record<string, string>; strategy?: 'direct' | 'youtube' }
-): { headers?: Record<string, string>; strategy: 'direct' | 'youtube' } {
-  if (!headersOrOptions) {
-    return { strategy: 'direct' };
-  }
-
-  if ('strategy' in headersOrOptions || 'headers' in headersOrOptions) {
-    return {
-      headers: headersOrOptions.headers,
-      strategy: headersOrOptions.strategy ?? 'direct',
-    };
-  }
-
-  return { headers: headersOrOptions, strategy: 'direct' };
 }
 
 async function downloadYouTubeToFile(url: string, filename: string): Promise<string> {

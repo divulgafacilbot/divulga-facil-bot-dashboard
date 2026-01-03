@@ -76,8 +76,8 @@ function extractTikTokItems(
   const sigiStateRaw = scriptOverrides?.sigiState ?? $('script#SIGI_STATE').html();
   if (sigiStateRaw) {
     const sigiState = JSON.parse(sigiStateRaw);
-    const itemModule = sigiState?.ItemModule || sigiState?.itemModule;
-    const item = itemModule ? Object.values(itemModule)[0] : null;
+    const itemModule = (sigiState?.ItemModule || sigiState?.itemModule) as Record<string, any> | undefined;
+    const item = itemModule ? (Object.values(itemModule)[0] as any) : null;
     const video = item?.video;
     if (video?.downloadAddr || video?.playAddr) {
       items.push({
@@ -164,8 +164,10 @@ function extractTikTokItems(
   }
 
   if (!items.length && scriptOverrides?.windowState) {
-    const itemModule = scriptOverrides.windowState?.ItemModule || scriptOverrides.windowState?.itemModule;
-    const item = itemModule ? Object.values(itemModule)[0] : null;
+    const itemModule = (scriptOverrides.windowState?.ItemModule || scriptOverrides.windowState?.itemModule) as
+      | Record<string, any>
+      | undefined;
+    const item = itemModule ? (Object.values(itemModule)[0] as any) : null;
     const video = item?.video;
     if (video?.downloadAddr || video?.playAddr) {
       items.push({
