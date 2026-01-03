@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { showToast } from "@/lib/toast";
 import { BOT_TYPES } from "@/lib/constants";
+import { showToast } from "@/lib/toast";
 
 type LinkToken = {
   id: string;
@@ -12,20 +12,35 @@ type LinkToken = {
   status: string;
 };
 
+const CONTRACTED_BOTS_COUNT_BY_TYPE = {
+  [BOT_TYPES.ARTS]: 2,
+  [BOT_TYPES.DOWNLOAD]: 2,
+};
+const MAX_ART_TOKENS = 2;
+const MAX_DOWNLOAD_TOKENS = 2;
+const TOKEN_LIST_COMPACT_WIDTH = 430;
+
 export default function BotsPage() {
   const [artTokens, setArtTokens] = useState<LinkToken[]>([]);
+  const [downloadTokens, setDownloadTokens] = useState<LinkToken[]>([]);
   const [tokenVisibility, setTokenVisibility] = useState<Record<string, boolean>>({});
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [refreshingTokenId, setRefreshingTokenId] = useState<string | null>(null);
+  const [isGeneratingArt, setIsGeneratingArt] = useState(false);
+  const [isGeneratingDownload, setIsGeneratingDownload] = useState(false);
+  const [refreshingArtTokenId, setRefreshingArtTokenId] = useState<string | null>(null);
+  const [refreshingDownloadTokenId, setRefreshingDownloadTokenId] = useState<string | null>(null);
+  const [isArtTokenCompact, setIsArtTokenCompact] = useState(false);
+  const [isDownloadTokenCompact, setIsDownloadTokenCompact] = useState(false);
+  const artTokenContainerRef = useRef<HTMLDivElement | null>(null);
+  const downloadTokenContainerRef = useRef<HTMLDivElement | null>(null);
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
-  const fetchTokens = async () => {
+  const fetchArtTokens = async () => {
     try {
       const response = await fetch(
         `${apiBaseUrl}/api/telegram/link-tokens?botType=${BOT_TYPES.ARTS}`,
         {
-        method: "GET",
-        credentials: "include",
+          method: "GET",
+          credentials: "include",
         }
       );
 
@@ -42,9 +57,61 @@ export default function BotsPage() {
     }
   };
 
+  const fetchDownloadTokens = async () => {
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/api/telegram/link-tokens?botType=${BOT_TYPES.DOWNLOAD}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      if (Array.isArray(data.tokens)) {
+        setDownloadTokens(data.tokens);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar tokens:", error);
+    }
+  };
+
   useEffect(() => {
-    fetchTokens();
+    fetchArtTokens();
+    fetchDownloadTokens();
   }, [apiBaseUrl]);
+
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        setIsArtTokenCompact(entry.contentRect.width < TOKEN_LIST_COMPACT_WIDTH);
+      });
+    });
+
+    if (artTokenContainerRef.current) {
+      observer.observe(artTokenContainerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        setIsDownloadTokenCompact(entry.contentRect.width < TOKEN_LIST_COMPACT_WIDTH);
+      });
+    });
+
+    if (downloadTokenContainerRef.current) {
+      observer.observe(downloadTokenContainerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleCopyToken = async (token: string) => {
     try {
@@ -56,9 +123,9 @@ export default function BotsPage() {
     }
   };
 
-  const handleGenerateToken = async () => {
-    if (artTokens.length >= 2 || isGenerating) return;
-    setIsGenerating(true);
+  const handleGenerateArtToken = async () => {
+    if (artTokens.length >= MAX_ART_TOKENS || isGeneratingArt) return;
+    setIsGeneratingArt(true);
     try {
       const response = await fetch(`${apiBaseUrl}/api/telegram/link-token`, {
         method: "POST",
@@ -77,18 +144,53 @@ export default function BotsPage() {
       }
 
       if (data?.token) {
-        await fetchTokens();
+        await fetchArtTokens();
         await handleCopyToken(data.token);
       }
     } catch (error) {
       console.error("Erro ao gerar token:", error);
       showToast("Erro ao gerar token", "error");
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingArt(false);
     }
   };
 
-  const handleDeleteToken = async (tokenId: string) => {
+  const handleGenerateDownloadToken = async () => {
+    if (downloadTokens.length >= MAX_DOWNLOAD_TOKENS || isGeneratingDownload) return;
+    setIsGeneratingDownload(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/telegram/link-token`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ botType: BOT_TYPES.DOWNLOAD }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data?.error || "Erro ao gerar token", "error");
+        return;
+      }
+
+      if (data?.token) {
+        await fetchDownloadTokens();
+        await handleCopyToken(data.token);
+      }
+    } catch (error) {
+      console.error("Erro ao gerar token:", error);
+      showToast("Erro ao gerar token", "error");
+    } finally {
+      setIsGeneratingDownload(false);
+    }
+  };
+
+  const handleDeleteToken = async (
+    tokenId: string,
+    setTokens: React.Dispatch<React.SetStateAction<LinkToken[]>>
+  ) => {
     try {
       const response = await fetch(`${apiBaseUrl}/api/telegram/link-tokens/${tokenId}`, {
         method: "DELETE",
@@ -100,7 +202,7 @@ export default function BotsPage() {
         return;
       }
 
-      setArtTokens((prev) => prev.filter((token) => token.id !== tokenId));
+      setTokens((prev) => prev.filter((token) => token.id !== tokenId));
       showToast("ID deletado com sucesso", "success");
     } catch (error) {
       console.error("Erro ao deletar token:", error);
@@ -108,9 +210,9 @@ export default function BotsPage() {
     }
   };
 
-  const handleRefreshToken = async (tokenId: string) => {
-    if (isGenerating || refreshingTokenId) return;
-    setRefreshingTokenId(tokenId);
+  const handleRefreshArtToken = async (tokenId: string) => {
+    if (isGeneratingArt || refreshingArtTokenId) return;
+    setRefreshingArtTokenId(tokenId);
     try {
       const response = await fetch(
         `${apiBaseUrl}/api/telegram/link-tokens/${tokenId}/refresh?botType=${BOT_TYPES.ARTS}`,
@@ -128,14 +230,45 @@ export default function BotsPage() {
       }
 
       if (data?.token) {
-        await fetchTokens();
+        await fetchArtTokens();
         await handleCopyToken(data.token);
       }
     } catch (error) {
       console.error("Erro ao atualizar token:", error);
       showToast("Erro ao atualizar token", "error");
     } finally {
-      setRefreshingTokenId(null);
+      setRefreshingArtTokenId(null);
+    }
+  };
+
+  const handleRefreshDownloadToken = async (tokenId: string) => {
+    if (isGeneratingDownload || refreshingDownloadTokenId) return;
+    setRefreshingDownloadTokenId(tokenId);
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/api/telegram/link-tokens/${tokenId}/refresh?botType=${BOT_TYPES.DOWNLOAD}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data?.error || "Erro ao atualizar token", "error");
+        return;
+      }
+
+      if (data?.token) {
+        await fetchDownloadTokens();
+        await handleCopyToken(data.token);
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar token:", error);
+      showToast("Erro ao atualizar token", "error");
+    } finally {
+      setRefreshingDownloadTokenId(null);
     }
   };
 
@@ -170,6 +303,7 @@ export default function BotsPage() {
             status: "Disponível no plano",
             accent: "var(--color-primary)",
             tokenId: "token-para-liberar-bot-de-artes",
+            botType: BOT_TYPES.ARTS,
           },
           {
             title: "Bot de Download (redes sociais)",
@@ -177,13 +311,32 @@ export default function BotsPage() {
               "Baixa mídia de Instagram, TikTok e Pinterest com 1 link.",
             status: "Disponível no plano",
             accent: "var(--color-info)",
-            tokenId: "token-para-liberar-bot-de-downloads",
+            tokenId: "token-para-liberar-bot-de-download",
+            botType: BOT_TYPES.DOWNLOAD,
           },
         ].map((bot) => (
           <div
             key={bot.title}
             className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]"
           >
+            {(() => {
+              const isArtBot = bot.botType === BOT_TYPES.ARTS;
+              const tokens = isArtBot ? artTokens : downloadTokens;
+              const isCompact = isArtBot ? isArtTokenCompact : isDownloadTokenCompact;
+              const isGenerating = isArtBot ? isGeneratingArt : isGeneratingDownload;
+              const refreshingId = isArtBot
+                ? refreshingArtTokenId
+                : refreshingDownloadTokenId;
+              const containerRef = isArtBot
+                ? artTokenContainerRef
+                : downloadTokenContainerRef;
+              const handleRefresh = isArtBot
+                ? handleRefreshArtToken
+                : handleRefreshDownloadToken;
+              const setTokens = isArtBot ? setArtTokens : setDownloadTokens;
+
+              return (
+                <>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
                 {bot.title}
@@ -198,10 +351,16 @@ export default function BotsPage() {
             <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
               {bot.description}
             </p>
-            {bot.tokenId === "token-para-liberar-bot-de-artes" ? (
+            <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]">
+              Bots contratados:{" "}
+              <span className="font-semibold text-[var(--color-text-main)]">
+                {CONTRACTED_BOTS_COUNT_BY_TYPE[bot.botType]}
+              </span>
+            </div>
               <div
                 id={bot.tokenId}
-                className="mt-6 space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]"
+                ref={containerRef}
+                className="mt-4 space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]"
               >
                 <p>
                   Conecte no Telegram com um token e envie:{" "}
@@ -209,10 +368,10 @@ export default function BotsPage() {
                     /start SEU_TOKEN
                   </span>
                 </p>
-                {artTokens.length === 0 && (
+                {tokens.length === 0 && (
                   <p>Nenhum token gerado ainda.</p>
                 )}
-                {artTokens.map((token, index) => (
+                {tokens.map((token, index) => (
                   <div
                     key={token.id}
                     className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
@@ -242,18 +401,31 @@ export default function BotsPage() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
                           />
-                          <circle cx="12" cy="12" r="3" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9a3 3 0 100 6 3 3 0 000-6z"
+                          />
                         </svg>
-                        {tokenVisibility[token.id] ? "Ocultar" : "Ver"}
+                        {isCompact ? (
+                          <span className="sr-only">
+                            {tokenVisibility[token.id] ? "Ocultar" : "Ver"}
+                          </span>
+                        ) : tokenVisibility[token.id] ? (
+                          "Ocultar"
+                        ) : (
+                          "Ver"
+                        )}
                       </button>
                       <button
-                        onClick={() => handleRefreshToken(token.id)}
+                        onClick={() => handleRefresh(token.id)}
                         className="flex items-center gap-1 rounded-md border border-yellow-200 bg-yellow-50 px-2 py-1 text-[10px] font-semibold text-yellow-700 transition hover:bg-yellow-100 disabled:cursor-not-allowed disabled:opacity-50"
                         type="button"
                         aria-label="Atualizar token"
-                        disabled={isGenerating || refreshingTokenId === token.id}
+                        disabled={isGenerating || refreshingId === token.id}
                       >
                         <svg
                           className="h-3 w-3"
@@ -265,10 +437,20 @@ export default function BotsPage() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M4 4v5h.582m15.356 2A8 8 0 104.582 9M20 20v-5h-.581"
+                            d="M21 12a9 9 0 11-2.64-6.36"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 3v6h-6"
                           />
                         </svg>
-                        Atualizar
+                        {isCompact ? (
+                          <span className="sr-only">Atualizar</span>
+                        ) : (
+                          "Atualizar"
+                        )}
                       </button>
                       <button
                         onClick={() => handleCopyToken(token.token)}
@@ -286,13 +468,19 @@ export default function BotsPage() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M8 16h8m-8-4h8m-2-8H8a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2z"
+                            d="M9 9h10v10H9z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 5h10v10H5z"
                           />
                         </svg>
-                        Copiar
+                        {isCompact ? <span className="sr-only">Copiar</span> : "Copiar"}
                       </button>
                       <button
-                        onClick={() => handleDeleteToken(token.id)}
+                        onClick={() => handleDeleteToken(token.id, setTokens)}
                         className="flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-600"
                         type="button"
                         aria-label="Deletar token"
@@ -307,23 +495,34 @@ export default function BotsPage() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a1 1 0 00-1 1v1h6V4a1 1 0 00-1-1m-4 0h4"
+                            d="M3 6h18"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 6V4h8v2"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 6l1 14h10l1-14"
                           />
                         </svg>
-                        Deletar
+                        {isCompact ? (
+                          <span className="sr-only">Deletar</span>
+                        ) : (
+                          "Deletar"
+                        )}
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <div
-                id={bot.tokenId}
-                className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]"
-              >
-                Este bot ficará pronto em breve.
-              </div>
-            )}
+              </>
+              );
+            })()}
           </div>
         ))}
       </div>
@@ -351,16 +550,26 @@ export default function BotsPage() {
               key={item.id}
               className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-left text-sm font-semibold text-[var(--color-text-main)] transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
               type="button"
-              disabled={item.id === "btn-gerar-token-de-artes" && (artTokens.length >= 2 || isGenerating)}
+              disabled={
+                (item.id === "btn-gerar-token-de-artes" &&
+                  (artTokens.length >= MAX_ART_TOKENS || isGeneratingArt)) ||
+                (item.id === "btn-gerar-token-de-download" &&
+                  (downloadTokens.length >= MAX_DOWNLOAD_TOKENS ||
+                    isGeneratingDownload))
+              }
               onClick={
                 item.id === "btn-gerar-token-de-artes"
-                  ? handleGenerateToken
-                  : () => showToast("Este bot ficará pronto em breve", "info")
+                  ? handleGenerateArtToken
+                  : handleGenerateDownloadToken
               }
             >
-              {item.id === "btn-gerar-token-de-artes" && artTokens.length >= 2
+              {item.id === "btn-gerar-token-de-artes" &&
+              artTokens.length >= MAX_ART_TOKENS
                 ? "Limite de tokens atingido"
-                : item.label}
+                : item.id === "btn-gerar-token-de-download" &&
+                    downloadTokens.length >= MAX_DOWNLOAD_TOKENS
+                  ? "Limite de tokens atingido"
+                  : item.label}
             </button>
           ))}
         </div>
@@ -370,16 +579,19 @@ export default function BotsPage() {
             target="_blank"
             rel="noreferrer"
             className="rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary)]/90"
+            id="btn-acessar-bot-de-artes"
           >
             Acessar o bot de Artes
           </a>
-          <button
-            onClick={() => showToast("Este bot ficará pronto em breve", "info")}
-            className="rounded-xl border-2 border-[var(--color-border)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-text-main)] transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-            type="button"
+          <a
+            href="https://t.me/DivulgaFacilDownload_bot"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary)]/90"
+            id="btn-acessar-bot-de-download"
           >
             Acessar o bot de Download
-          </button>
+          </a>
         </div>
       </div>
     </>

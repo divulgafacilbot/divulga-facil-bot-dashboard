@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { BOT_TYPES } from "@/lib/constants";
+
 export default function DashboardPage() {
   const [activeArtsBots, setActiveArtsBots] = useState(0);
   const [activeDownloadBots, setActiveDownloadBots] = useState(0);
@@ -32,7 +34,38 @@ export default function DashboardPage() {
       }
     };
 
+    const loadTokenCounts = async () => {
+      try {
+        const [artsResponse, downloadResponse] = await Promise.all([
+          fetch(`${apiBaseUrl}/api/telegram/link-tokens?botType=${BOT_TYPES.ARTS}`, {
+            method: "GET",
+            credentials: "include",
+          }),
+          fetch(
+            `${apiBaseUrl}/api/telegram/link-tokens?botType=${BOT_TYPES.DOWNLOAD}`,
+            {
+              method: "GET",
+              credentials: "include",
+            }
+          ),
+        ]);
+
+        if (artsResponse.ok) {
+          const data = await artsResponse.json();
+          setActiveArtsBots(Array.isArray(data.tokens) ? data.tokens.length : 0);
+        }
+
+        if (downloadResponse.ok) {
+          const data = await downloadResponse.json();
+          setActiveDownloadBots(Array.isArray(data.tokens) ? data.tokens.length : 0);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar tokens:", error);
+      }
+    };
+
     loadMetrics();
+    loadTokenCounts();
   }, [apiBaseUrl]);
 
   return (

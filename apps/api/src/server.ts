@@ -15,6 +15,7 @@ import metricsRoutes from './routes/metrics.routes.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { CleanupService } from './services/jobs/cleanup.service.js';
 import { artsBot } from './bot/arts-bot.js';
+import { downloadBot, startDownloadBot } from './bot/download-bot.js';
 
 export const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -70,13 +71,16 @@ if (process.env.NODE_ENV !== 'test') {
     // Start cleanup cron jobs
     CleanupService.start();
 
-    // Start Telegram bot
+    // Start Telegram bots in parallel
     try {
-      await artsBot.start();
-      console.log('🤖 Telegram Arts Bot started successfully');
+      await Promise.all([
+        artsBot.start(),
+        startDownloadBot(),
+      ]);
+      console.log('🤖 Telegram bots started successfully');
     } catch (error) {
-      console.error('❌ Failed to start Telegram bot:', error);
-      console.error('Make sure TELEGRAM_BOT_ARTS_TOKEN is set in .env file');
+      console.error('❌ Failed to start Telegram bots:', error);
+      console.error('Make sure TELEGRAM_BOT_ARTS_TOKEN and TELEGRAM_BOT_DOWNLOAD_TOKEN are set in .env file');
     }
   });
 }
