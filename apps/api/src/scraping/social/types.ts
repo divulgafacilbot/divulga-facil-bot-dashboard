@@ -6,6 +6,8 @@ export interface MediaItem {
   mediaType: MediaType;
   directUrl: string;
   filenameHint?: string;
+  headers?: Record<string, string>;
+  downloadStrategy?: 'direct' | 'youtube';
 }
 
 export interface MediaResult {

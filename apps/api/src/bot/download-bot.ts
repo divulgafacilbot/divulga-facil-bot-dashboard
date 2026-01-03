@@ -255,7 +255,10 @@ Exemplo: https://instagram.com/p/ABC123/`
         try {
           // Download
           const filename = item.filenameHint || `download-${Date.now()}.${item.mediaType === 'video' ? 'mp4' : 'jpg'}`;
-          tempFile = await downloadMediaToFile(item.directUrl, filename);
+          tempFile = await downloadMediaToFile(item.directUrl, filename, {
+            headers: item.headers,
+            strategy: item.downloadStrategy,
+          });
 
           // Send to Telegram
           if (item.mediaType === 'video') {

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { SocialScraper, MediaResult, MediaItem, SocialPlatform } from './types.js';
+import { buildHeaders } from './utils.js';
 
 export const instagramScraper: SocialScraper = {
   canHandle(url: string): boolean {
@@ -12,9 +13,7 @@ export const instagramScraper: SocialScraper = {
 
     try {
       const response = await axios.get(cleanUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
+        headers: buildHeaders(cleanUrl),
         timeout: 10000,
       });
 
@@ -30,12 +29,14 @@ export const instagramScraper: SocialScraper = {
           mediaType: 'video',
           directUrl: ogVideo,
           filenameHint: 'instagram-video.mp4',
+          headers: buildHeaders(cleanUrl),
         });
       } else if (ogImage) {
         items.push({
           mediaType: 'image',
           directUrl: ogImage,
           filenameHint: 'instagram-image.jpg',
+          headers: buildHeaders(cleanUrl),
         });
       }
 
