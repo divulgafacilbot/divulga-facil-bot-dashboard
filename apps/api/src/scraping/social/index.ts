@@ -28,4 +28,4 @@ export async function scrapeMedia(url: string): Promise<MediaResult> {
   return scraper.scrape(url);
 }
 
-export { SocialPlatform, MediaType, MediaItem, MediaResult } from './types.js';
+export type { SocialPlatform, MediaType, MediaItem, MediaResult } from './types.js';
