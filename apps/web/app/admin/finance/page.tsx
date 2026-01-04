@@ -161,18 +161,25 @@ export default function AdminFinancePage() {
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3">Webhooks Kiwify recentes</h2>
           <div className="space-y-2 text-sm text-gray-700 max-h-[500px] overflow-y-auto pr-1">
-            {events.map((event) => (
+            {events.map((event) => {
+              const eventType = event.event_type;
+              const eventLabel =
+                event.event_type_label ||
+                (eventType && eventType in KIWIFY_EVENT_TYPE_LABELS
+                  ? KIWIFY_EVENT_TYPE_LABELS[eventType]
+                  : null) ||
+                eventType ||
+                'Evento';
+              return (
               <div key={event.id} className="flex flex-col border-b pb-2">
                 <span className="font-semibold">
-                  {event.event_type_label ||
-                    KIWIFY_EVENT_TYPE_LABELS[event.event_type] ||
-                    event.event_type ||
-                    'Evento'}
+                  {eventLabel}
                 </span>
                 <span>{event.event_id}</span>
                 {event.received_at && <span>{formatDate(event.received_at)}</span>}
               </div>
-            ))}
+              );
+            })}
             {!events.length && <p>Nenhum webhook recente.</p>}
           </div>
         </div>
