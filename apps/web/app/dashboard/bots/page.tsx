@@ -308,7 +308,7 @@ export default function BotsPage() {
           {
             title: "Bot de Download (redes sociais)",
             description:
-              "Baixa mídia de Instagram, TikTok e Pinterest com 1 link.",
+              "Baixa mídia do Instagram, TikTok, YouTube e Pinterest com 1 link.",
             status: "Disponível no plano",
             accent: "var(--color-info)",
             tokenId: "token-para-liberar-bot-de-download",
@@ -337,190 +337,190 @@ export default function BotsPage() {
 
               return (
                 <>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
-                {bot.title}
-              </h2>
-              <span
-                className="rounded-full px-3 py-1 text-xs font-semibold text-white"
-                style={{ backgroundColor: bot.accent }}
-              >
-                {bot.status}
-              </span>
-            </div>
-            <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
-              {bot.description}
-            </p>
-            <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]">
-              Bots contratados:{" "}
-              <span className="font-semibold text-[var(--color-text-main)]">
-                {CONTRACTED_BOTS_COUNT_BY_TYPE[bot.botType]}
-              </span>
-            </div>
-              <div
-                id={bot.tokenId}
-                ref={containerRef}
-                className="mt-4 space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]"
-              >
-                <p>
-                  Conecte no Telegram com um token e envie:{" "}
-                  <span className="font-semibold text-[var(--color-text-main)]">
-                    /start SEU_TOKEN
-                  </span>
-                </p>
-                {tokens.length === 0 && (
-                  <p>Nenhum token gerado ainda.</p>
-                )}
-                {tokens.map((token, index) => (
-                  <div
-                    key={token.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
-                  >
-                    <div>
-                      <p className="font-semibold text-[var(--color-text-main)]">
-                        Token {index + 1}
-                      </p>
-                      <p className="break-all text-[var(--color-text-secondary)]">
-                        {tokenVisibility[token.id] ? token.token : "************"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleToggleVisibility(token.id)}
-                        className="flex items-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-1 text-[10px] font-semibold text-[var(--color-text-secondary)]"
-                        type="button"
-                        aria-label="Mostrar ou ocultar token"
-                      >
-                        <svg
-                          className="h-3 w-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9a3 3 0 100 6 3 3 0 000-6z"
-                          />
-                        </svg>
-                        {isCompact ? (
-                          <span className="sr-only">
-                            {tokenVisibility[token.id] ? "Ocultar" : "Ver"}
-                          </span>
-                        ) : tokenVisibility[token.id] ? (
-                          "Ocultar"
-                        ) : (
-                          "Ver"
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleRefresh(token.id)}
-                        className="flex items-center gap-1 rounded-md border border-yellow-200 bg-yellow-50 px-2 py-1 text-[10px] font-semibold text-yellow-700 transition hover:bg-yellow-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        type="button"
-                        aria-label="Atualizar token"
-                        disabled={isGenerating || refreshingId === token.id}
-                      >
-                        <svg
-                          className="h-3 w-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 12a9 9 0 11-2.64-6.36"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 3v6h-6"
-                          />
-                        </svg>
-                        {isCompact ? (
-                          <span className="sr-only">Atualizar</span>
-                        ) : (
-                          "Atualizar"
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleCopyToken(token.token)}
-                        className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700"
-                        type="button"
-                        aria-label="Copiar token"
-                      >
-                        <svg
-                          className="h-3 w-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 9h10v10H9z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 5h10v10H5z"
-                          />
-                        </svg>
-                        {isCompact ? <span className="sr-only">Copiar</span> : "Copiar"}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteToken(token.id, setTokens)}
-                        className="flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-600"
-                        type="button"
-                        aria-label="Deletar token"
-                      >
-                        <svg
-                          className="h-3 w-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 6h18"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 6V4h8v2"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 6l1 14h10l1-14"
-                          />
-                        </svg>
-                        {isCompact ? (
-                          <span className="sr-only">Deletar</span>
-                        ) : (
-                          "Deletar"
-                        )}
-                      </button>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
+                      {bot.title}
+                    </h2>
+                    <span
+                      className="rounded-full px-3 py-1 text-xs font-semibold text-white"
+                      style={{ backgroundColor: bot.accent }}
+                    >
+                      {bot.status}
+                    </span>
                   </div>
-                ))}
-              </div>
-              </>
+                  <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+                    {bot.description}
+                  </p>
+                  <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]">
+                    Bots contratados:{" "}
+                    <span className="font-semibold text-[var(--color-text-main)]">
+                      {CONTRACTED_BOTS_COUNT_BY_TYPE[bot.botType]}
+                    </span>
+                  </div>
+                  <div
+                    id={bot.tokenId}
+                    ref={containerRef}
+                    className="mt-4 space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-xs text-[var(--color-text-secondary)]"
+                  >
+                    <p>
+                      Conecte no Telegram com um token e envie:{" "}
+                      <span className="font-semibold text-[var(--color-text-main)]">
+                        /start SEU_TOKEN
+                      </span>
+                    </p>
+                    {tokens.length === 0 && (
+                      <p>Nenhum token gerado ainda.</p>
+                    )}
+                    {tokens.map((token, index) => (
+                      <div
+                        key={token.id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
+                      >
+                        <div>
+                          <p className="font-semibold text-[var(--color-text-main)]">
+                            Token {index + 1}
+                          </p>
+                          <p className="break-all text-[var(--color-text-secondary)]">
+                            {tokenVisibility[token.id] ? token.token : "************"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggleVisibility(token.id)}
+                            className="flex items-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-1 text-[10px] font-semibold text-[var(--color-text-secondary)]"
+                            type="button"
+                            aria-label="Mostrar ou ocultar token"
+                          >
+                            <svg
+                              className="h-3 w-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9a3 3 0 100 6 3 3 0 000-6z"
+                              />
+                            </svg>
+                            {isCompact ? (
+                              <span className="sr-only">
+                                {tokenVisibility[token.id] ? "Ocultar" : "Ver"}
+                              </span>
+                            ) : tokenVisibility[token.id] ? (
+                              "Ocultar"
+                            ) : (
+                              "Ver"
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleRefresh(token.id)}
+                            className="flex items-center gap-1 rounded-md border border-yellow-200 bg-yellow-50 px-2 py-1 text-[10px] font-semibold text-yellow-700 transition hover:bg-yellow-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            type="button"
+                            aria-label="Atualizar token"
+                            disabled={isGenerating || refreshingId === token.id}
+                          >
+                            <svg
+                              className="h-3 w-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 12a9 9 0 11-2.64-6.36"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 3v6h-6"
+                              />
+                            </svg>
+                            {isCompact ? (
+                              <span className="sr-only">Atualizar</span>
+                            ) : (
+                              "Atualizar"
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleCopyToken(token.token)}
+                            className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700"
+                            type="button"
+                            aria-label="Copiar token"
+                          >
+                            <svg
+                              className="h-3 w-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 9h10v10H9z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 5h10v10H5z"
+                              />
+                            </svg>
+                            {isCompact ? <span className="sr-only">Copiar</span> : "Copiar"}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteToken(token.id, setTokens)}
+                            className="flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-600"
+                            type="button"
+                            aria-label="Deletar token"
+                          >
+                            <svg
+                              className="h-3 w-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 6h18"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 6V4h8v2"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 6l1 14h10l1-14"
+                              />
+                            </svg>
+                            {isCompact ? (
+                              <span className="sr-only">Deletar</span>
+                            ) : (
+                              "Deletar"
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               );
             })()}
           </div>
@@ -564,10 +564,10 @@ export default function BotsPage() {
               }
             >
               {item.id === "btn-gerar-token-de-artes" &&
-              artTokens.length >= MAX_ART_TOKENS
+                artTokens.length >= MAX_ART_TOKENS
                 ? "Limite de tokens atingido"
                 : item.id === "btn-gerar-token-de-download" &&
-                    downloadTokens.length >= MAX_DOWNLOAD_TOKENS
+                  downloadTokens.length >= MAX_DOWNLOAD_TOKENS
                   ? "Limite de tokens atingido"
                   : item.label}
             </button>

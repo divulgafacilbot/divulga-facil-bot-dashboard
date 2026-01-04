@@ -1,7 +1,7 @@
-import { SocialScraper, MediaResult } from './types.js';
 import { instagramScraper } from './instagram.scraper.js';
-import { tiktokScraper } from './tiktok.scraper.js';
 import { pinterestScraper } from './pinterest.scraper.js';
+import { tiktokScraper } from './tiktok.scraper.js';
+import { MediaResult, SocialScraper } from './types.js';
 import { youtubeScraper } from './youtube.scraper.js';
 
 const scrapers: SocialScraper[] = [
@@ -21,11 +21,12 @@ export async function scrapeMedia(url: string): Promise<MediaResult> {
       '• Instagram (post/reel)\n' +
       '• TikTok (vídeo)\n' +
       '• Pinterest (pin)\n' +
-      '• YouTube (limitado)'
+      '• YouTube (shorts)'
     );
   }
 
   return scraper.scrape(url);
 }
 
-export type { SocialPlatform, MediaType, MediaItem, MediaResult } from './types.js';
+export type { MediaItem, MediaResult, MediaType, SocialPlatform } from './types.js';
+

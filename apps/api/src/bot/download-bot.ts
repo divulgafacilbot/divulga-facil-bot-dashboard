@@ -1,10 +1,11 @@
 import { Bot, InputFile } from 'grammy';
+import { BOT_TYPES } from '../constants/bot-types.js';
 import { prisma } from '../db/prisma.js';
 import { scrapeMedia } from '../scraping/social/index.js';
 import { telegramLinkService } from '../services/telegram/link-service.js';
 import { usageCountersService } from '../services/usage-counters.service.js';
-import { BOT_TYPES } from '../constants/bot-types.js';
-import { downloadMediaToFile, cleanupTempFile } from '../utils/media-downloader.js';
+import { telemetryService } from '../services/telemetry.service.js';
+import { cleanupTempFile, downloadMediaToFile } from '../utils/media-downloader.js';
 
 const TELEGRAM_BOT_DOWNLOAD_TOKEN = process.env.TELEGRAM_BOT_DOWNLOAD_TOKEN;
 
@@ -39,7 +40,7 @@ if (downloadBot) {
 • Instagram (post/reel público)
 • TikTok (vídeo público)
 • Pinterest (pin público)
-• YouTube (limitado)
+• YouTube (shorts)
 
 E eu baixo a mídia para você!
 
@@ -164,7 +165,7 @@ Use /vincular para conectar sua conta.`
 • Instagram (post/reel)
 • TikTok (vídeo)
 • Pinterest (pin)
-• YouTube (limitado)`;
+• YouTube (shorts)`;
 
     await ctx.reply(helpMessage, { parse_mode: 'Markdown' });
   });
@@ -199,15 +200,41 @@ Use /vincular para conectar sua conta.`
     });
 
     if (!link) {
-      // If not linked, try to treat message as token
+      // If not linked, allow pasting a raw token to link.
       if (message.length > 10 && !message.includes(' ')) {
-        await ctx.reply(
-          `💡 Para vincular sua conta, use:
-\`/codigo ${message}\`
+        const chatId = ctx.chat?.id.toString();
+        if (!chatId) {
+          await ctx.reply('❌ Erro ao obter suas informações do Telegram.');
+          return;
+        }
 
-Ou gere um novo token no dashboard se este expirou.`,
-          { parse_mode: 'Markdown' }
+        const result = await telegramLinkService.confirmLink(
+          message.trim(),
+          telegramUserId,
+          chatId,
+          BOT_TYPES.DOWNLOAD
         );
+
+        if (result.success) {
+          await ctx.reply(
+            `✅ *Conta vinculada com sucesso!*
+
+Agora você pode enviar links de:
+• Instagram
+• TikTok
+• Pinterest
+• YouTube
+
+Use /ajuda para ver todos os comandos.`,
+            { parse_mode: 'Markdown' }
+          );
+        } else {
+          await ctx.reply(
+            `❌ Token inválido ou expirado.
+
+Gere um novo token no dashboard e tente novamente.`
+          );
+        }
       } else {
         await ctx.reply(
           `❌ Você precisa vincular sua conta primeiro.
@@ -227,7 +254,7 @@ Use /vincular para ver as instruções.`
 • Instagram (post/reel público)
 • TikTok (vídeo público)
 • Pinterest (pin público)
-• YouTube (limitado)
+• YouTube (shorts)
 
 Exemplo: https://instagram.com/p/ABC123/`
       );
@@ -258,6 +285,7 @@ Exemplo: https://instagram.com/p/ABC123/`
           tempFile = await downloadMediaToFile(item.directUrl, filename, {
             headers: item.headers,
             strategy: item.downloadStrategy,
+            transcodeToMp4: mediaResult.source === 'INSTAGRAM' && item.mediaType === 'video',
           });
 
           // Send to Telegram
@@ -269,6 +297,15 @@ Exemplo: https://instagram.com/p/ABC123/`
 
           // Increment usage counter
           await usageCountersService.incrementDownloads(userId);
+          await telemetryService.logEvent({
+            eventType: 'DOWNLOAD_COMPLETED',
+            userId,
+            origin: 'download-bot',
+            metadata: {
+              platform: mediaResult.source,
+              mediaType: item.mediaType,
+            },
+          });
 
           await ctx.reply('✅ Mídia enviada com sucesso!');
         } catch (downloadError: any) {

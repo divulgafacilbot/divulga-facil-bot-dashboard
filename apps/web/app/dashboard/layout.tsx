@@ -95,6 +95,12 @@ export default function DashboardLayout({
           "M7.5 3.75h6l4.5 4.5v11.25A2.25 2.25 0 0115.75 21.75H7.5A2.25 2.25 0 015.25 19.5V6A2.25 2.25 0 017.5 3.75zM13.5 3.75V8.25H18M8.25 12h7.5M8.25 15.75h7.5M8.25 19.5h4.5",
       },
       {
+        name: "Material promocional",
+        href: "/dashboard/promotional",
+        icon:
+          "M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6",
+      },
+      {
         name: "Pagamentos",
         href: "/dashboard/billing",
         icon:

@@ -48,13 +48,13 @@ function VerifyEmailContent() {
       <div className="w-full max-w-md">
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-[var(--shadow-lg)] text-center">
           <div className="mb-6 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] shadow-[var(--shadow-lg)]">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl shadow-[var(--shadow-lg)] overflow-hidden">
               <Image
-                src="/logo.png"
+                src="/logo.gif"
                 alt="Posting Bot"
                 width={50}
                 height={50}
-                className="h-9 w-9 object-contain"
+                className="h-full w-full object-cover object-center"
               />
             </div>
           </div>

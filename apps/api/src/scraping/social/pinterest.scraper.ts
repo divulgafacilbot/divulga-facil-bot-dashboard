@@ -19,19 +19,51 @@ export const pinterestScraper: SocialScraper = {
       });
 
       const $ = cheerio.load(response.data);
-      const ogVideo = $('meta[property="og:video"]').attr('content');
+      const ogVideo =
+        $('meta[property="og:video"]').attr('content') ||
+        $('meta[property="og:video:secure_url"]').attr('content') ||
+        $('meta[property="og:video:url"]').attr('content');
       const ogImage = $('meta[property="og:image"]').attr('content');
       const normalizedBody = normalizeEscapedJsonPayload(response.data);
       const pinVideoMatch = normalizedBody.match(/https:\/\/v\.pinimg\.com\/[^"'\\s]+\.mp4[^"'\\s]*/);
       const pinImageMatch = normalizedBody.match(/https:\/\/i\.pinimg\.com\/[^"'\\s]+\\.(?:jpg|jpeg|png)[^"'\\s]*/);
+      const jsonVideoMatch = normalizedBody.match(/"contentUrl":"(https:\/\/v\.pinimg\.com\/[^"]+\.mp4[^"]*)"/);
+      let jsonLdVideoUrl: string | null = null;
 
-      if (ogVideo) {
+      $('script[type="application/ld+json"]').each((_, element) => {
+        if (jsonLdVideoUrl) return;
+        const raw = $(element).html();
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          const entries = Array.isArray(parsed) ? parsed : [parsed];
+          for (const entry of entries) {
+            if (!entry || typeof entry !== 'object') continue;
+            if (entry['@type'] === 'VideoObject') {
+              const contentUrl = entry.contentUrl || entry.embedUrl;
+              if (typeof contentUrl === 'string') {
+                jsonLdVideoUrl = contentUrl;
+                break;
+              }
+            }
+          }
+        } catch {
+          // Ignore JSON-LD parse errors and continue.
+        }
+      });
+
+      if (ogVideo || jsonLdVideoUrl || jsonVideoMatch || pinVideoMatch) {
+        const directUrl =
+          ogVideo ||
+          jsonLdVideoUrl ||
+          (jsonVideoMatch ? jsonVideoMatch[1] : null) ||
+          pinVideoMatch?.[0];
         return {
           source: 'PINTEREST' as SocialPlatform,
           url: finalUrl,
           items: [{
             mediaType: 'video',
-            directUrl: ogVideo,
+            directUrl: directUrl!,
             filenameHint: 'pinterest-video.mp4',
             headers: buildHeaders(finalUrl),
           }],
@@ -44,17 +76,6 @@ export const pinterestScraper: SocialScraper = {
             mediaType: 'image',
             directUrl: ogImage,
             filenameHint: 'pinterest-image.jpg',
-            headers: buildHeaders(finalUrl),
-          }],
-        };
-      } else if (pinVideoMatch) {
-        return {
-          source: 'PINTEREST' as SocialPlatform,
-          url: finalUrl,
-          items: [{
-            mediaType: 'video',
-            directUrl: pinVideoMatch[0],
-            filenameHint: 'pinterest-video.mp4',
             headers: buildHeaders(finalUrl),
           }],
         };

@@ -116,13 +116,13 @@ export function DashboardShell({ children }: DashboardShellProps) {
       <header className="border-b border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-8 py-5">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary text-base font-bold text-white shadow-[var(--shadow-primary)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl shadow-[var(--shadow-primary)] overflow-hidden">
               <Image
-                src="/logo.png"
+                src="/logo.gif"
                 alt="Posting Bot"
                 width={50}
                 height={50}
-                className="h-8 w-8 object-contain"
+                className="h-full w-full object-cover object-center"
               />
             </div>
             <div className="leading-tight">
