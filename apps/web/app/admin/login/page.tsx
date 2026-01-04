@@ -55,8 +55,9 @@ export default function AdminLoginPage() {
         localStorage.setItem('admin_remember_me', '0');
       }
       router.push('/admin');
-    } catch (err: Error) {
-      setError(err?.message || 'Falha no login');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Falha no login';
+      setError(message);
     } finally {
       setLoading(false);
     }
