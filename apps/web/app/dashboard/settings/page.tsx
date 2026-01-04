@@ -29,7 +29,6 @@ export default function SettingsPage() {
         console.error("Erro ao carregar dados:", error);
       } finally {
         setUserLoading(false);
-        setHistoryLoading(false);
       }
     };
 
