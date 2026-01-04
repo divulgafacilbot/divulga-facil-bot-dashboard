@@ -111,7 +111,9 @@ export default function AdminUsersPage() {
         <select
           className="rounded border border-[var(--color-border)] px-3 py-2 text-sm"
           value={filters.isActive}
-          onChange={(e) => setFilters((prev) => ({ ...prev, isActive: e.target.value }))}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, isActive: e.target.value as UserFilters['isActive'] }))
+          }
         >
           <option value="">Status</option>
           <option value="true">Ativo</option>
@@ -129,7 +131,12 @@ export default function AdminUsersPage() {
         <select
           className="rounded border border-[var(--color-border)] px-3 py-2 text-sm"
           value={filters.hasSubscription}
-          onChange={(e) => setFilters((prev) => ({ ...prev, hasSubscription: e.target.value }))}
+          onChange={(e) =>
+            setFilters((prev) => ({
+              ...prev,
+              hasSubscription: e.target.value as UserFilters['hasSubscription'],
+            }))
+          }
         >
           <option value="">Assinatura</option>
           <option value="true">Com assinatura</option>
@@ -138,7 +145,12 @@ export default function AdminUsersPage() {
         <select
           className="rounded border border-[var(--color-border)] px-3 py-2 text-sm"
           value={filters.hasBotLinked}
-          onChange={(e) => setFilters((prev) => ({ ...prev, hasBotLinked: e.target.value }))}
+          onChange={(e) =>
+            setFilters((prev) => ({
+              ...prev,
+              hasBotLinked: e.target.value as UserFilters['hasBotLinked'],
+            }))
+          }
         >
           <option value="">Bot vinculado</option>
           <option value="true">Com bot</option>
