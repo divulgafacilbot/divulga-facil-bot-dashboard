@@ -36,6 +36,11 @@ type FinanceDiscrepancies = {
   statusMismatches?: { id?: string }[];
 };
 
+const isKiwifyEventType = (
+  value: string | undefined
+): value is keyof typeof KIWIFY_EVENT_TYPE_LABELS =>
+  !!value && value in KIWIFY_EVENT_TYPE_LABELS;
+
 export default function AdminFinancePage() {
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [payments, setPayments] = useState<FinancePayment[]>([]);
@@ -162,10 +167,10 @@ export default function AdminFinancePage() {
           <h2 className="text-lg font-semibold mb-3">Webhooks Kiwify recentes</h2>
           <div className="space-y-2 text-sm text-gray-700 max-h-[500px] overflow-y-auto pr-1">
             {events.map((event) => {
-              const eventType = event.event_type;
+              const eventType = typeof event.event_type === 'string' ? event.event_type : undefined;
               const eventLabel =
                 event.event_type_label ||
-                (eventType && eventType in KIWIFY_EVENT_TYPE_LABELS
+                (isKiwifyEventType(eventType)
                   ? KIWIFY_EVENT_TYPE_LABELS[eventType]
                   : null) ||
                 eventType ||
