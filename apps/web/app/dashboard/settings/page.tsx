@@ -1,9 +1,8 @@
 "use client";
 
 import { Button } from "@/components/forms/Button";
-import { Input } from "@/components/forms/Input";
 import { api } from "@/lib/api";
-import type { LoginHistoryEntry, User } from "@/types";
+import type { User } from "@/types";
 import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
@@ -17,18 +16,15 @@ export default function SettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
-  const [loginHistory, setLoginHistory] = useState<LoginHistoryEntry[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [userData, historyResponse] = await Promise.all([
-          api.user.getMe(),
-          api.user.getLoginHistory(10),
-        ]);
+        const userData = await api.user.getMe();
         setUser(userData);
-        setLoginHistory(historyResponse.history);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
       } finally {
@@ -40,16 +36,6 @@ export default function SettingsPage() {
     loadData();
   }, []);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   const getPasswordRequirements = (password: string) => ({
     minLength: password.length >= 8,
@@ -180,6 +166,119 @@ export default function SettingsPage() {
     );
   }
 
+  const PasswordField = ({
+    id,
+    label,
+    value,
+    onChange,
+    error,
+    isVisible,
+    onToggle,
+  }: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    error?: string;
+    isVisible: boolean;
+    onToggle: () => void;
+  }) => {
+    const [isFocused, setIsFocused] = useState(false);
+
+    return (
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor={id}
+          className={`text-sm font-semibold transition-colors duration-200 ${
+            isFocused
+              ? "text-[var(--color-primary)]"
+              : error
+              ? "text-[var(--color-danger)]"
+              : "text-[var(--color-text-main)]"
+          }`}
+        >
+          {label}
+        </label>
+        <div className="relative">
+          <input
+            id={id}
+            type={isVisible ? "text" : "password"}
+            value={value}
+            onChange={onChange}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            className={`w-full rounded-[var(--radius-md)] border-2 bg-white px-4 py-3 pr-12 text-sm text-[var(--color-text-main)] transition-all duration-200 placeholder:text-[var(--color-text-secondary)] focus:outline-none ${
+              error
+                ? "border-[var(--color-danger)] shadow-[0_0_0_3px_rgba(239,68,68,0.1)]"
+                : isFocused
+                ? "border-[var(--color-primary)] shadow-[var(--shadow-md)]"
+                : "border-[var(--color-border)] shadow-[var(--shadow-sm)] hover:border-[color:rgba(245,61,45,0.3)]"
+            }`}
+          />
+          <button
+            type="button"
+            onClick={onToggle}
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)]"
+            aria-label={isVisible ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={isVisible}
+          >
+            {isVisible ? (
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 3l18 18M10.477 10.48a3 3 0 104.243 4.243M9.88 5.09A10.94 10.94 0 0112 5c5.523 0 10 4.477 10 10 0 1.178-.203 2.31-.576 3.36M6.228 6.228C4.242 7.85 3 9.85 3 12c0 5.523 4.477 10 10 10 2.15 0 4.15-.242 5.772-1.228"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            )}
+          </button>
+        </div>
+        {error && (
+          <div className="flex items-center gap-1 animate-[slideDown_0.2s_ease-out]">
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-[var(--color-danger)]"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-sm font-medium text-[var(--color-danger)]">{error}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-[var(--shadow-sm)]">
@@ -248,97 +347,6 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-        {/* Login History Section */}
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <h2 className="text-lg font-semibold text-[var(--color-text-main)]">
-            Histórico de logins
-          </h2>
-          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-            Monitore os acessos recentes à sua conta para detectar atividades suspeitas.
-          </p>
-
-          {historyLoading ? (
-            <div className="mt-6 flex items-center justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)]"></div>
-            </div>
-          ) : loginHistory.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-8 text-center text-sm text-[var(--color-text-secondary)]">
-              Nenhum histórico de login encontrado.
-            </div>
-          ) : (
-            <div className="mt-6 space-y-3">
-              {loginHistory.map((entry) => (
-                <div
-                  key={entry.id}
-                  className={`rounded-xl border px-4 py-3 ${entry.success
-                    ? "border-[var(--color-border)] bg-white"
-                    : "border-[var(--color-danger)] bg-[color:rgba(239,68,68,0.05)]"
-                    }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        {entry.success ? (
-                          <svg
-                            className="h-5 w-5 text-[var(--color-success)]"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="h-5 w-5 text-[var(--color-danger)]"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        )}
-                        <span
-                          className={`text-sm font-semibold ${entry.success
-                            ? "text-[var(--color-success)]"
-                            : "text-[var(--color-danger)]"
-                            }`}
-                        >
-                          {entry.success ? "Login bem-sucedido" : "Falha no login"}
-                        </span>
-                      </div>
-                      {!entry.success && entry.failureReason && (
-                        <p className="mt-1 text-xs text-[var(--color-danger)]">
-                          {entry.failureReason}
-                        </p>
-                      )}
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-text-secondary)]">
-                        <span>{formatDate(entry.loginAt)}</span>
-                        {entry.ipAddress && <span>IP: {entry.ipAddress}</span>}
-                        {entry.deviceInfo && (
-                          <>
-                            {entry.deviceInfo.browser && (
-                              <span>{entry.deviceInfo.browser}</span>
-                            )}
-                            {entry.deviceInfo.os && <span>{entry.deviceInfo.os}</span>}
-                            {entry.deviceInfo.device && (
-                              <span>{entry.deviceInfo.device}</span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
           <div className="flex flex-col gap-6">
             <div className="flex items-start justify-between gap-6">
@@ -361,15 +369,14 @@ export default function SettingsPage() {
                 Atualize sua senha com segurança seguindo os requisitos abaixo.
               </p>
               <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
-                <div>
-                  <Input
-                    id="current-password"
-                    label="Senha atual"
-                    type="password"
-                    value={formValues.currentPassword}
-                    onChange={handleChange("currentPassword")}
-                  />
-                </div>
+                <PasswordField
+                  id="current-password"
+                  label="Senha atual"
+                  value={formValues.currentPassword}
+                  onChange={handleChange("currentPassword")}
+                  isVisible={showCurrentPassword}
+                  onToggle={() => setShowCurrentPassword((prev) => !prev)}
+                />
                 <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-4 py-3 text-xs text-[var(--color-text-secondary)]">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">
                     Requisitos da senha
@@ -413,27 +420,25 @@ export default function SettingsPage() {
                     </li>
                   </ul>
                 </div>
-                <div>
-                  <Input
-                    id="new-password"
-                    label="Nova senha"
-                    type="password"
-                    value={formValues.newPassword}
-                    onChange={handleChange("newPassword")}
-                    error={newPasswordError}
-                  />
-                </div>
+                <PasswordField
+                  id="new-password"
+                  label="Nova senha"
+                  value={formValues.newPassword}
+                  onChange={handleChange("newPassword")}
+                  error={newPasswordError}
+                  isVisible={showNewPassword}
+                  onToggle={() => setShowNewPassword((prev) => !prev)}
+                />
 
-                <div>
-                  <Input
-                    id="confirm-password"
-                    label="Confirmar nova senha"
-                    type="password"
-                    value={formValues.confirmPassword}
-                    onChange={handleChange("confirmPassword")}
-                    error={confirmPasswordError}
-                  />
-                </div>
+                <PasswordField
+                  id="confirm-password"
+                  label="Confirmar nova senha"
+                  value={formValues.confirmPassword}
+                  onChange={handleChange("confirmPassword")}
+                  error={confirmPasswordError}
+                  isVisible={showConfirmPassword}
+                  onToggle={() => setShowConfirmPassword((prev) => !prev)}
+                />
 
                 {formError && (
                   <div className="rounded-[var(--radius-md)] border-2 border-[var(--color-danger)] bg-[color:rgba(239,68,68,0.1)] px-4 py-3 text-sm font-semibold text-[var(--color-danger)]">

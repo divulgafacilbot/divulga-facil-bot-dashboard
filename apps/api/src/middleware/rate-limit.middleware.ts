@@ -23,6 +23,7 @@ export const loginRateLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV !== 'production',
   skipSuccessfulRequests: true, // Only count failed login attempts
   handler: rateLimitHandler('Muitas tentativas de login. Tente novamente em 10 minutos.'),
 });

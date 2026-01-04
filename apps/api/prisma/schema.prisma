@@ -27,6 +27,10 @@ model User {
   user_brand_configs      user_brand_configs?
   user_templates          user_templates[]
   user_layout_preferences user_layout_preferences?
+  support_tickets         support_tickets[]
+  payments                payments[]
+  billing_disputes        billing_disputes[]
+  campaign_downloads      campaign_downloads[]
 
   @@index([email], map: "idx_users_email")
   @@index([role], map: "idx_users_role")
@@ -263,4 +267,183 @@ model user_layout_preferences {
   users                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_user_layout_preferences_user_id")
+}
+
+// ============================================================
+// MILESTONE_7 - Admin Dashboard Models
+// ============================================================
+
+/// Support tickets table - tracks user support requests
+model support_tickets {
+  id                  String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id             String                 @db.Uuid
+  subject             String                 @db.VarChar(255)
+  category            String                 @db.VarChar(50)
+  status              String                 @default("open") @db.VarChar(50)
+  priority            String                 @default("normal") @db.VarChar(20)
+  created_at          DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+  users               User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  support_messages    support_messages[]
+  support_ticket_events support_ticket_events[]
+
+  @@index([user_id], map: "idx_support_tickets_user_id")
+  @@index([status], map: "idx_support_tickets_status")
+  @@index([priority], map: "idx_support_tickets_priority")
+  @@index([created_at(sort: Desc)], map: "idx_support_tickets_created_at")
+}
+
+/// Support messages table - conversation thread for tickets
+model support_messages {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ticket_id       String          @db.Uuid
+  sender_role     String          @db.VarChar(20)
+  message         String
+  attachments     Json?           @default("[]")
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  support_tickets support_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+
+  @@index([ticket_id], map: "idx_support_messages_ticket_id")
+  @@index([created_at], map: "idx_support_messages_created_at")
+}
+
+/// Support ticket events table - audit trail for ticket actions
+model support_ticket_events {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ticket_id       String          @db.Uuid
+  event_type      String          @db.VarChar(50)
+  metadata        Json?           @default("{}")
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  support_tickets support_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+
+  @@index([ticket_id], map: "idx_support_ticket_events_ticket_id")
+  @@index([created_at], map: "idx_support_ticket_events_created_at")
+}
+
+/// Payments table - tracks all payment transactions
+model payments {
+  id                String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id           String             @db.Uuid
+  provider          String             @default("kiwify") @db.VarChar(50)
+  amount            Decimal            @db.Decimal(10, 2)
+  currency          String             @default("BRL") @db.VarChar(3)
+  status            String             @db.VarChar(50)
+  transaction_id    String?            @unique @db.VarChar(255)
+  paid_at           DateTime?          @db.Timestamptz(6)
+  created_at        DateTime           @default(now()) @db.Timestamptz(6)
+  users             User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  billing_disputes  billing_disputes[]
+
+  @@index([user_id], map: "idx_payments_user_id")
+  @@index([status], map: "idx_payments_status")
+  @@index([transaction_id], map: "idx_payments_transaction_id")
+  @@index([paid_at(sort: Desc)], map: "idx_payments_paid_at")
+}
+
+/// Billing disputes table - tracks payment-related issues
+model billing_disputes {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id     String    @db.Uuid
+  payment_id  String?   @db.Uuid
+  issue_type  String    @db.VarChar(100)
+  description String?
+  status      String    @default("pending") @db.VarChar(50)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  resolved_at DateTime? @db.Timestamptz(6)
+  users       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  payments    payments? @relation(fields: [payment_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id], map: "idx_billing_disputes_user_id")
+  @@index([status], map: "idx_billing_disputes_status")
+  @@index([created_at(sort: Desc)], map: "idx_billing_disputes_created_at")
+}
+
+/// Admin users table - staff members with admin access
+model admin_users {
+  id                String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name              String              @db.VarChar(255)
+  email             String              @unique @db.VarChar(255)
+  password_hash     String              @db.VarChar(255)
+  role              String              @default("ADMIN") @db.VarChar(50)
+  is_active         Boolean             @default(true)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime            @default(now()) @updatedAt @db.Timestamptz(6)
+  admin_permissions admin_permissions[]
+
+  @@index([email], map: "idx_admin_users_email")
+  @@index([is_active], map: "idx_admin_users_is_active")
+}
+
+/// Admin permissions table - granular permission assignments
+model admin_permissions {
+  id             String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  admin_user_id  String      @db.Uuid
+  permission_key String      @db.VarChar(100)
+  created_at     DateTime    @default(now()) @db.Timestamptz(6)
+  admin_users    admin_users @relation(fields: [admin_user_id], references: [id], onDelete: Cascade)
+
+  @@unique([admin_user_id, permission_key])
+  @@index([admin_user_id], map: "idx_admin_permissions_admin_user_id")
+}
+
+/// Templates table - stores base and user-uploaded templates
+model templates {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name           String    @db.VarChar(255)
+  story_image    String    @db.VarChar(500)
+  feed_image     String    @db.VarChar(500)
+  category       String    @db.VarChar(100)
+  owner_user_id  String?   @db.Uuid
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([category], map: "idx_templates_category")
+  @@index([owner_user_id], map: "idx_templates_owner_user_id")
+  @@index([is_active], map: "idx_templates_is_active")
+}
+
+// ============================================================
+// MILESTONE_7 - Promotional Campaigns Models
+// ============================================================
+
+/// Campaigns table - stores promotional campaigns created by admins
+model campaigns {
+  id                  String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                String              @db.VarChar(255)
+  price               Decimal             @db.Decimal(10, 2)
+  product_url         String              @db.VarChar(500)
+  main_video_url      String              @db.VarChar(500)
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime            @default(now()) @updatedAt @db.Timestamptz(6)
+  campaign_assets     campaign_assets[]
+  campaign_downloads  campaign_downloads[]
+
+  @@index([created_at(sort: Desc)], map: "idx_campaigns_created_at")
+}
+
+/// Campaign assets table - stores additional media files for campaigns
+model campaign_assets {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  campaign_id String    @db.Uuid
+  asset_url   String    @db.VarChar(500)
+  asset_type  String    @db.VarChar(20)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  campaigns   campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  @@index([campaign_id], map: "idx_campaign_assets_campaign_id")
+}
+
+/// Campaign downloads table - tracks user downloads of campaign materials
+model campaign_downloads {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  campaign_id   String    @db.Uuid
+  user_id       String    @db.Uuid
+  downloaded_at DateTime  @default(now()) @db.Timestamptz(6)
+  campaigns     campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  users         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([campaign_id], map: "idx_campaign_downloads_campaign_id")
+  @@index([user_id], map: "idx_campaign_downloads_user_id")
+  @@index([downloaded_at(sort: Desc)], map: "idx_campaign_downloads_downloaded_at")
 }

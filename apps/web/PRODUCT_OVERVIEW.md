@@ -724,7 +724,6 @@ Funcionalidades:
 Objetivo desta aba:
 - garantir que o dinheiro recebido esteja corretamente refletido no sistema
 - evitar usuários reclamando de “paguei e não liberou”
-- permitir auditoria básica de pagamentos
 
 ----------------------------------------------------------------------
 8.4) Gestão de Templates (Modelos de Artes)
@@ -840,7 +839,6 @@ Regra operacional:
 - O suporte existe apenas como fallback.
 - Fluxos automáticos sempre têm prioridade (validação por código, checagem de webhook, checagem de status de plano).
 - Chamados manuais só são usados quando o usuário não tem mais acesso ao e-mail de pagamento, há falha comprovada de webhook ou existe disputa legítima.
-- Todas as ações de suporte ficam registradas no log de auditoria.
 
 ----------------------------------------------------------------------
 8.7) Logs e Auditoria
@@ -863,7 +861,6 @@ Esses logs ajudam a:
 - melhorar estabilidade do sistema
 
 Telemetria obrigatória:
-- Toda ação relevante gera um evento estruturado para auditoria, debug, suporte e relatórios.
 - Eventos mínimos: USER_LOGIN, USER_LOGOUT, TELEGRAM_LINKED, TELEGRAM_UNLINKED, ART_JOB_STARTED, ART_JOB_SUCCESS, ART_JOB_FAILED, DOWNLOAD_JOB_STARTED, DOWNLOAD_JOB_SUCCESS, DOWNLOAD_JOB_FAILED, SCRAPE_FALLBACK_PLAYWRIGHT, SCRAPE_BLOCKED, PLAN_EXPIRED, PLAN_RENEWED, KIWIFY_WEBHOOK_RECEIVED, KIWIFY_WEBHOOK_FAILED, EMAIL_LINK_CODE_SENT, EMAIL_LINK_CODE_VALIDATED, EMAIL_LINK_CODE_FAILED.
 - Cada evento registra event_id, user_id (quando aplicável), telegram_user_id (quando aplicável), timestamp, origem (dashboard, bot_1, bot_2, webhook) e metadata (JSON).
 - Os dados agregados alimentam o painel admin; logs detalhados permanecem na infraestrutura (Railway).

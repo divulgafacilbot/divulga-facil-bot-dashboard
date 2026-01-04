@@ -12,17 +12,20 @@ export class MetricsController {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
+      const now = new Date();
       const [artsCount, downloadCount, usage, scraperApiFallbacks] = await Promise.all([
-        prisma.telegram_bot_links.count({
+        prisma.telegram_links.count({
           where: {
             user_id: userId,
             bot_type: BOT_TYPES.ARTS,
+            expires_at: { gt: now },
           },
         }),
-        prisma.telegram_bot_links.count({
+        prisma.telegram_links.count({
           where: {
             user_id: userId,
             bot_type: BOT_TYPES.DOWNLOAD,
+            expires_at: { gt: now },
           },
         }),
         usageCountersService.getMonthlyUsage(userId),

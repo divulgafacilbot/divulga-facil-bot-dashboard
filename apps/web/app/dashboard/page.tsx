@@ -81,8 +81,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
+      <div className="flex flex-wrap justify-start gap-4">
+        <div className="flex-1 min-w-[250px] max-w-[350px] rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
               Bots de arte ativos
@@ -106,11 +106,13 @@ export default function DashboardPage() {
           <p id="contador-de-bots-de-artes-ativos" className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
             {activeArtsBots}
           </p>
-          <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
-            Nenhum bot de artes configurado ainda
-          </p>
+          {activeArtsBots === 0 && (
+            <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
+              Nenhum bot de artes configurado ainda
+            </p>
+          )}
         </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
+        <div className="flex-1 min-w-[250px] max-w-[350px] rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
               Bots de download ativos
@@ -134,13 +136,15 @@ export default function DashboardPage() {
           <p id="contador-de-bots-de-download-ativos" className="mt-4 text-3xl font-bold text-[var(--color-text-main)]">
             {activeDownloadBots}
           </p>
-          <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
-            Nenhum bot de download configurado ainda
-          </p>
+          {activeDownloadBots === 0 && (
+            <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
+              Nenhum bot de download configurado ainda
+            </p>
+          )}
         </div>
 
 
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
+        <div className="flex-1 min-w-[250px] max-w-[350px] rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
               Artes geradas
@@ -170,7 +174,7 @@ export default function DashboardPage() {
         </div>
 
 
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
+        <div className="flex-1 min-w-[250px] max-w-[350px] rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
               Quantidade de downloads

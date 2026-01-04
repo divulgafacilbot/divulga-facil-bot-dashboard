@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import { fileURLToPath } from 'url';
 import { LayoutPreferences } from '../layout-preferences.service.js';
 import { ProductData } from '../../scraping/types.js';
+import { telemetryService } from '../telemetry.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,6 +73,18 @@ export class ArtGeneratorService {
           dimensions,
           layoutPreferences
         );
+      }
+
+      if (userId) {
+        await telemetryService.logEvent({
+          eventType: 'ART_GENERATED',
+          userId,
+          origin: 'art-generator',
+          metadata: {
+            marketplace: product.marketplace,
+            format,
+          },
+        });
       }
 
       return compositeImage;

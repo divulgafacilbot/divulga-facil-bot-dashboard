@@ -1,10 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/forms/Button";
+import { BOT_NAME } from "@/lib/constants";
+import Image from "next/image";
 
-type HeaderVariant = "home" | "auth" | "dashboard";
+type HeaderVariant = "home" | "auth" | "dashboard" | "admin";
 
 type AppHeaderProps = {
   variant: HeaderVariant;
@@ -13,14 +14,20 @@ type AppHeaderProps = {
 
 const LogoTitle = ({ href }: { href?: string }) => {
   const logo = (
-    <Image
-      src="/logo-title.png"
-      alt="Divulga Fácil"
-      width={982}
-      height={254}
-      className="h-[40px] w-auto object-contain"
-      priority
-    />
+    <div className="flex items-center gap-1">
+      <Image
+        src="/logo-bot-bg.png"
+        alt={BOT_NAME}
+        width={36}
+        height={36}
+        className="h-9 w-9 object-contain"
+        priority
+      />
+      <span className="text-lg font-black italic tracking-tight">
+        <span className="text-white">Divulga</span>{" "}
+        <span className="text-[#FBBF24]">Fácil</span>
+      </span>
+    </div>
   );
 
   if (href) {
@@ -35,16 +42,20 @@ const LogoTitle = ({ href }: { href?: string }) => {
 };
 
 export default function AppHeader({ variant, onLogout }: AppHeaderProps) {
-  if (variant === "dashboard") {
+  if (variant === "dashboard" || variant === "admin") {
+    const isAdmin = variant === "admin";
+    const logoHref = isAdmin ? "/admin" : "/dashboard";
     return (
       <header
-        className="fixed left-0 right-0 top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-primary)] text-[var(--color-text-inverse)] shadow-[var(--shadow-sm)]"
+        className={`fixed left-0 right-0 top-0 z-40 border-b border-[var(--color-border)] text-[var(--color-text-inverse)] shadow-[var(--shadow-sm)] ${
+          isAdmin ? "bg-[#FF308E]" : "bg-[#FF308E]"
+        }`}
         style={{
           height: "70px",
         }}
       >
         <div className="mx-auto flex h-full w-full items-center justify-between px-6 py-3">
-          <LogoTitle />
+          <LogoTitle href={logoHref} />
           {onLogout && (
             <Button
               onClick={onLogout}
@@ -74,7 +85,7 @@ export default function AppHeader({ variant, onLogout }: AppHeaderProps) {
 
   if (variant === "auth" || variant === "home") {
     return (
-      <header className="fixed left-0 right-0 top-0 z-40 h-[70px] bg-[var(--color-primary)] text-[var(--color-text-inverse)]">
+      <header className="fixed left-0 right-0 top-0 z-40 h-[70px] bg-[#FF308E] text-[var(--color-text-inverse)]">
         <div className="mx-auto flex h-full w-full items-center justify-between px-6 py-3">
           <LogoTitle href="/" />
           <nav className="flex flex-nowrap items-center gap-3 text-sm font-semibold">

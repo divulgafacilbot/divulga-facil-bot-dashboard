@@ -86,13 +86,13 @@ export default function LoginPage() {
     <div className="flex flex-col gap-8">
       {/* Header with icon */}
       <div className="flex flex-col items-center text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary)] shadow-[var(--shadow-lg)]">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-[var(--shadow-lg)] overflow-hidden">
           <Image
-            src="/logo.png"
+            src="/logo.gif"
             alt="Posting Bot"
             width={60}
             height={60}
-            className="h-9 w-9 object-contain"
+            className="h-full w-full object-cover object-center"
           />
         </div>
         <p className="mb-0 text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-secondary)]">

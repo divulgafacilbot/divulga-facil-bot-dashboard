@@ -1,7 +1,9 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { spawn } from 'child_process';
 import ytdl from '@distube/ytdl-core';
+import ffmpegPath from 'ffmpeg-static';
 
 export const TELEGRAM_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const TEMP_DIR = path.join(process.cwd(), 'temp');
@@ -11,7 +13,11 @@ if (!fs.existsSync(TEMP_DIR)) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 }
 
-export type DownloadOptions = { headers?: Record<string, string>; strategy?: 'direct' | 'youtube' };
+export type DownloadOptions = {
+  headers?: Record<string, string>;
+  strategy?: 'direct' | 'youtube';
+  transcodeToMp4?: boolean;
+};
 
 export async function downloadMediaToFile(
   url: string,
@@ -48,21 +54,39 @@ export async function downloadMediaToFile(
       timeout: 30000,
       headers: options?.headers,
     });
+    const contentType = response.headers['content-type'] || '';
+    console.log('[downloadMediaToFile] response', {
+      url,
+      contentType,
+      contentLength: response.headers['content-length'] || 'unknown',
+      status: response.status,
+    });
 
     const writer = fs.createWriteStream(tempPath);
 
     response.data.pipe(writer);
 
     return new Promise((resolve, reject) => {
-      writer.on('finish', () => resolve(tempPath));
+      writer.on('finish', async () => {
+        try {
+          if (options?.transcodeToMp4 && !isMp4File(tempPath, contentType)) {
+            const transcoded = await transcodeToMp4(tempPath);
+            resolve(transcoded);
+            return;
+          }
+          resolve(tempPath);
+        } catch (transcodeError) {
+          reject(transcodeError);
+        }
+      });
       writer.on('error', reject);
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Clean up temp file if exists
     if (fs.existsSync(tempPath)) {
       fs.unlinkSync(tempPath);
     }
-    throw error;
+    throw error instanceof Error ? error : new Error('Falha ao baixar mídia');
   }
 }
 
@@ -75,6 +99,63 @@ export function cleanupTempFile(filePath: string): void {
   } catch (error) {
     console.error(`❌ Erro ao remover arquivo temporário ${filePath}:`, error);
   }
+}
+
+function isMp4File(filePath: string, contentType: string): boolean {
+  if (contentType.includes('video/mp4')) {
+    return true;
+  }
+  return path.extname(filePath).toLowerCase() === '.mp4';
+}
+
+async function transcodeToMp4(inputPath: string): Promise<string> {
+  const ffmpegExecutable = ffmpegPath;
+  if (!ffmpegExecutable) {
+    throw new Error('ffmpeg não encontrado para converter o vídeo.');
+  }
+
+  const outputPath = inputPath.replace(/\.[^/.]+$/, '') + '-converted.mp4';
+
+  return new Promise((resolve, reject) => {
+    const args = [
+      '-y',
+      '-i',
+      inputPath,
+      '-c:v',
+      'libx264',
+      '-c:a',
+      'aac',
+      '-movflags',
+      '+faststart',
+      outputPath,
+    ];
+
+    const ffmpeg = spawn(ffmpegExecutable, args, { stdio: 'ignore' });
+
+    ffmpeg.on('error', (error: Error) => reject(error));
+    ffmpeg.on('close', (code: number | null) => {
+      if (code !== 0) {
+        reject(new Error(`Falha ao converter vídeo (ffmpeg exit ${code})`));
+        return;
+      }
+
+      try {
+        if (fs.existsSync(inputPath)) {
+          fs.unlinkSync(inputPath);
+        }
+        const stats = fs.statSync(outputPath);
+        if (stats.size > TELEGRAM_MAX_FILE_SIZE) {
+          throw new Error(
+            `Arquivo convertido muito grande (${(stats.size / 1024 / 1024).toFixed(1)}MB). ` +
+            `Limite: 50MB. Tente outro link.`
+          );
+        }
+        resolve(outputPath);
+      } catch (cleanupError: unknown) {
+        reject(cleanupError);
+      }
+    });
+  });
 }
 
 async function downloadYouTubeToFile(url: string, filename: string): Promise<string> {
@@ -139,10 +220,10 @@ async function downloadYouTubeToFile(url: string, filename: string): Promise<str
       writer.on('error', reject);
       stream.on('error', reject);
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (fs.existsSync(tempPath)) {
       fs.unlinkSync(tempPath);
     }
-    throw error;
+    throw error instanceof Error ? error : new Error('Falha ao baixar mídia');
   }
 }

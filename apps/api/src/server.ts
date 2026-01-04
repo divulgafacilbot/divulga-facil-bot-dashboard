@@ -7,11 +7,16 @@ import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import templatesRoutes from './routes/templates.routes.js';
+import templatesPublicRoutes from './routes/templates-public.routes.js';
 import brandConfigRoutes from './routes/brand-config.routes.js';
 import telegramRoutes from './routes/telegram.routes.js';
 import artGenerationRoutes from './routes/art-generation.routes.js';
 import layoutPreferencesRoutes from './routes/layout-preferences.routes.js';
 import metricsRoutes from './routes/metrics.routes.js';
+import adminRoutes from './routes/admin/index.js';
+import userSupportRoutes from './routes/user/support.routes.js';
+import userFinanceRoutes from './routes/user/finance.routes.js';
+import userCampaignsRoutes from './routes/user/campaigns.routes.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { CleanupService } from './services/jobs/cleanup.service.js';
 import { artsBot } from './bot/arts-bot.js';
@@ -50,13 +55,21 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+
+// MILESTONE_7 Routes (mount before any /api routers with auth middleware)
+app.use('/api/admin', adminRoutes);
+app.use('/api/user/support', userSupportRoutes);
+app.use('/api/user/finance', userFinanceRoutes);
+app.use('/api/user/campaigns', userCampaignsRoutes);
+
 app.use('/api', artGenerationRoutes);  // Must be before routes with global auth middleware
 app.use('/api', telegramRoutes);
 app.use('/api', userRoutes);
 app.use('/api', brandConfigRoutes);
 app.use('/api', layoutPreferencesRoutes);
 app.use('/api', metricsRoutes);
-app.use('/api/templates', templatesRoutes);
+app.use('/api/templates', templatesPublicRoutes);
+app.use('/api/user-templates', templatesRoutes);
 
 // Error handling
 app.use(errorMiddleware);

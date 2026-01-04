@@ -3,7 +3,7 @@ import { BOT_TYPES } from '../constants/bot-types.js';
 
 // Bot type validation
 export const botTypeSchema = z.enum([BOT_TYPES.ARTS, BOT_TYPES.DOWNLOAD], {
-  errorMap: () => ({ message: 'Bot type must be either ARTS or DOWNLOAD' }),
+  errorMap: () => ({ message: 'Tipo de bot deve ser Artes ou Download' }),
 });
 
 // Link token generation schema
