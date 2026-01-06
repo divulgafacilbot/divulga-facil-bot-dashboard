@@ -22,8 +22,11 @@ export class AdminStaffService {
 
     // Remove password hash from response
     return staff.map((admin) => {
-      const { password_hash, ...adminWithoutPassword } = admin;
-      return adminWithoutPassword;
+      const { password_hash, admin_permissions, ...adminWithoutPassword } = admin;
+      return {
+        ...adminWithoutPassword,
+        permissions: admin_permissions.map((permission) => permission.permission_key),
+      };
     });
   }
 
@@ -35,14 +38,59 @@ export class AdminStaffService {
     email: string,
     password: string,
     role: string,
-    permissions: string[]
+    permissions: string[] = []
   ) {
+    const normalizedRole = role || 'ADMIN';
+    const normalizedPermissions = normalizedRole === 'ADMIN_MASTER' ? [] : permissions;
+
     // Check if email already exists
     const existingAdmin = await prisma.admin_users.findUnique({
       where: { email },
     });
 
     if (existingAdmin) {
+      if (!existingAdmin.is_active) {
+        const password_hash = await bcrypt.hash(password, 10);
+
+        const updatedAdmin = await prisma.admin_users.update({
+          where: { id: existingAdmin.id },
+          data: {
+            name,
+            password_hash,
+            role: normalizedRole,
+            is_active: true,
+          },
+        });
+
+        await prisma.admin_permissions.deleteMany({
+          where: { admin_user_id: existingAdmin.id },
+        });
+
+        if (normalizedPermissions.length > 0) {
+          await prisma.admin_permissions.createMany({
+            data: normalizedPermissions.map((permission_key) => ({
+              admin_user_id: existingAdmin.id,
+              permission_key,
+            })),
+          });
+        }
+
+        const completeAdminUser = await prisma.admin_users.findUnique({
+          where: { id: existingAdmin.id },
+          include: {
+            admin_permissions: true,
+          },
+        });
+
+        if (completeAdminUser) {
+          const { password_hash: _passwordHash, admin_permissions, ...adminWithoutPassword } = completeAdminUser;
+          return {
+            ...adminWithoutPassword,
+            permissions: admin_permissions.map((permission) => permission.permission_key),
+          };
+        }
+      }
+
       throw new Error('Admin user with this email already exists');
     }
 
@@ -55,14 +103,14 @@ export class AdminStaffService {
         name,
         email,
         password_hash,
-        role,
+        role: normalizedRole,
       },
     });
 
     // Create permissions
-    if (permissions.length > 0) {
+    if (normalizedPermissions.length > 0) {
       await prisma.admin_permissions.createMany({
-        data: permissions.map((permission_key) => ({
+        data: normalizedPermissions.map((permission_key) => ({
           admin_user_id: adminUser.id,
           permission_key,
         })),
@@ -79,8 +127,11 @@ export class AdminStaffService {
 
     // Remove password hash
     if (completeAdminUser) {
-      const { password_hash, ...adminWithoutPassword } = completeAdminUser;
-      return adminWithoutPassword;
+      const { password_hash, admin_permissions, ...adminWithoutPassword } = completeAdminUser;
+      return {
+        ...adminWithoutPassword,
+        permissions: admin_permissions.map((permission) => permission.permission_key),
+      };
     }
 
     return null;
@@ -117,8 +168,11 @@ export class AdminStaffService {
     });
 
     if (adminUser) {
-      const { password_hash, ...adminWithoutPassword } = adminUser;
-      return adminWithoutPassword;
+      const { password_hash, admin_permissions, ...adminWithoutPassword } = adminUser;
+      return {
+        ...adminWithoutPassword,
+        permissions: admin_permissions.map((permission) => permission.permission_key),
+      };
     }
 
     return null;
@@ -144,6 +198,18 @@ export class AdminStaffService {
     const adminUser = await prisma.admin_users.update({
       where: { id: adminUserId },
       data: { is_active: true },
+    });
+
+    const { password_hash, ...adminWithoutPassword } = adminUser;
+    return adminWithoutPassword;
+  }
+
+  /**
+   * Delete an admin user
+   */
+  static async deleteAdminUser(adminUserId: string) {
+    const adminUser = await prisma.admin_users.delete({
+      where: { id: adminUserId },
     });
 
     const { password_hash, ...adminWithoutPassword } = adminUser;

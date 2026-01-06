@@ -19,22 +19,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [openSupportCount, setOpenSupportCount] = useState(0);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminUser();
-
-    if (!token || !adminData) {
+    const initialToken = getAdminToken();
+    setToken(initialToken);
+    if (!initialToken) {
+      setLoading(false);
       router.push('/admin/login');
       return;
     }
 
-    setAdmin(adminData);
-    setLoading(false);
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/admin/auth/me`, {
+      headers: { Authorization: `Bearer ${initialToken}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data?.success) {
+          throw new Error('Auth failed');
+        }
+        setAdmin(data.admin);
+        localStorage.setItem('admin_user', JSON.stringify(data.admin));
+        sessionStorage.setItem('admin_user', JSON.stringify(data.admin));
+      })
+      .catch(() => {
+        router.push('/admin/login');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [router]);
 
   useEffect(() => {
-    const token = getAdminToken();
     if (!token) return;
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
     const source = new EventSource(
@@ -61,13 +77,52 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       source.removeEventListener('support-stats', handleStats);
       source.close();
     };
-  }, []);
+  }, [token]);
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      const nextToken = getAdminToken();
+      setToken(nextToken);
+      if (!nextToken) {
+        setAdmin(null);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/admin/auth/me`, {
+        headers: { Authorization: `Bearer ${nextToken}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data?.success) {
+            throw new Error('Auth failed');
+          }
+          setAdmin(data.admin);
+          localStorage.setItem('admin_user', JSON.stringify(data.admin));
+          sessionStorage.setItem('admin_user', JSON.stringify(data.admin));
+        })
+        .catch(() => {
+          router.push('/admin/login');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    };
+
+    window.addEventListener('storage', handleAuthChange);
+    window.addEventListener('admin-auth-changed', handleAuthChange as EventListener);
+    return () => {
+      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('admin-auth-changed', handleAuthChange as EventListener);
+    };
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
     sessionStorage.removeItem('admin_token');
     sessionStorage.removeItem('admin_user');
+    window.dispatchEvent(new Event('admin-auth-changed'));
     router.push('/admin/login');
   };
 
@@ -87,9 +142,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Gestão de Colaboradores', href: '/admin/permissions', permission: AdminPermission.PERMISSIONS },
   ];
 
-  const filteredNav = navigation.filter(item =>
-    admin?.role === 'ADMIN_MASTER' || admin?.permissions?.includes(item.permission)
-  );
+  const permissions = Array.isArray(admin?.permissions) ? admin.permissions : [];
+
+  const filteredNav = navigation.filter((item) => {
+    if (item.permission === AdminPermission.OVERVIEW) {
+      return true;
+    }
+    if (item.permission === AdminPermission.PERMISSIONS) {
+      return admin?.role === 'ADMIN_MASTER';
+    }
+    return admin?.role === 'ADMIN_MASTER' || permissions.includes(item.permission);
+  });
 
   const sidebarContent = loading ? (
     <div className="p-5 border-b border-[var(--color-border)] animate-pulse">

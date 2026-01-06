@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { requireAdmin, requirePermission } from '../../middleware/require-admin.middleware.js';
+import { requireAdmin } from '../../middleware/require-admin.middleware.js';
 import { AdminOverviewService } from '../../services/admin/overview.service.js';
 
 const router = Router();
 const CACHE_TTL_MS = 30 * 1000;
 let cachedOverview: { data: any; expiresAt: number } | null = null;
 
-router.get('/', requireAdmin, requirePermission('overview'), async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     if (cachedOverview && cachedOverview.expiresAt > Date.now()) {
       res.json({ success: true, data: cachedOverview.data, cached: true });

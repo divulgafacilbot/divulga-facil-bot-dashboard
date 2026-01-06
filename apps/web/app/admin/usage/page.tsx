@@ -61,7 +61,7 @@ export default function AdminUsagePage() {
       </div>
 
       <div id='consumo-por-usuario' className="bg-white rounded-lg shadow p-4 mb-6">
-        <h2 className="text-lg font-semibold mb-3">Consumo por usuário</h2>
+        <h2 className="text-lg font-semibold mb-3">Consumo total por usuário</h2>
         <div className="space-y-2 text-sm text-gray-700 max-h-[500px] overflow-y-auto pr-1">
           {usage.map((row) => (
             <div key={row.userId} className="flex justify-between">
