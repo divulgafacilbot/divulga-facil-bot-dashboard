@@ -1,7 +1,7 @@
 'use client';
-import Image from 'next/image';
-import { useState, useEffect } from 'react';
 import { getAdminToken } from '@/lib/admin-auth';
+import Image from 'next/image';
+import { useEffect, useState } from 'react';
 
 interface Template {
   id: string;
@@ -225,10 +225,10 @@ export default function AdminTemplatesPage() {
 
   return (
     <div className="p-8">
-        <div className="mb-8">
+      <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Gestão de Templates</h1>
         <p className="text-gray-600">Gerencie templates base e personalizados</p>
-        </div>
+      </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <button
@@ -256,25 +256,25 @@ export default function AdminTemplatesPage() {
       </div>
 
       {stats && (
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-600">Total de templates</h3>
-              <p className="text-3xl font-bold mt-2">{stats.total}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-600">Ativos</h3>
-              <p className="text-3xl font-bold mt-2 text-green-600">{stats.active}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-600">Inativos</h3>
-              <p className="text-3xl font-bold mt-2 text-gray-600">{stats.inactive}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-600">Categorias</h3>
-              <p className="text-3xl font-bold mt-2">{stats.byCategory.length}</p>
-            </div>
+        <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-sm font-medium text-gray-600">Total de templates</h3>
+            <p className="text-3xl font-bold mt-2">{stats.total}</p>
           </div>
-        )}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-sm font-medium text-gray-600">Ativos</h3>
+            <p className="text-3xl font-bold mt-2 text-green-600">{stats.active}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-sm font-medium text-gray-600">Inativos</h3>
+            <p className="text-3xl font-bold mt-2 text-gray-600">{stats.inactive}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-sm font-medium text-gray-600">Categorias</h3>
+            <p className="text-3xl font-bold mt-2">{stats.byCategory.length}</p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b">
@@ -350,16 +350,14 @@ export default function AdminTemplatesPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => toggleActiveStatus(template.id, template.is_active)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                        template.is_active ? 'bg-green-500' : 'bg-gray-300'
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${template.is_active ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
                       type="button"
                       aria-label="Alternar status"
                     >
                       <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                          template.is_active ? 'translate-x-5' : 'translate-x-1'
-                        }`}
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${template.is_active ? 'translate-x-5' : 'translate-x-1'
+                          }`}
                       />
                     </button>
                   </td>
@@ -392,7 +390,7 @@ export default function AdminTemplatesPage() {
 
       {stats && stats.byCategory.length > 0 && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Templates por categoria</h2>
+          <h2 className="text-xl font-semibold mb-4">Categorias disponíveis</h2>
           <div className="grid grid-cols-3 gap-4">
             {stats.byCategory.map((cat) => (
               <div key={cat.category} className="flex justify-between p-3 bg-gray-50 rounded">

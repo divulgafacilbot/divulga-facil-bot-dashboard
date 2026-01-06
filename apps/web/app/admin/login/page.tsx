@@ -54,6 +54,7 @@ export default function AdminLoginPage() {
         localStorage.removeItem('admin_remember_email');
         localStorage.setItem('admin_remember_me', '0');
       }
+      window.dispatchEvent(new Event('admin-auth-changed'));
       router.push('/admin');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Falha no login';

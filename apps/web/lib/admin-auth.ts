@@ -2,7 +2,7 @@ export const getAdminToken = () => {
   if (typeof window === 'undefined') {
     return null;
   }
-  return localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+  return sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token');
 };
 
 export const getAdminUser = <T = any>() => {
@@ -10,7 +10,7 @@ export const getAdminUser = <T = any>() => {
     return null;
   }
   const raw =
-    localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user');
+    sessionStorage.getItem('admin_user') || localStorage.getItem('admin_user');
   if (!raw) {
     return null;
   }

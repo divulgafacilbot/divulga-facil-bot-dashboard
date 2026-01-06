@@ -1,6 +1,7 @@
 'use client';
 
-import { getAdminToken } from '@/lib/admin-auth';
+import { getAdminToken, getAdminUser } from '@/lib/admin-auth';
+import { AdminPermission } from '@/lib/admin-enums';
 import { useEffect, useState } from 'react';
 
 type OverviewPayload = {
@@ -159,6 +160,15 @@ const BarList = ({ data }: { data: { label: string; value: number }[] }) => {
 export default function AdminOverviewPage() {
   const [overview, setOverview] = useState<OverviewPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const admin = getAdminUser<{ role?: string; permissions?: AdminPermission[] }>();
+  const isAdminMaster = admin?.role === 'ADMIN_MASTER';
+  const canSeeUsers = isAdminMaster || admin?.permissions?.includes(AdminPermission.USERS);
+  const canSeeBots = isAdminMaster || admin?.permissions?.includes(AdminPermission.BOTS);
+  const canSeeUsage = isAdminMaster || admin?.permissions?.includes(AdminPermission.USAGE);
+  const canSeeFinance = isAdminMaster || admin?.permissions?.includes(AdminPermission.FINANCE);
+  const showBotMetrics = canSeeBots || canSeeUsage;
+  const showUsersMetrics = !!canSeeUsers;
+  const showFinanceMetrics = !!canSeeFinance;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -221,17 +231,24 @@ export default function AdminOverviewPage() {
     { value: downloadsByPlatform.YOUTUBE, color: '#FF0000' },
   ]);
   const stats = [
-    { name: 'Usuários Ativos', value: kpis?.activeUsers || 0 },
-    { name: 'Quantidade de bots de artes ativos', value: kpis?.activeArtsBots || 0 },
-    { name: 'Quantidade de bots de download ativos', value: kpis?.activeDownloadBots || 0 },
-
-    {
-      name: 'Faturamento (30d)',
-      value: revenue30d.toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-      }),
-    },
+    ...(showUsersMetrics ? [{ name: 'Usuários Ativos', value: kpis?.activeUsers || 0 }] : []),
+    ...(showBotMetrics
+      ? [
+          { name: 'Quantidade de bots de artes ativos', value: kpis?.activeArtsBots || 0 },
+          { name: 'Quantidade de bots de download ativos', value: kpis?.activeDownloadBots || 0 },
+        ]
+      : []),
+    ...(showFinanceMetrics
+      ? [
+          {
+            name: 'Faturamento (30d)',
+            value: revenue30d.toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            }),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -246,229 +263,241 @@ export default function AdminOverviewPage() {
         </p>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <div className="flex flex-col gap-6 lg:flex-row">
-            <div className="flex w-full flex-col gap-6 lg:w-1/2">
-              <div className="flex flex-col">
-                <h1 className="text-base font-semibold uppercase tracking-[0.2em] text-gray-700 mb-0">
-                  BOT DE ARTES
+      {showBotMetrics && (
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+            <div className="flex flex-col gap-6 lg:flex-row">
+              <div className="flex w-full flex-col gap-6 lg:w-1/2">
+                <div className="flex flex-col">
+                  <h1 className="text-base font-semibold uppercase tracking-[0.2em] text-gray-700 mb-0">
+                    BOT DE ARTES
+                  </h1>
+                  <p className="text-sm font-semibold tracking-[0.2em] text-gray-500">
+                    Métrica detalhada
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total de Imagens Geradas</p>
+                  <p className="mt-2 text-3xl font-bold text-gray-900">{artTotal}</p>
+                </div>
+                <div className="flex items-center justify-center">
+                  <div
+                    className="h-48 w-48 rounded-full"
+                    style={{ background: artPieBackground }}
+                  />
+                </div>
+              </div>
+              <div className="grid w-full gap-3 lg:w-1/2">
+                <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
+                  Imagens geradas por plataforma
                 </h1>
-                <p className="text-sm font-semibold tracking-[0.2em] text-gray-500">
-                  Métrica detalhada
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total de Imagens Geradas</p>
-                <p className="mt-2 text-3xl font-bold text-gray-900">{artTotal}</p>
-              </div>
-              <div className="flex items-center justify-center">
-                <div
-                  className="h-48 w-48 rounded-full"
-                  style={{ background: artPieBackground }}
-                />
+                <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
+                  <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#FBBF24]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
+                    Mercado Livre
+                  </p>
+                  <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
+                    {rendersByMarketplace.MERCADO_LIVRE}
+                  </p>
+                </div>
+                <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
+                  <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#2D6AEF]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
+                    Magalu
+                  </p>
+                  <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
+                    {rendersByMarketplace.MAGALU}
+                  </p>
+                </div>
+                <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
+                  <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#F97316]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
+                    Shopee
+                  </p>
+                  <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
+                    {rendersByMarketplace.SHOPEE}
+                  </p>
+                </div>
+                <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
+                  <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#374151]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
+                    Amazon
+                  </p>
+                  <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
+                    {rendersByMarketplace.AMAZON}
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="grid w-full gap-3 lg:w-1/2">
-              <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
-                Imagens geradas por plataforma
-              </h1>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#FBBF24]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Mercado Livre
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {rendersByMarketplace.MERCADO_LIVRE}
-                </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+            <div className="flex flex-col gap-6 lg:flex-row">
+              <div className="flex w-full flex-col gap-6 lg:w-1/2">
+                <div className="flex flex-col">
+                  <h1 className="text-base font-semibold uppercase tracking-[0.2em] text-gray-700 mb-0">
+                    BOT DE DOWNLOAD
+                  </h1>
+                  <p className="text-sm font-semibold tracking-[0.2em] text-gray-500">
+                    Métrica detalhada
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total de Downloads</p>
+                  <p className="mt-2 text-3xl font-bold text-gray-900">{downloadTotal}</p>
+                </div>
+                <div className="flex items-center justify-center">
+                  <div
+                    className="h-48 w-48 rounded-full"
+                    style={{ background: downloadPieBackground }}
+                  />
+                </div>
               </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#2D6AEF]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Magalu
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {rendersByMarketplace.MAGALU}
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#F97316]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Shopee
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {rendersByMarketplace.SHOPEE}
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#374151]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Amazon
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {rendersByMarketplace.AMAZON}
-                </p>
+              <div className="grid w-full gap-3 lg:w-1/2">
+                <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
+                  Downloads por plataforma
+                </h1>
+                <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
+                  <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#E1306C]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
+                    Instagram
+                  </p>
+                  <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
+                    {downloadsByPlatform.INSTAGRAM}
+                  </p>
+                </div>
+                <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
+                  <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#111827]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
+                    TikTok
+                  </p>
+                  <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
+                    {downloadsByPlatform.TIKTOK}
+                  </p>
+                </div>
+                <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
+                  <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#7C3AED]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
+                    Pinterest
+                  </p>
+                  <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
+                    {downloadsByPlatform.PINTEREST}
+                  </p>
+                </div>
+                <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
+                  <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#FF0000]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
+                    YouTube
+                  </p>
+                  <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
+                    {downloadsByPlatform.YOUTUBE}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <div className="flex flex-col gap-6 lg:flex-row">
-            <div className="flex w-full flex-col gap-6 lg:w-1/2">
-              <div className="flex flex-col">
-                <h1 className="text-base font-semibold uppercase tracking-[0.2em] text-gray-700 mb-0">
-                  BOT DE DOWNLOAD
-                </h1>
-                <p className="text-sm font-semibold tracking-[0.2em] text-gray-500">
-                  Métrica detalhada
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total de Downloads</p>
-                <p className="mt-2 text-3xl font-bold text-gray-900">{downloadTotal}</p>
-              </div>
-              <div className="flex items-center justify-center">
-                <div
-                  className="h-48 w-48 rounded-full"
-                  style={{ background: downloadPieBackground }}
-                />
-              </div>
+      )}
+
+      {stats.length > 0 && (
+        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <div
+              key={stat.name}
+              className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]"
+            >
+              <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
             </div>
-            <div className="grid w-full gap-3 lg:w-1/2">
-              <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
-                Downloads por plataforma
-              </h1>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#E1306C]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Instagram
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {downloadsByPlatform.INSTAGRAM}
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#111827]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  TikTok
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {downloadsByPlatform.TIKTOK}
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#7C3AED]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Pinterest
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {downloadsByPlatform.PINTEREST}
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#FF0000]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  YouTube
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {downloadsByPlatform.YOUTUBE}
-                </p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
-      </div>
+      )}
 
-      <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.name}
-            className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]"
-          >
-            <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
-          </div>
-        ))}
-      </div>
+      {(showUsersMetrics || showFinanceMetrics) && (
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {showUsersMetrics && (
+            <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Novos usuários por dia (30d)</h2>
+              <div className="flex items-end gap-1 h-40">
+                {newUsersSeries.map((item) => (
+                  <div
+                    key={item.date}
+                    className="flex-1 rounded-t bg-[#2D6AEF]/70 hover:bg-[#2D6AEF]"
+                    style={{ height: `${(item.count / maxNewUsers) * 100}%` }}
+                    title={`${formatDate(item.date)}: ${item.count}`}
+                  />
+                ))}
+              </div>
+              <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#2D6AEF]" />
+                  Novos usuários
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                <span>{newUsersSeries.length ? formatDate(newUsersSeries[0].date) : '-'}</span>
+                <span>{newUsersSeries.length ? formatDate(newUsersSeries[newUsersSeries.length - 1].date) : '-'}</span>
+              </div>
+            </div>
+          )}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Novos usuários por dia (30d)</h2>
-          <div className="flex items-end gap-1 h-40">
-            {newUsersSeries.map((item) => (
-              <div
-                key={item.date}
-                className="flex-1 rounded-t bg-[#2D6AEF]/70 hover:bg-[#2D6AEF]"
-                style={{ height: `${(item.count / maxNewUsers) * 100}%` }}
-                title={`${formatDate(item.date)}: ${item.count}`}
+          {showFinanceMetrics && (
+            <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Receita (30d)</h2>
+              <LineChart
+                data={revenueSeries}
+                series={[{ key: 'amount', color: '#22C55E' }]}
               />
-            ))}
-          </div>
-          <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#2D6AEF]" />
-              Novos usuários
-            </span>
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-            <span>{newUsersSeries.length ? formatDate(newUsersSeries[0].date) : '-'}</span>
-            <span>{newUsersSeries.length ? formatDate(newUsersSeries[newUsersSeries.length - 1].date) : '-'}</span>
-          </div>
+              <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                  Receita
+                </span>
+              </div>
+            </div>
+          )}
         </div>
+      )}
 
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Receita (30d)</h2>
-          <LineChart
-            data={revenueSeries}
-            series={[{ key: 'amount', color: '#22C55E' }]}
-          />
-          <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
-              Receita
-            </span>
+      {showBotMetrics && (
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Renderizações x Downloads (30d)</h2>
+            <LineChart
+              data={overview?.timeSeries?.usage || []}
+              series={[
+                { key: 'renders', color: '#F53D2D' },
+                { key: 'downloads', color: '#2D6AEF' },
+              ]}
+            />
+            <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#F53D2D]" />
+                Renderizações
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#2D6AEF]" />
+                Downloads
+              </span>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Bots Vinculados (30d)</h2>
+            <LineChart
+              data={(overview?.timeSeries?.botLinks || []).map((row) => ({
+                date: row.date,
+                count: row.count,
+              }))}
+              series={[{ key: 'count', color: '#F59E0B' }]}
+            />
+            <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#F59E0B]" />
+                Bots vinculados
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Renderizações x Downloads (30d)</h2>
-          <LineChart
-            data={overview?.timeSeries?.usage || []}
-            series={[
-              { key: 'renders', color: '#F53D2D' },
-              { key: 'downloads', color: '#2D6AEF' },
-            ]}
-          />
-          <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#F53D2D]" />
-              Renderizações
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#2D6AEF]" />
-              Downloads
-            </span>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Bots Vinculados (30d)</h2>
-          <LineChart
-            data={(overview?.timeSeries?.botLinks || []).map((row) => ({
-              date: row.date,
-              count: row.count,
-            }))}
-            series={[{ key: 'count', color: '#F59E0B' }]}
-          />
-          <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#F59E0B]" />
-              Bots vinculados
-            </span>
-          </div>
-        </div>
-      </div>
+      )}
 
     </div>
   );

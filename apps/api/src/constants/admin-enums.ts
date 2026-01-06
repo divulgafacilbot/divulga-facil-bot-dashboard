@@ -43,7 +43,9 @@ export const KIWIFY_EVENT_TYPE_LABELS: Record<string, string> = {
 
 export const SUPPORT_TICKET_STATUSES = {
   OPEN: 'open',
-  RESOLVED: 'resolved',
+  IN_PROGRESS: 'in_progress',
+  CLOSED: 'closed',
+  ARCHIVED: 'archived',
 } as const;
 
 export type SupportTicketStatus =
@@ -51,7 +53,9 @@ export type SupportTicketStatus =
 
 export const SUPPORT_TICKET_STATUS_LABELS: Record<string, string> = {
   open: 'Aberto',
-  resolved: 'Resolvido',
+  in_progress: 'Em andamento',
+  closed: 'Fechado',
+  archived: 'Arquivado',
 };
 
 export const SUPPORT_TICKET_PRIORITIES = {
@@ -85,8 +89,15 @@ const SUPPORT_PRIORITY_ALIASES: Record<string, SupportTicketPriority> = {
 const SUPPORT_STATUS_ALIASES: Record<string, SupportTicketStatus> = {
   aberto: SUPPORT_TICKET_STATUSES.OPEN,
   open: SUPPORT_TICKET_STATUSES.OPEN,
-  resolvido: SUPPORT_TICKET_STATUSES.RESOLVED,
-  resolved: SUPPORT_TICKET_STATUSES.RESOLVED,
+  andamento: SUPPORT_TICKET_STATUSES.IN_PROGRESS,
+  'em andamento': SUPPORT_TICKET_STATUSES.IN_PROGRESS,
+  in_progress: SUPPORT_TICKET_STATUSES.IN_PROGRESS,
+  fechado: SUPPORT_TICKET_STATUSES.CLOSED,
+  closed: SUPPORT_TICKET_STATUSES.CLOSED,
+  resolvido: SUPPORT_TICKET_STATUSES.CLOSED,
+  resolved: SUPPORT_TICKET_STATUSES.CLOSED,
+  arquivado: SUPPORT_TICKET_STATUSES.ARCHIVED,
+  archived: SUPPORT_TICKET_STATUSES.ARCHIVED,
 };
 
 export const normalizeSupportPriority = (value?: string) => {

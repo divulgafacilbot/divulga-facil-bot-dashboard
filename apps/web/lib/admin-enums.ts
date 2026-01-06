@@ -30,7 +30,9 @@ export type PaymentStatus = keyof typeof PAYMENT_STATUS_LABELS;
 
 export const SUPPORT_TICKET_STATUS_LABELS = {
   open: 'Aberto',
-  resolved: 'Resolvido',
+  in_progress: 'Em andamento',
+  closed: 'Fechado',
+  archived: 'Arquivado',
 } as const;
 
 export type SupportTicketStatus = keyof typeof SUPPORT_TICKET_STATUS_LABELS;

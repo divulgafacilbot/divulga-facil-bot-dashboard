@@ -3,8 +3,14 @@ import {
   SUPPORT_TICKET_PRIORITIES,
   SUPPORT_TICKET_STATUSES,
 } from '../../constants/admin-enums.js';
+import { supportEvents, SUPPORT_EVENTS } from '../admin/support-events.js';
 
 export class UserSupportService {
+  static isValidUuid(value: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value
+    );
+  }
   /**
    * Create a new support ticket
    */
@@ -22,6 +28,7 @@ export class UserSupportService {
         category,
         status: SUPPORT_TICKET_STATUSES.OPEN,
         priority: SUPPORT_TICKET_PRIORITIES.NORMAL,
+        closed_seen_at: null,
         support_messages: {
           create: {
             sender_role: 'user',
@@ -41,6 +48,7 @@ export class UserSupportService {
       },
     });
 
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
     return ticket;
   }
 
@@ -48,15 +56,51 @@ export class UserSupportService {
    * Get user's tickets
    */
   static async getUserTickets(userId: string, filters?: { status?: string }) {
-    return prisma.support_tickets.findMany({
+    if (!UserSupportService.isValidUuid(userId)) {
+      return [];
+    }
+    const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+    const normalizedStatus = filters?.status;
+    const baseWhere: any = {
+      user_id: userId,
+      status: { not: SUPPORT_TICKET_STATUSES.ARCHIVED },
+    };
+
+    await prisma.support_tickets.updateMany({
       where: {
         user_id: userId,
-        ...(filters?.status && { status: filters.status }),
+        status: SUPPORT_TICKET_STATUSES.CLOSED,
+        updated_at: { lt: fifteenDaysAgo },
       },
+      data: {
+        status: SUPPORT_TICKET_STATUSES.ARCHIVED,
+        updated_at: new Date(),
+      },
+    });
+
+    if (normalizedStatus) {
+      baseWhere.status = normalizedStatus;
+      if (normalizedStatus === SUPPORT_TICKET_STATUSES.CLOSED) {
+        baseWhere.updated_at = { gte: fifteenDaysAgo };
+      }
+    } else {
+      baseWhere.OR = [
+        { status: SUPPORT_TICKET_STATUSES.OPEN },
+        { status: SUPPORT_TICKET_STATUSES.IN_PROGRESS },
+        {
+          status: SUPPORT_TICKET_STATUSES.CLOSED,
+          updated_at: { gte: fifteenDaysAgo },
+        },
+      ];
+    }
+
+    return prisma.support_tickets.findMany({
+      where: baseWhere,
       orderBy: { created_at: 'desc' },
       include: {
         support_messages: {
-          orderBy: { created_at: 'asc' },
+          where: { sender_role: 'user' },
+          orderBy: { created_at: 'desc' },
           take: 1,
         },
       },
@@ -98,6 +142,9 @@ export class UserSupportService {
     message: string,
     attachments: any[] = []
   ) {
+    if (!UserSupportService.isValidUuid(userId)) {
+      throw new Error('Invalid user');
+    }
     // Verify ownership
     const ticket = await prisma.support_tickets.findFirst({
       where: { id: ticketId, user_id: userId },
@@ -126,9 +173,167 @@ export class UserSupportService {
 
     await prisma.support_tickets.update({
       where: { id: ticketId },
-      data: { updated_at: new Date() },
+      data: { updated_at: new Date(), status: SUPPORT_TICKET_STATUSES.OPEN, closed_seen_at: null },
     });
 
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
     return reply;
+  }
+
+  /**
+   * Update ticket (edit/reopen with new data)
+   */
+  static async updateTicket(
+    ticketId: string,
+    userId: string,
+    subject: string,
+    category: string,
+    message: string,
+    attachments: any[] = []
+  ) {
+    if (!UserSupportService.isValidUuid(userId)) {
+      throw new Error('Invalid user');
+    }
+    const ticket = await prisma.support_tickets.findFirst({
+      where: { id: ticketId, user_id: userId },
+    });
+
+    if (!ticket) {
+      throw new Error('Ticket not found or access denied');
+    }
+
+    await prisma.support_tickets.update({
+      where: { id: ticketId },
+      data: {
+        subject,
+        category,
+        status: SUPPORT_TICKET_STATUSES.OPEN,
+        updated_at: new Date(),
+        closed_seen_at: null,
+      },
+    });
+
+    const reply = await prisma.support_messages.create({
+      data: {
+        ticket_id: ticketId,
+        sender_role: 'user',
+        message,
+        attachments,
+      },
+    });
+
+    await prisma.support_ticket_events.create({
+      data: {
+        ticket_id: ticketId,
+        event_type: 'updated',
+        metadata: { sender_role: 'user' },
+      },
+    });
+
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
+    return reply;
+  }
+
+  /**
+   * Close ticket by user
+   */
+  static async closeTicket(ticketId: string, userId: string) {
+    if (!UserSupportService.isValidUuid(userId)) {
+      throw new Error('Invalid user');
+    }
+    const ticket = await prisma.support_tickets.findFirst({
+      where: { id: ticketId, user_id: userId },
+    });
+
+    if (!ticket) {
+      throw new Error('Ticket not found or access denied');
+    }
+
+    await prisma.support_tickets.update({
+      where: { id: ticketId },
+      data: {
+        status: SUPPORT_TICKET_STATUSES.CLOSED,
+        updated_at: new Date(),
+        closed_seen_at: new Date(),
+      },
+    });
+
+    await prisma.support_ticket_events.create({
+      data: {
+        ticket_id: ticketId,
+        event_type: 'closed_by_user',
+        metadata: { userId },
+      },
+    });
+
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
+  }
+
+  /**
+   * Archive ticket by user
+   */
+  static async archiveTicket(ticketId: string, userId: string) {
+    if (!UserSupportService.isValidUuid(userId)) {
+      throw new Error('Invalid user');
+    }
+    const ticket = await prisma.support_tickets.findFirst({
+      where: { id: ticketId, user_id: userId },
+    });
+
+    if (!ticket) {
+      throw new Error('Ticket not found or access denied');
+    }
+
+    await prisma.support_tickets.update({
+      where: { id: ticketId },
+      data: {
+        status: SUPPORT_TICKET_STATUSES.ARCHIVED,
+        updated_at: new Date(),
+        closed_seen_at: new Date(),
+      },
+    });
+
+    await prisma.support_ticket_events.create({
+      data: {
+        ticket_id: ticketId,
+        event_type: 'archived_by_user',
+        metadata: { userId },
+      },
+    });
+
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
+  }
+
+  /**
+   * Mark closed tickets as seen
+   */
+  static async markClosedTicketsSeen(userId: string) {
+    if (!UserSupportService.isValidUuid(userId)) {
+      return;
+    }
+    await prisma.support_tickets.updateMany({
+      where: {
+        user_id: userId,
+        status: SUPPORT_TICKET_STATUSES.CLOSED,
+        closed_seen_at: null,
+      },
+      data: { closed_seen_at: new Date() },
+    });
+  }
+
+  /**
+   * Count closed tickets not seen by user
+   */
+  static async countClosedUnseenTickets(userId: string) {
+    if (!UserSupportService.isValidUuid(userId)) {
+      return 0;
+    }
+    return prisma.support_tickets.count({
+      where: {
+        user_id: userId,
+        status: SUPPORT_TICKET_STATUSES.CLOSED,
+        closed_seen_at: null,
+      },
+    });
   }
 }

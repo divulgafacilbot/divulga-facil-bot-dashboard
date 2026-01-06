@@ -74,6 +74,12 @@ export function DashboardShell({ children }: DashboardShellProps) {
           "M2.25 6.75h19.5v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75zm0 0V5.25A2.25 2.25 0 014.5 3h15a2.25 2.25 0 012.25 2.25v1.5M3.75 12h6",
       },
       {
+        name: "FAQ e Suporte",
+        href: "/dashboard/support",
+        icon:
+          "M12 18h.01M9.75 9.75a2.25 2.25 0 1 1 4.5 0c0 .998-.804 1.803-1.5 2.25-.696.447-1.5 1.252-1.5 2.25v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+      },
+      {
         name: "Configurações",
         href: "/dashboard/settings",
         icon:
