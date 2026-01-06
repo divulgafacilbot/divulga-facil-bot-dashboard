@@ -18,6 +18,14 @@ interface AdminJWTPayload {
   permissions: string[];
 }
 
+const decodeAdminToken = (token: string): AdminJWTPayload => {
+  const rawPayload = jwt.verify(token, env.JWT_SECRET);
+  if (typeof rawPayload !== 'object' || rawPayload === null) {
+    throw new Error('Invalid token payload');
+  }
+  return rawPayload as AdminJWTPayload;
+};
+
 export const requireAdmin = async (
   req: AdminRequest,
   res: Response,
@@ -29,7 +37,7 @@ export const requireAdmin = async (
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, env.JWT_SECRET) as AdminJWTPayload;
+    const decoded = decodeAdminToken(token);
 
     if (decoded.role !== 'ADMIN' && decoded.role !== 'ADMIN_MASTER') {
       return res.status(403).json({ error: 'Admin access required' });
