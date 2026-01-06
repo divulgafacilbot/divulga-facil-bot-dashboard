@@ -75,8 +75,8 @@ export default function AdminUsagePage() {
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
-        <div id='quantidade-de-imagens-por-user' className="bg-white rounded-lg shadow p-4">
+      <div className="mx-auto grid w-full grid-cols-1 gap-6 md:grid-cols-2">
+        <div id='quantidade-de-imagens-por-user' className="min-w-[280px] bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3">Quantidade de imagens geradas por usuário</h2>
           <div className="space-y-2 text-sm text-gray-700 max-h-[360px] overflow-y-auto pr-1">
             {usage
@@ -94,7 +94,7 @@ export default function AdminUsagePage() {
           </div>
         </div>
 
-        <div id='quantidade-de-downloads-por-user' className="bg-white rounded-lg shadow p-4">
+        <div id='quantidade-de-downloads-por-user' className="min-w-[280px] bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3">Quantidade de downloads por usuário</h2>
           <div className="space-y-2 text-sm text-gray-700 max-h-[360px] overflow-y-auto pr-1">
             {usage
