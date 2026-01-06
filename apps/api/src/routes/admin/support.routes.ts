@@ -13,6 +13,19 @@ import { env } from '../../env.js';
 
 const router = Router();
 
+const verifySupportToken = (token: string) => {
+  const rawPayload = jwt.verify(token, env.JWT_SECRET);
+  if (typeof rawPayload !== 'object' || rawPayload === null) {
+    throw new Error('Invalid token payload');
+  }
+  return rawPayload as {
+    adminUserId: string;
+    email: string;
+    role: 'ADMIN' | 'ADMIN_MASTER';
+    permissions: string[];
+  };
+};
+
 const requireAdminForStream = (req: any, res: any, next: any) => {
   const bearerToken = req.headers.authorization?.replace('Bearer ', '');
   const token = bearerToken || req.query?.token;
@@ -21,12 +34,7 @@ const requireAdminForStream = (req: any, res: any, next: any) => {
   }
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as {
-      adminUserId: string;
-      email: string;
-      role: 'ADMIN' | 'ADMIN_MASTER';
-      permissions: string[];
-    };
+    const decoded = verifySupportToken(token);
 
     if (decoded.role !== 'ADMIN' && decoded.role !== 'ADMIN_MASTER') {
       return res.status(403).json({ error: 'Admin access required' });
@@ -39,7 +47,7 @@ const requireAdminForStream = (req: any, res: any, next: any) => {
       permissions: decoded.permissions || [],
     };
 
-    if (decoded.role !== 'ADMIN_MASTER' && !req.admin.permissions.includes('support')) {
+    if (!req.admin.permissions.includes('support')) {
       return res.status(403).json({ error: 'Permission support required' });
     }
 
