@@ -2,6 +2,7 @@
 import { getAdminToken } from '@/lib/admin-auth';
 import {
   SUPPORT_TICKET_STATUS_LABELS,
+  SupportTicketPriority,
   SupportTicketStatus,
 } from '@/lib/admin-enums';
 import { useEffect, useState } from 'react';
