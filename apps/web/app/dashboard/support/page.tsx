@@ -102,6 +102,10 @@ export default function FaqSupportPage() {
   }, [search]);
 
   const latestMessage = (ticket: SupportTicket) => ticket.support_messages?.[0];
+  const latestUserMessage = (ticket: SupportTicket) =>
+    ticket.support_messages?.find((message) => message.sender_role === "user");
+  const latestAdminMessage = (ticket: SupportTicket) =>
+    ticket.support_messages?.find((message) => message.sender_role === "admin");
 
   const fetchTickets = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/support/tickets`, {
@@ -136,13 +140,13 @@ export default function FaqSupportPage() {
   };
 
   const openEditModal = (ticket: SupportTicket) => {
-    const message = latestMessage(ticket)?.message || "";
+    const message = latestUserMessage(ticket)?.message || "";
     setForm({
       category: ticket.category,
       subject: ticket.subject,
       message,
     });
-    const existingAttachments = latestMessage(ticket)?.attachments || [];
+    const existingAttachments = latestUserMessage(ticket)?.attachments || [];
     setAttachments(
       existingAttachments.map((attachment, index) => ({
         ...attachment,
@@ -361,11 +365,21 @@ export default function FaqSupportPage() {
                   </span>
                 </div>
                 <p className="mt-4 text-sm text-[var(--color-text-secondary)]">
-                  {latestMessage(ticket)?.message || "Sem detalhes registrados."}
+                  {latestUserMessage(ticket)?.message || "Sem detalhes registrados."}
                 </p>
-                {latestMessage(ticket)?.attachments?.length ? (
+                {ticket.status === "closed" && latestAdminMessage(ticket)?.message && (
+                  <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
+                      Resposta do suporte
+                    </p>
+                    <p className="mt-2">
+                      {latestAdminMessage(ticket)?.message}
+                    </p>
+                  </div>
+                )}
+                {latestUserMessage(ticket)?.attachments?.length ? (
                   <div className="mt-3 flex flex-wrap gap-3 text-sm text-[var(--color-primary)]">
-                    {latestMessage(ticket)?.attachments?.map((attachment, index) => (
+                    {latestUserMessage(ticket)?.attachments?.map((attachment, index) => (
                       <button
                         key={`${attachment.name}-${index}`}
                         type="button"
