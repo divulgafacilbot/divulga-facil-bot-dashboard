@@ -26,6 +26,7 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [closedTicketsCount, setClosedTicketsCount] = useState(0);
 
   useEffect(() => {
     async function loadUser() {
@@ -61,6 +62,24 @@ export default function DashboardLayout({
     }
     loadUser();
   }, [router]);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/support/tickets/closed-count`, {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setClosedTicketsCount(data?.data?.count || 0);
+      })
+      .catch(() => setClosedTicketsCount(0));
+  }, []);
+
+  useEffect(() => {
+    if (pathname.startsWith('/dashboard/support')) {
+      setClosedTicketsCount(0);
+    }
+  }, [pathname]);
 
   const handleLogout = async () => {
     await api.auth.logout();
@@ -105,6 +124,12 @@ export default function DashboardLayout({
         href: "/dashboard/billing",
         icon:
           "M2.25 6.75h19.5v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75zm0 0V5.25A2.25 2.25 0 014.5 3h15a2.25 2.25 0 012.25 2.25v1.5M3.75 12h6",
+      },
+      {
+        name: "FAQ e Suporte",
+        href: "/dashboard/support",
+        icon:
+          "M12 18h.01M9.75 9.75a2.25 2.25 0 1 1 4.5 0c0 .998-.804 1.803-1.5 2.25-.696.447-1.5 1.252-1.5 2.25v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
       },
       {
         name: "Configurações",
@@ -190,6 +215,11 @@ export default function DashboardLayout({
                   />
                 </svg>
                 {!sidebarCollapsed && <span>{item.name}</span>}
+                {!sidebarCollapsed && item.href === '/dashboard/support' && closedTicketsCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {closedTicketsCount}
+                  </span>
+                )}
               </Link>
             );
           })}

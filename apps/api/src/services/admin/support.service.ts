@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { supportEvents, SUPPORT_EVENTS } from './support-events.js';
 
 interface GetTicketsFilters {
   status?: string;
@@ -50,6 +51,11 @@ export class AdminSupportService {
               id: true,
               email: true,
             },
+          },
+          support_messages: {
+            where: { sender_role: 'user' },
+            orderBy: { created_at: 'desc' },
+            take: 1,
           },
           _count: {
             select: {
@@ -133,6 +139,7 @@ export class AdminSupportService {
       data: { updated_at: new Date() },
     });
 
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
     return reply;
   }
 
@@ -140,9 +147,18 @@ export class AdminSupportService {
    * Update ticket status
    */
   static async updateTicketStatus(ticketId: string, status: string, adminUserId: string) {
+    const existing = await prisma.support_tickets.findUnique({
+      where: { id: ticketId },
+      select: { status: true },
+    });
+
     const ticket = await prisma.support_tickets.update({
       where: { id: ticketId },
-      data: { status },
+      data: {
+        status,
+        closed_seen_at: status === 'closed' ? null : undefined,
+        updated_at: new Date(),
+      },
     });
 
     // Create event
@@ -152,12 +168,13 @@ export class AdminSupportService {
         event_type: 'status_changed',
         metadata: {
           adminUserId,
-          oldStatus: status,
+          oldStatus: existing?.status,
           newStatus: status,
         },
       },
     });
 
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
     return ticket;
   }
 
@@ -191,7 +208,7 @@ export class AdminSupportService {
   static async resolveTicket(ticketId: string, adminUserId: string, resolution: string) {
     const ticket = await prisma.support_tickets.update({
       where: { id: ticketId },
-      data: { status: 'resolved' },
+      data: { status: 'closed', closed_seen_at: null, updated_at: new Date() },
     });
 
     // Create resolution message
@@ -215,6 +232,7 @@ export class AdminSupportService {
       },
     });
 
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
     return ticket;
   }
 
@@ -224,7 +242,7 @@ export class AdminSupportService {
   static async reopenTicket(ticketId: string, adminUserId: string, reason: string) {
     const ticket = await prisma.support_tickets.update({
       where: { id: ticketId },
-      data: { status: 'open' },
+      data: { status: 'open', closed_seen_at: null, updated_at: new Date() },
     });
 
     // Create event
@@ -239,6 +257,7 @@ export class AdminSupportService {
       },
     });
 
+    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
     return ticket;
   }
 
@@ -249,14 +268,16 @@ export class AdminSupportService {
     const [
       totalTickets,
       openTickets,
-      resolvedTickets,
+      closedTickets,
+      inProgressTickets,
       ticketsByPriority,
       ticketsByCategory,
       ticketsByStatus,
     ] = await Promise.all([
       prisma.support_tickets.count(),
       prisma.support_tickets.count({ where: { status: 'open' } }),
-      prisma.support_tickets.count({ where: { status: 'resolved' } }),
+      prisma.support_tickets.count({ where: { status: 'closed' } }),
+      prisma.support_tickets.count({ where: { status: 'in_progress' } }),
       prisma.support_tickets.groupBy({
         by: ['priority'],
         _count: { id: true },
@@ -274,7 +295,8 @@ export class AdminSupportService {
     return {
       totalTickets,
       openTickets,
-      resolvedTickets,
+      closedTickets,
+      inProgressTickets,
       byPriority: ticketsByPriority.map((p) => ({
         priority: p.priority,
         count: p._count.id,

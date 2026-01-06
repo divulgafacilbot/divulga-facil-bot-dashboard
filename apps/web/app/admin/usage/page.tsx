@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { getAdminToken } from '@/lib/admin-auth';
+import { useEffect, useState } from 'react';
 
 export default function AdminUsagePage() {
   type UsageSortKey = 'renders' | 'downloads' | 'total';
@@ -60,7 +60,7 @@ export default function AdminUsagePage() {
         </select>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div id='consumo-por-usuario' className="bg-white rounded-lg shadow p-4 mb-6">
         <h2 className="text-lg font-semibold mb-3">Consumo por usuário</h2>
         <div className="space-y-2 text-sm text-gray-700 max-h-[500px] overflow-y-auto pr-1">
           {usage.map((row) => (
@@ -75,21 +75,41 @@ export default function AdminUsagePage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4">
-        <h2 className="text-lg font-semibold mb-3">Quantidade de imagens geradas</h2>
-        <div className="space-y-2 text-sm text-gray-700 max-h-[500px] overflow-y-auto pr-1">
-          {usage
-            .slice()
-            .sort((a, b) => (b.renders || 0) - (a.renders || 0))
-            .map((row, index) => (
-              <div key={row.userId} className="flex justify-between">
-                <span>
-                  {index + 1}. {row.user?.email || row.userId}
-                </span>
-                <span>{row.renders} imagens</span>
-              </div>
-            ))}
-          {!usage.length && <p>Nenhum dado disponível.</p>}
+      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
+        <div id='quantidade-de-imagens-por-user' className="bg-white rounded-lg shadow p-4">
+          <h2 className="text-lg font-semibold mb-3">Quantidade de imagens geradas por usuário</h2>
+          <div className="space-y-2 text-sm text-gray-700 max-h-[360px] overflow-y-auto pr-1">
+            {usage
+              .slice()
+              .sort((a, b) => (b.renders || 0) - (a.renders || 0))
+              .map((row, index) => (
+                <div key={row.userId} className="flex justify-between">
+                  <span>
+                    {index + 1}. {row.user?.email || row.userId}
+                  </span>
+                  <span>{row.renders} imagens</span>
+                </div>
+              ))}
+            {!usage.length && <p>Nenhum dado disponível.</p>}
+          </div>
+        </div>
+
+        <div id='quantidade-de-downloads-por-user' className="bg-white rounded-lg shadow p-4">
+          <h2 className="text-lg font-semibold mb-3">Quantidade de downloads por usuário</h2>
+          <div className="space-y-2 text-sm text-gray-700 max-h-[360px] overflow-y-auto pr-1">
+            {usage
+              .slice()
+              .sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
+              .map((row, index) => (
+                <div key={row.userId} className="flex justify-between">
+                  <span>
+                    {index + 1}. {row.user?.email || row.userId}
+                  </span>
+                  <span>{row.downloads} downloads</span>
+                </div>
+              ))}
+            {!usage.length && <p>Nenhum dado disponível.</p>}
+          </div>
         </div>
       </div>
     </div>

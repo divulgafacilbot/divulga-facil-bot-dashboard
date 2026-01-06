@@ -18,6 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openSupportCount, setOpenSupportCount] = useState(0);
 
   useEffect(() => {
     const token = getAdminToken();
@@ -31,6 +32,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setAdmin(adminData);
     setLoading(false);
   }, [router]);
+
+  useEffect(() => {
+    const token = getAdminToken();
+    if (!token) return;
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+    const source = new EventSource(
+      `${baseUrl}/api/admin/support/stream?token=${encodeURIComponent(token)}`
+    );
+
+    const handleStats = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        const openTickets = data?.openTickets || 0;
+        const inProgress = data?.inProgressTickets || 0;
+        setOpenSupportCount(openTickets + inProgress);
+      } catch (_error) {
+        setOpenSupportCount(0);
+      }
+    };
+
+    source.addEventListener('support-stats', handleStats);
+    source.onerror = () => {
+      source.close();
+    };
+
+    return () => {
+      source.removeEventListener('support-stats', handleStats);
+      source.close();
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
@@ -93,7 +124,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             : 'text-gray-700 hover:bg-blue-50/60 hover:text-blue-700'
             }`}
         >
-          {item.name}
+          <span className="flex items-center justify-between gap-2">
+            <span>{item.name}</span>
+            {item.permission === AdminPermission.SUPPORT && openSupportCount > 0 && (
+              <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500 px-2 text-xs font-bold text-white">
+                {openSupportCount}
+              </span>
+            )}
+          </span>
         </Link>
       ))}
     </nav>

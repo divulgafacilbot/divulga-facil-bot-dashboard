@@ -283,6 +283,7 @@ model support_tickets {
   priority            String                 @default("normal") @db.VarChar(20)
   created_at          DateTime               @default(now()) @db.Timestamptz(6)
   updated_at          DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+  closed_seen_at      DateTime?              @db.Timestamptz(6)
   users               User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
   support_messages    support_messages[]
   support_ticket_events support_ticket_events[]
