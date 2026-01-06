@@ -41,7 +41,26 @@ app.use(
         return allowed;
       }
 
-      return 'http://localhost:3000';
+      return (origin: string | undefined, callback: (err: Error | null, ok?: boolean) => void) => {
+        if (!origin) {
+          return callback(null, true);
+        }
+
+        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+          return callback(null, true);
+        }
+
+        try {
+          const hostname = new URL(origin).hostname;
+          if (hostname === 'divulga-facil-bot.vercel.app' || hostname.endsWith('.vercel.app')) {
+            return callback(null, true);
+          }
+        } catch (_error) {
+          return callback(null, false);
+        }
+
+        return callback(null, false);
+      };
     })(),
     credentials: true,
   })
