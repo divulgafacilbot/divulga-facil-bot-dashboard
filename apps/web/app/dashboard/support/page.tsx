@@ -145,8 +145,8 @@ export default function FaqSupportPage() {
     const existingAttachments = latestMessage(ticket)?.attachments || [];
     setAttachments(
       existingAttachments.map((attachment, index) => ({
-        id: `${ticket.id}-${index}`,
         ...attachment,
+        id: attachment.id ?? `${ticket.id}-${index}`,
       }))
     );
     setEditingTicketId(ticket.id);
