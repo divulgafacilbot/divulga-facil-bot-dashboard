@@ -32,6 +32,9 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: (() => {
+      if (process.env.CORS_ALLOW_ALL === 'true') {
+        return true;
+      }
       const allowed = (process.env.APP_BASE_URLS || process.env.APP_BASE_URL || '')
         .split(',')
         .map((value) => value.trim())
