@@ -62,14 +62,6 @@ router.post('/:id/activate', requireAdmin, requirePermission('users'), async (re
   }
 });
 
-router.post('/:id/reset-usage', requireAdmin, requirePermission('users'), async (req, res) => {
-  try {
-    await AdminUsersService.resetUserUsage(req.params.id);
-    res.json({ success: true, message: 'Usage reset' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 router.post('/:id/reset-password', requireAdmin, requirePermission('users'), async (req, res) => {
   try {
