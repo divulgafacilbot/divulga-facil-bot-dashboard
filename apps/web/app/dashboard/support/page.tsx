@@ -370,7 +370,12 @@ export default function FaqSupportPage() {
                         key={`${attachment.name}-${index}`}
                         type="button"
                         className="underline"
-                        onClick={() => setPreviewImage({ id: `${ticket.id}-${index}`, ...attachment })}
+                        onClick={() =>
+                          setPreviewImage({
+                            ...attachment,
+                            id: attachment.id ?? `${ticket.id}-${index}`,
+                          })
+                        }
                       >
                         {attachment.name}
                       </button>
