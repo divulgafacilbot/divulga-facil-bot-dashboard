@@ -172,18 +172,6 @@ export class AdminUsersService {
   }
 
   /**
-   * Reset user usage counters
-   */
-  static async resetUserUsage(userId: string) {
-    // Delete all usage counters for the user
-    await prisma.usage_counters.deleteMany({
-      where: { user_id: userId },
-    });
-
-    return { success: true, message: 'User usage counters reset successfully' };
-  }
-
-  /**
    * Unlink a user's bot connection
    */
   static async unlinkUserBot(userId: string, botType: string) {

@@ -150,7 +150,7 @@ Web app available at: `http://localhost:3000`
 - ✅ Role-based access (ADMIN, ADMIN_MASTER)
 - ✅ Granular tab-level permissions
 - ✅ Complete audit trail of admin actions
-- ✅ User management (activate/deactivate, reset usage, unlink bots)
+- ✅ User management (activate/deactivate, unlink bots)
 - ✅ Support ticket management with replies
 - ✅ Financial tracking with Kiwify reconciliation
 - ✅ Staff management (create admins, assign permissions)

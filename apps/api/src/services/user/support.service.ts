@@ -99,9 +99,8 @@ export class UserSupportService {
       orderBy: { created_at: 'desc' },
       include: {
         support_messages: {
-          where: { sender_role: 'user' },
           orderBy: { created_at: 'desc' },
-          take: 1,
+          take: 5,
         },
       },
     });

@@ -25,7 +25,7 @@ export default function AdminUsersPage() {
     telegram_bot_links?: Array<{ id: string }>;
     usage_counters?: Array<{ id: string }>;
   };
-  type UserAction = 'activate' | 'deactivate' | 'reset-usage' | 'reset-password' | 'unlink-bot';
+  type UserAction = 'activate' | 'deactivate' | 'reset-password' | 'unlink-bot';
   type UserActionPayload = { botType?: BotType };
 
   const [users, setUsers] = useState<UserListItem[]>([]);
@@ -189,12 +189,6 @@ export default function AdminUsersPage() {
                     }
                   >
                     {user.isActive ? 'Desativar' : 'Ativar'}
-                  </button>
-                  <button
-                    className="mr-3 rounded-lg border border-gray-200 bg-white px-3 py-1 text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
-                    onClick={() => handleAction('reset-usage', user.id)}
-                  >
-                    Redefinir uso
                   </button>
                   <button
                     className="mr-3 rounded-lg border border-gray-200 bg-white px-3 py-1 text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
