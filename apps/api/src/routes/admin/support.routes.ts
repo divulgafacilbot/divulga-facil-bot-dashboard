@@ -6,6 +6,7 @@ import {
   SUPPORT_TICKET_STATUS_LABELS,
   normalizeSupportPriority,
   normalizeSupportStatus,
+  AdminRole,
 } from '../../constants/admin-enums.js';
 import { supportEvents, SUPPORT_EVENTS } from '../../services/admin/support-events.js';
 import jwt from 'jsonwebtoken';
@@ -21,7 +22,7 @@ const verifySupportToken = (token: string) => {
   return rawPayload as {
     adminUserId: string;
     email: string;
-    role: 'ADMIN' | 'ADMIN_MASTER';
+    role: AdminRole;
     permissions: string[];
   };
 };
@@ -36,7 +37,7 @@ const requireAdminForStream = (req: any, res: any, next: any) => {
   try {
     const decoded = verifySupportToken(token);
 
-    if (decoded.role !== 'ADMIN' && decoded.role !== 'ADMIN_MASTER') {
+    if (decoded.role !== AdminRole.COLABORADOR && decoded.role !== AdminRole.ADMIN_MASTER) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 

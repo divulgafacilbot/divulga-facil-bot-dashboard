@@ -2,11 +2,12 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { prisma } from '../../db/prisma.js';
 import { env } from '../../env.js';
+import { AdminRole } from '../../constants/admin-enums.js';
 
 interface AdminTokenPayload {
   adminUserId: string;
   email: string;
-  role: 'ADMIN' | 'ADMIN_MASTER';
+  role: AdminRole;
   permissions: string[];
 }
 
@@ -17,7 +18,7 @@ export class AdminAuthService {
   static generateAdminToken(
     adminUserId: string,
     email: string,
-    role: 'ADMIN' | 'ADMIN_MASTER',
+    role: AdminRole,
     permissions: string[]
   ): string {
     const payload: AdminTokenPayload = {
@@ -66,12 +67,8 @@ export class AdminAuthService {
     const permissions = admin.admin_permissions.map(p => p.permission_key);
 
     // Generate token
-    const token = this.generateAdminToken(
-      admin.id,
-      admin.email,
-      admin.role as 'ADMIN' | 'ADMIN_MASTER',
-      permissions
-    );
+    const role = admin.role as AdminRole;
+    const token = this.generateAdminToken(admin.id, admin.email, role, permissions);
 
     return {
       token,
@@ -104,7 +101,7 @@ export class AdminAuthService {
       id: admin.id,
       name: admin.name,
       email: admin.email,
-      role: admin.role,
+      role: admin.role as AdminRole,
       is_active: admin.is_active,
       permissions: admin.admin_permissions.map(p => p.permission_key),
       created_at: admin.created_at,

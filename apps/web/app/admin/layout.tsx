@@ -2,14 +2,14 @@
 
 import AppHeader from '@/components/common/AppHeader';
 import { getAdminToken, getAdminUser } from '@/lib/admin-auth';
-import { AdminPermission } from '@/lib/admin-enums';
+import { AdminPermission, AdminRole } from '@/lib/admin-enums';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 type AdminUser = {
   email: string;
-  role: 'ADMIN' | 'ADMIN_MASTER';
+  role: AdminRole;
   permissions?: AdminPermission[];
 };
 
@@ -149,9 +149,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return true;
     }
     if (item.permission === AdminPermission.PERMISSIONS) {
-      return admin?.role === 'ADMIN_MASTER';
+      return admin?.role === AdminRole.ADMIN_MASTER;
     }
-    return admin?.role === 'ADMIN_MASTER' || permissions.includes(item.permission);
+    return admin?.role === AdminRole.ADMIN_MASTER || permissions.includes(item.permission);
   });
 
   const sidebarContent = loading ? (
