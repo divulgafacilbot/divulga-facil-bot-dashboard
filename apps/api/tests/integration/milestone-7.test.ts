@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../../src/server.js';
+import { AdminRole } from '../../src/constants/admin-enums.js';
 
 /**
  * MILESTONE_7 - Admin Dashboard Integration Tests
@@ -42,7 +43,7 @@ describe('MILESTONE_7 - Admin Dashboard', () => {
       expect(res.body).toHaveProperty('success', true);
       expect(res.body).toHaveProperty('token');
       expect(res.body.admin).toHaveProperty('email', adminCredentials.email);
-      expect(res.body.admin).toHaveProperty('role', 'ADMIN_MASTER');
+      expect(res.body.admin).toHaveProperty('role', AdminRole.ADMIN_MASTER);
       expect(res.body.admin.permissions).toBeInstanceOf(Array);
       expect(res.body.admin.permissions.length).toBeGreaterThan(0);
 
@@ -225,7 +226,7 @@ describe('MILESTONE_7 - Admin Dashboard', () => {
       expect(res.body.data).toBeInstanceOf(Array);
       expect(res.body.data.length).toBeGreaterThan(0);
       
-      const adminMaster = res.body.data.find((s: any) => s.role === 'ADMIN_MASTER');
+      const adminMaster = res.body.data.find((s: any) => s.role === AdminRole.ADMIN_MASTER);
       expect(adminMaster).toBeDefined();
       expect(adminMaster.email).toBe(adminCredentials.email);
     });

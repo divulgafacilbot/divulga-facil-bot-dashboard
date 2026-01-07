@@ -1,7 +1,7 @@
 'use client';
 
 import { getAdminToken, getAdminUser } from '@/lib/admin-auth';
-import { AdminPermission } from '@/lib/admin-enums';
+import { AdminPermission, AdminRole } from '@/lib/admin-enums';
 import { useEffect, useState } from 'react';
 
 type OverviewPayload = {
@@ -160,8 +160,8 @@ const BarList = ({ data }: { data: { label: string; value: number }[] }) => {
 export default function AdminOverviewPage() {
   const [overview, setOverview] = useState<OverviewPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const admin = getAdminUser<{ role?: string; permissions?: AdminPermission[] }>();
-  const isAdminMaster = admin?.role === 'ADMIN_MASTER';
+  const admin = getAdminUser<{ role?: AdminRole; permissions?: AdminPermission[] }>();
+  const isAdminMaster = admin?.role === AdminRole.ADMIN_MASTER;
   const canSeeUsers = isAdminMaster || admin?.permissions?.includes(AdminPermission.USERS);
   const canSeeBots = isAdminMaster || admin?.permissions?.includes(AdminPermission.BOTS);
   const canSeeUsage = isAdminMaster || admin?.permissions?.includes(AdminPermission.USAGE);

@@ -1,5 +1,6 @@
 import { prisma } from '../../db/prisma.js';
 import bcrypt from 'bcrypt';
+import { AdminRole } from '../../constants/admin-enums.js';
 
 export class AdminStaffService {
   /**
@@ -37,11 +38,16 @@ export class AdminStaffService {
     name: string,
     email: string,
     password: string,
-    role: string,
+    role: string | undefined,
     permissions: string[] = []
   ) {
-    const normalizedRole = role || 'ADMIN';
-    const normalizedPermissions = normalizedRole === 'ADMIN_MASTER' ? [] : permissions;
+    const normalizeRoleValue = (value?: string) =>
+      value && Object.values(AdminRole).includes(value as AdminRole)
+        ? (value as AdminRole)
+        : AdminRole.COLABORADOR;
+    const normalizedRole = normalizeRoleValue(role);
+    const normalizedPermissions =
+      normalizedRole === AdminRole.ADMIN_MASTER ? [] : permissions;
 
     // Check if email already exists
     const existingAdmin = await prisma.admin_users.findUnique({

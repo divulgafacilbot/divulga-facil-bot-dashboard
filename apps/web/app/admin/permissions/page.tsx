@@ -1,10 +1,8 @@
 'use client';
 import { getAdminToken } from '@/lib/admin-auth';
-import { ADMIN_PERMISSIONS, AdminPermission } from '@/lib/admin-enums';
+import { ADMIN_PERMISSIONS, AdminPermission, AdminRole } from '@/lib/admin-enums';
 import { useEffect, useState } from 'react';
 import { getAdminUser } from '@/lib/admin-auth';
-
-type AdminRole = 'ADMIN' | 'ADMIN_MASTER';
 
 type StaffMember = {
   id: string;
@@ -23,7 +21,7 @@ export default function AdminPermissionsPage() {
     name: '',
     email: '',
     password: '',
-    role: 'ADMIN' as AdminRole,
+    role: AdminRole.COLABORADOR,
     permissions: [] as AdminPermission[],
   });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -54,7 +52,13 @@ export default function AdminPermissionsPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({ name: '', email: '', password: '', role: 'ADMIN', permissions: [] });
+    setForm({
+      name: '',
+      email: '',
+      password: '',
+      role: AdminRole.COLABORADOR,
+      permissions: [],
+    });
     setIsModalOpen(true);
   };
 
@@ -65,7 +69,8 @@ export default function AdminPermissionsPage() {
       email: member.email,
       password: '',
       role: member.role,
-      permissions: member.role === 'ADMIN_MASTER' ? [] : (member.permissions || []),
+      permissions:
+        member.role === AdminRole.ADMIN_MASTER ? [] : (member.permissions || []),
     });
     setIsModalOpen(true);
   };
@@ -233,16 +238,19 @@ export default function AdminPermissionsPage() {
                     setForm((prev) => ({
                       ...prev,
                       role,
-                      permissions: role === 'ADMIN_MASTER' ? [] : prev.permissions,
+                      permissions:
+                        role === AdminRole.ADMIN_MASTER ? [] : prev.permissions,
                     }));
                   }}
                 >
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="ADMIN_MASTER">ADMIN_MASTER</option>
+                  <option value={AdminRole.COLABORADOR}>{AdminRole.COLABORADOR}</option>
+                  <option value={AdminRole.ADMIN_MASTER}>
+                    {AdminRole.ADMIN_MASTER}
+                  </option>
                 </select>
               </div>
             )}
-            {form.role === 'ADMIN_MASTER' ? (
+            {form.role === AdminRole.ADMIN_MASTER ? (
               <div className="mt-4 rounded border border-dashed border-red-400 px-4 py-3 text-sm text-red-500">
                 ADMIN_MASTER tem acesso total a todas as abas e informacoes.
               </div>

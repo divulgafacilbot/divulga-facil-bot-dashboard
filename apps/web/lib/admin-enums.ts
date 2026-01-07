@@ -55,6 +55,11 @@ export const SUPPORT_TICKET_CATEGORY_LABELS = {
 
 export type SupportTicketCategory = keyof typeof SUPPORT_TICKET_CATEGORY_LABELS;
 
+export enum AdminRole {
+  COLABORADOR = 'COLABORADOR',
+  ADMIN_MASTER = 'ADMIN_MASTER',
+}
+
 export enum AdminPermission {
   OVERVIEW = 'overview',
   USERS = 'users',

@@ -123,3 +123,8 @@ export const CAMPAIGN_ASSET_TYPE_LABELS: Record<string, string> = {
   image: 'Imagem',
   video: 'Vídeo',
 };
+
+export enum AdminRole {
+  COLABORADOR = 'COLABORADOR',
+  ADMIN_MASTER = 'ADMIN_MASTER',
+}

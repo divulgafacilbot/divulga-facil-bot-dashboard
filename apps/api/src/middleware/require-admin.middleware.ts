@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../env.js';
+import { AdminRole } from '../constants/admin-enums.js';
 
 export interface AdminRequest extends Request {
   admin?: {
     id: string;
     email: string;
-    role: 'ADMIN' | 'ADMIN_MASTER';
+    role: AdminRole;
     permissions: string[];
   };
 }
@@ -14,7 +15,7 @@ export interface AdminRequest extends Request {
 interface AdminJWTPayload {
   adminUserId: string;
   email: string;
-  role: 'ADMIN' | 'ADMIN_MASTER';
+  role: AdminRole;
   permissions: string[];
 }
 
@@ -39,7 +40,7 @@ export const requireAdmin = async (
 
     const decoded = decodeAdminToken(token);
 
-    if (decoded.role !== 'ADMIN' && decoded.role !== 'ADMIN_MASTER') {
+    if (decoded.role !== AdminRole.COLABORADOR && decoded.role !== AdminRole.ADMIN_MASTER) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -62,7 +63,7 @@ export const requireAdminMaster = async (
   next: NextFunction
 ) => {
   await requireAdmin(req, res, () => {
-    if (req.admin?.role !== 'ADMIN_MASTER') {
+    if (req.admin?.role !== AdminRole.ADMIN_MASTER) {
       return res.status(403).json({
         error: 'ADMIN_MASTER role required for this operation'
       });
@@ -74,7 +75,7 @@ export const requireAdminMaster = async (
 export const requirePermission = (permissionKey: string) => {
   return async (req: AdminRequest, res: Response, next: NextFunction) => {
     await requireAdmin(req, res, () => {
-      if (req.admin?.role === 'ADMIN_MASTER') {
+      if (req.admin?.role === AdminRole.ADMIN_MASTER) {
         // ADMIN_MASTER has all permissions
         return next();
       }
