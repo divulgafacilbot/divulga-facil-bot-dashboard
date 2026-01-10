@@ -1,5 +1,5 @@
-import { prisma } from '../../db/prisma';
-import { nowBrt } from '../../utils/time';
+import { prisma } from '../../db/prisma.js';
+import { nowBrt } from '../../utils/time.js';
 
 export interface AcquireLockResult {
   acquired: boolean;

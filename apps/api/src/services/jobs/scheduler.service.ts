@@ -1,8 +1,8 @@
 import cron from 'node-cron';
 import type { ScheduledTask } from 'node-cron';
-import { housekeepingService } from './housekeeping.service';
-import { getNextRunTime, formatBrt } from '../../utils/time';
-import { TIME_CONSTANTS } from '../../constants/time.constants';
+import { housekeepingService } from './housekeeping.service.js';
+import { getNextRunTime, formatBrt } from '../../utils/time.js';
+import { TIME_CONSTANTS } from '../../constants/time.constants.js';
 
 export class SchedulerService {
   private task: ScheduledTask | null = null;

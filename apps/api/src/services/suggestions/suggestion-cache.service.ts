@@ -1,7 +1,7 @@
-import { prisma } from '../../db/prisma';
-import { nowBrt, computeExpiresAt, getDayKey, isExpired } from '../../utils/time';
-import { SUGGESTION_CONSTANTS } from '../../constants/suggestions.constants';
-import type { MarketplaceSuggestions, InputContext, Marketplace } from '../../types/suggestions.types';
+import { prisma } from '../../db/prisma.js';
+import { nowBrt, computeExpiresAt, getDayKey, isExpired } from '../../utils/time.js';
+import { SUGGESTION_CONSTANTS } from '../../constants/suggestions.constants.js';
+import type { MarketplaceSuggestions, InputContext, Marketplace } from '../../types/suggestions.types.js';
 
 export class SuggestionCacheService {
   /**

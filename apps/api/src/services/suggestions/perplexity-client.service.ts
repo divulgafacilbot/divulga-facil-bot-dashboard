@@ -1,4 +1,4 @@
-import type { PerplexityRequest, PerplexityResponse } from '../../types/suggestions.types';
+import type { PerplexityRequest, PerplexityResponse } from '../../types/suggestions.types.js';
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';

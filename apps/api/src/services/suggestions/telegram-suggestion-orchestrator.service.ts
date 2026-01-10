@@ -1,11 +1,11 @@
-import { suggestionCacheService } from './suggestion-cache.service';
-import { metricsAnalyzerService } from './metrics-analyzer.service';
-import { campaignInjectorService } from './campaign-injector.service';
-import { jsonValidatorService } from './json-validator.service';
-import { perplexityClientService } from './perplexity-client.service';
+import { suggestionCacheService } from './suggestion-cache.service.js';
+import { metricsAnalyzerService } from './metrics-analyzer.service.js';
+import { campaignInjectorService } from './campaign-injector.service.js';
+import { jsonValidatorService } from './json-validator.service.js';
+import { perplexityClientService } from './perplexity-client.service.js';
 import { telemetryService } from '../telemetry.service.js';
-import { SUGGESTION_CONSTANTS, Marketplace } from '../../constants/suggestions.constants';
-import type { MarketplaceSuggestions, InputContext, PerplexityMessage, ProductSuggestion } from '../../types/suggestions.types';
+import { SUGGESTION_CONSTANTS, Marketplace } from '../../constants/suggestions.constants.js';
+import type { MarketplaceSuggestions, InputContext, PerplexityMessage, ProductSuggestion } from '../../types/suggestions.types.js';
 
 const PERPLEXITY_MODEL = 'sonar-pro';
 const MAX_REPAIR_ATTEMPTS = 3;

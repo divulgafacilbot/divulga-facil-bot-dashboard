@@ -1,5 +1,5 @@
-import { SUGGESTION_CONSTANTS } from '../../constants/suggestions.constants';
-import type { MarketplaceSuggestions, ProductSuggestion, ValidationResult } from '../../types/suggestions.types';
+import { SUGGESTION_CONSTANTS } from '../../constants/suggestions.constants.js';
+import type { MarketplaceSuggestions, ProductSuggestion, ValidationResult } from '../../types/suggestions.types.js';
 
 export class JsonValidatorService {
   /**
