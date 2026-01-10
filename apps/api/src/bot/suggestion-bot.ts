@@ -475,14 +475,21 @@ async function saveSuggestionHistory(
   suggestions: ProductSuggestion[]
 ): Promise<void> {
   try {
-    const historyRecords = suggestions.map((suggestion) => ({
-      user_id: userId,
-      suggested_product_url: suggestion.url,
-      suggested_title: suggestion.title.substring(0, 500),
-      suggested_category: suggestion.category,
-      suggested_marketplace: marketplace,
-      suggested_at: new Date(),
-    }));
+    // Filter out suggestions without URLs (url is optional in ProductSuggestion)
+    const historyRecords = suggestions
+      .filter((suggestion) => suggestion.url)
+      .map((suggestion) => ({
+        user_id: userId,
+        suggested_product_url: suggestion.url!,
+        suggested_title: suggestion.title.substring(0, 500),
+        suggested_category: suggestion.category,
+        suggested_marketplace: marketplace,
+        suggested_at: new Date(),
+      }));
+
+    if (historyRecords.length === 0) {
+      return;
+    }
 
     await prisma.suggestion_history.createMany({
       data: historyRecords,
