@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { prisma } from '../../db/prisma';
-import { SUGGESTION_CONSTANTS } from '../../constants/suggestions.constants';
-import { requireAdmin } from '../../middleware/require-admin.middleware';
+import { prisma } from '../../db/prisma.js';
+import { SUGGESTION_CONSTANTS } from '../../constants/suggestions.constants.js';
+import { requireAdmin } from '../../middleware/require-admin.middleware.js';
 
 const router = Router();
 

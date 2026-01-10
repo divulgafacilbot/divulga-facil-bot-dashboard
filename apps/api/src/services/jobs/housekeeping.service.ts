@@ -1,7 +1,7 @@
-import { prisma } from '../../db/prisma';
-import { nowBrt, getCutoffDate } from '../../utils/time';
-import { jobLockService } from './job-lock.service';
-import { TIME_CONSTANTS } from '../../constants/time.constants';
+import { prisma } from '../../db/prisma.js';
+import { nowBrt, getCutoffDate } from '../../utils/time.js';
+import { jobLockService } from './job-lock.service.js';
+import { TIME_CONSTANTS } from '../../constants/time.constants.js';
 
 export interface HousekeepingResult {
   totalDeletedEvents: number;

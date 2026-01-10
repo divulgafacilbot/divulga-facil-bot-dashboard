@@ -1,11 +1,11 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { prisma } from '../db/prisma.js';
-import { suggestionCacheService } from '../services/suggestions/suggestion-cache.service';
-import { telegramSuggestionOrchestratorService } from '../services/suggestions/telegram-suggestion-orchestrator.service';
+import { suggestionCacheService } from '../services/suggestions/suggestion-cache.service.js';
+import { telegramSuggestionOrchestratorService } from '../services/suggestions/telegram-suggestion-orchestrator.service.js';
 import { telemetryService } from '../services/telemetry.service.js';
 import { BOT_TYPES } from '../constants/bot-types.js';
 import * as telegramUtils from './shared/telegram-utils.js';
-import type { Marketplace, ProductSuggestion } from '../types/suggestions.types';
+import type { Marketplace, ProductSuggestion } from '../types/suggestions.types.js';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_SUGESTION_TOKEN;
 

@@ -1,7 +1,7 @@
-import { prisma } from '../../db/prisma';
-import { getDayKey, nowBrt } from '../../utils/time';
-import { SUGGESTION_CONSTANTS } from '../../constants/suggestions.constants';
-import type { Marketplace, ProductSuggestion, MarketplaceSuggestions } from '../../types/suggestions.types';
+import { prisma } from '../../db/prisma.js';
+import { getDayKey, nowBrt } from '../../utils/time.js';
+import { SUGGESTION_CONSTANTS } from '../../constants/suggestions.constants.js';
+import type { Marketplace, ProductSuggestion, MarketplaceSuggestions } from '../../types/suggestions.types.js';
 
 export interface CampaignInjectionResult {
   suggestions: MarketplaceSuggestions;

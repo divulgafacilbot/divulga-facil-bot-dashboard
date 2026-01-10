@@ -1,4 +1,4 @@
-import { Marketplace, AllowedCategory } from '../constants/suggestions.constants';
+import { Marketplace, AllowedCategory } from '../constants/suggestions.constants.js';
 
 // Re-export for convenience
 export { Marketplace, AllowedCategory };

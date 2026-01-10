@@ -4,7 +4,7 @@ import {
   runHousekeeping,
   getLockStatus,
   releaseLock,
-} from '../../controllers/internal/jobs.controller';
+} from '../../controllers/internal/jobs.controller.js';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { housekeepingService } from '../../services/jobs/housekeeping.service';
-import { jobLockService } from '../../services/jobs/job-lock.service';
+import { housekeepingService } from '../../services/jobs/housekeeping.service.js';
+import { jobLockService } from '../../services/jobs/job-lock.service.js';
 
 /**
  * POST /internal/jobs/housekeeping
