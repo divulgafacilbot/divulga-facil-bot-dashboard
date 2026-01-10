@@ -3,6 +3,7 @@
 import AppHeader from '@/components/common/AppHeader';
 import { getAdminToken, getAdminUser } from '@/lib/admin-auth';
 import { AdminPermission, AdminRole } from '@/lib/admin-enums';
+import { ROUTES } from '@/lib/constants';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -26,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setToken(initialToken);
     if (!initialToken) {
       setLoading(false);
-      router.push('/admin/login');
+      router.push(ROUTES.admin.login);
       return;
     }
 
@@ -43,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         sessionStorage.setItem('admin_user', JSON.stringify(data.admin));
       })
       .catch(() => {
-        router.push('/admin/login');
+        router.push(ROUTES.admin.login);
       })
       .finally(() => {
         setLoading(false);
@@ -102,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           sessionStorage.setItem('admin_user', JSON.stringify(data.admin));
         })
         .catch(() => {
-          router.push('/admin/login');
+          router.push(ROUTES.admin.login);
         })
         .finally(() => {
           setLoading(false);
@@ -123,23 +124,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     sessionStorage.removeItem('admin_token');
     sessionStorage.removeItem('admin_user');
     window.dispatchEvent(new Event('admin-auth-changed'));
-    router.push('/admin/login');
+    router.push(ROUTES.admin.login);
   };
 
-  if (pathname === '/admin/login') {
+  if (pathname === ROUTES.admin.login) {
     return <>{children}</>;
   }
 
   const navigation = [
-    { name: 'Visão geral', href: '/admin', permission: AdminPermission.OVERVIEW },
-    { name: 'Gestão de Usuários', href: '/admin/users', permission: AdminPermission.USERS },
-    { name: 'Métricas de Bots', href: '/admin/bots', permission: AdminPermission.BOTS },
-    { name: 'Métricas de Uso', href: '/admin/usage', permission: AdminPermission.USAGE },
-    { name: 'Gestão de Templates', href: '/admin/templates', permission: AdminPermission.TEMPLATES },
-    { name: 'Criar Campanhas', href: '/admin/campaigns', permission: AdminPermission.CAMPAIGNS },
-    { name: 'Suporte ao cliente', href: '/admin/support', permission: AdminPermission.SUPPORT },
-    { name: 'Gestão do Financeiro', href: '/admin/finance', permission: AdminPermission.FINANCE },
-    { name: 'Gestão de Colaboradores', href: '/admin/permissions', permission: AdminPermission.PERMISSIONS },
+    { name: 'Visão geral', href: ROUTES.admin.home, permission: AdminPermission.OVERVIEW },
+    { name: 'Gestão de Usuários', href: ROUTES.admin.users, permission: AdminPermission.USERS },
+    { name: 'Métricas de Bots', href: ROUTES.admin.bots, permission: AdminPermission.BOTS },
+    { name: 'Métricas de Uso', href: ROUTES.admin.usage, permission: AdminPermission.USAGE },
+    { name: 'Gestão de Templates', href: ROUTES.admin.templates, permission: AdminPermission.TEMPLATES },
+    { name: 'Criar Campanhas', href: ROUTES.admin.campaigns, permission: AdminPermission.CAMPAIGNS },
+    { name: 'Tokens Promocionais', href: ROUTES.admin.promoTokens, permission: AdminPermission.PROMO_TOKENS },
+    { name: 'Suporte ao cliente', href: ROUTES.admin.support, permission: AdminPermission.SUPPORT },
+    { name: 'Gestão do Financeiro', href: ROUTES.admin.finance, permission: AdminPermission.FINANCE },
+    { name: 'Gestão de Colaboradores', href: ROUTES.admin.permissions, permission: AdminPermission.PERMISSIONS },
   ];
 
   const permissions = Array.isArray(admin?.permissions) ? admin.permissions : [];
@@ -177,7 +179,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ))}
     </div>
   ) : (
-    <nav className="p-4 space-y-2 text-sm">
+    <nav aria-label="Menu administrativo" className="p-4 space-y-2 text-sm">
       {filteredNav.map((item) => (
         <Link
           key={item.href}
@@ -203,6 +205,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#eff4ff,_#f2f2f2_55%)]">
       <AppHeader variant="admin" onLogout={handleLogout} />
+
+      {/* Skip Link */}
+      <a href="#main-content" className="skip-link">
+        Pular para o conteúdo principal
+      </a>
+
       <div className="pt-[70px]">
         {/* Sidebar */}
         <aside className="fixed left-0 top-[70px] z-30 h-[calc(100vh-70px)] w-64 bg-white shadow-[var(--shadow-md)] border-r border-[var(--color-border)]">
@@ -211,8 +219,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex-1">{navigationContent}</div>
             <div className="border-t border-[var(--color-border)] p-4">
               <Link
-                href="/admin/settings"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${pathname === '/admin/settings'
+                href={ROUTES.admin.settings}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${pathname === ROUTES.admin.settings
                   ? 'bg-blue-50 text-blue-700 border border-blue-200'
                   : 'text-gray-700 hover:bg-blue-50/60 hover:text-blue-700'
                   }`}
@@ -237,7 +245,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </aside>
 
         {/* Main content */}
-        <div className="ml-64 p-8">
+        <main id="main-content" className="ml-64 p-8">
           <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
             {loading ? (
               <div className="grid gap-4">
@@ -249,7 +257,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               children
             )}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

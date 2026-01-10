@@ -570,15 +570,15 @@ export default function AdminTemplatesPage() {
             <h2 className="text-2xl font-bold text-[var(--color-text-main)]">
               Editar no Canva
             </h2>
-            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               <strong>1) </strong>Seu layout novo necessita obrigatoriamente de 2 formatos, ambos padronizados no Canva: formato feed e formato story.
-            </h5>
-            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+            </p>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               <strong>2) </strong>Após clicar no botão e o template padrão se abrir, clique em <strong>Arquivo</strong> &gt; <strong>Fazer uma cópia</strong>, conforme o vídeo abaixo.
-            </h5>
-            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+            </p>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               <strong>3) </strong>Depois de prontas as duas artes, anexe pelo botão <strong>Criar template base</strong>.
-            </h5>
+            </p>
 
             <div className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
               <video src="/Canva.mp4" controls className="h-auto w-full" />

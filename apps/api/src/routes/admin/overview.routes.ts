@@ -12,12 +12,24 @@ router.get('/', requireAdmin, async (req, res) => {
       res.json({ success: true, data: cachedOverview.data, cached: true });
       return;
     }
-    const [kpis, timeSeries, subscriptionStatus, criticalEvents, kiwifyEvents] = await Promise.all([
+    const [
+      kpis,
+      timeSeries,
+      subscriptionStatus,
+      criticalEvents,
+      kiwifyEvents,
+      publicPageMetrics,
+      pinterestBotMetrics,
+      suggestionBotMetrics,
+    ] = await Promise.all([
       AdminOverviewService.getKPIs(),
       AdminOverviewService.getTimeSeriesData(30),
       AdminOverviewService.getSubscriptionStatusBreakdown(),
       AdminOverviewService.getCriticalEvents(10),
       AdminOverviewService.getRecentKiwifyWebhooks(10),
+      AdminOverviewService.getPublicPageMetrics(30),
+      AdminOverviewService.getPinterestBotMetrics(30),
+      AdminOverviewService.getSuggestionBotMetrics(30),
     ]);
     let activeTokens: Awaited<ReturnType<typeof AdminOverviewService.getActiveTokens>> = [];
     try {
@@ -25,7 +37,17 @@ router.get('/', requireAdmin, async (req, res) => {
     } catch (error) {
       console.warn('[admin-overview] active tokens unavailable', error);
     }
-    const data = { kpis, timeSeries, subscriptionStatus, criticalEvents, kiwifyEvents, activeTokens };
+    const data = {
+      kpis,
+      timeSeries,
+      subscriptionStatus,
+      criticalEvents,
+      kiwifyEvents,
+      activeTokens,
+      publicPageMetrics,
+      pinterestBotMetrics,
+      suggestionBotMetrics,
+    };
     cachedOverview = { data, expiresAt: Date.now() + CACHE_TTL_MS };
 
     res.json({

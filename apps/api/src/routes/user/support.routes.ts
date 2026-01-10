@@ -71,20 +71,6 @@ router.post('/tickets/:id/close', async (req, res) => {
   }
 });
 
-router.post('/tickets/:id/archive', async (req, res) => {
-  try {
-    const userId = (req as any).user?.id || 'temp-user-id';
-    if (!UserSupportService.isValidUuid(userId)) {
-      res.status(401).json({ error: 'Usuario nao autenticado' });
-      return;
-    }
-    await UserSupportService.archiveTicket(req.params.id, userId);
-    res.json({ success: true, message: 'Ticket arquivado' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 router.post('/tickets/closed/seen', async (req, res) => {
   try {
     const userId = (req as any).user?.id || 'temp-user-id';

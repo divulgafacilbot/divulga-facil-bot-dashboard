@@ -195,7 +195,7 @@ Use /vincular para conectar sua conta.`
         bot_type: BOT_TYPES.DOWNLOAD,
       },
       include: {
-        users: true,
+        user: true,
       },
     });
 

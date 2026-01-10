@@ -71,6 +71,9 @@ const STATUS_LABELS: Record<SupportTicket["status"], string> = {
 const CATEGORY_OPTIONS = [
   "Bot de artes",
   "Bot de download",
+  "Bot de Pins",
+  "Bot de Sugestão",
+  "Página Pública",
   "Financeiro",
   "Material promocional",
   "Outras duvidas",

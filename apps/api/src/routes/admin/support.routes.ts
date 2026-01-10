@@ -98,6 +98,7 @@ router.get('/tickets', requireAdmin, requirePermission('support'), async (req, r
       ...req.query,
       priority: normalizeSupportPriority(req.query.priority as string),
       status: normalizeSupportStatus(req.query.status as string),
+      botType: req.query.botType as string | undefined,
     };
     const tickets = await AdminSupportService.getTickets(normalizedFilters, { page: 1, limit: 50 });
     const mapped = {

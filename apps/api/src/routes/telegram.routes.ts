@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { telegramController } from '../controllers/telegram.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { TelegramLinkGenerationService } from '../services/telegram/link-generation.service.js';
+import { promoTokensService } from '../services/admin/promo-tokens.service.js';
+import { z } from 'zod';
 
 const router = Router();
 
@@ -24,5 +27,224 @@ router.get('/telegram/link-status', authMiddleware, telegramController.getLinkSt
 
 // DELETE /telegram/unlink - Unlink account (requires auth)
 router.delete('/telegram/unlink', authMiddleware, telegramController.unlinkAccount.bind(telegramController));
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Milestone 2: Bot link generation endpoints
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Validation schema
+const generateLinkSchema = z.object({
+  botType: z.enum(['ARTS', 'DOWNLOAD', 'PINTEREST', 'SUGGESTION'])
+});
+
+/**
+ * POST /api/telegram/generate-link
+ * Generate 10-minute temporary token for bot linkage
+ */
+router.post('/generate-link', authMiddleware, async (req, res) => {
+  try {
+    const { botType } = generateLinkSchema.parse(req.body);
+    const userId = req.user!.id;
+
+    // Check if already linked
+    const isLinked = await TelegramLinkGenerationService.isLinked(userId, botType as any);
+    if (isLinked) {
+      return res.status(400).json({
+        error: 'Bot already linked',
+        message: 'Este bot já está vinculado à sua conta'
+      });
+    }
+
+    // Generate token
+    const link = await TelegramLinkGenerationService.generateLinkToken(userId, botType as any);
+
+    res.json({ link });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Generate link error:', error);
+    res.status(500).json({ error: 'Failed to generate link' });
+  }
+});
+
+/**
+ * GET /api/telegram/linked-bots
+ * Get all linked bots for current user
+ */
+router.get('/linked-bots', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const bots = await TelegramLinkGenerationService.getLinkedBots(userId);
+    res.json({ bots });
+  } catch (error) {
+    console.error('Get linked bots error:', error);
+    res.status(500).json({ error: 'Failed to fetch linked bots' });
+  }
+});
+
+/**
+ * GET /api/telegram/bot-configs
+ * Get configuration for all available bots
+ */
+router.get('/bot-configs', authMiddleware, async (req, res) => {
+  try {
+    const configs = TelegramLinkGenerationService.getAllBotConfigs();
+    res.json({ bots: configs });
+  } catch (error) {
+    console.error('Get bot configs error:', error);
+    res.status(500).json({ error: 'Failed to fetch bot configs' });
+  }
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Promo Token Validation (Bot → API, no auth)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const validatePromoTokenSchema = z.object({
+  botType: z.enum(['ARTS', 'DOWNLOAD', 'PINTEREST', 'SUGGESTION']),
+  promoToken: z.string().min(1).max(64),
+  userId: z.string().uuid().optional(),
+});
+
+/**
+ * POST /api/telegram/validate-promo-token
+ * Validate a promotional token (called by bots, no auth required)
+ *
+ * Response:
+ *   - { valid: true, tokenId: string }
+ *   - { valid: false, reason: 'TOKEN_NOT_FOUND' | 'TOKEN_EXPIRED' | 'TOKEN_INACTIVE' | 'WRONG_BOT_TYPE' }
+ */
+router.post('/validate-promo-token', async (req, res) => {
+  try {
+    const { botType, promoToken } = validatePromoTokenSchema.parse(req.body);
+
+    const result = await promoTokensService.validateToken(promoToken, botType as any);
+
+    if (result.valid) {
+      return res.json({
+        valid: true,
+        tokenId: result.tokenId,
+      });
+    }
+
+    // Map error messages to reason codes
+    let reason = 'TOKEN_NOT_FOUND';
+    if (result.error?.includes('inactive')) {
+      reason = 'TOKEN_INACTIVE';
+    } else if (result.error?.includes('expired')) {
+      reason = 'TOKEN_EXPIRED';
+    } else if (result.error?.includes('is for')) {
+      reason = 'WRONG_BOT_TYPE';
+    }
+
+    return res.json({
+      valid: false,
+      reason,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Validate promo token error:', error);
+    res.status(500).json({ error: 'Failed to validate promo token' });
+  }
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// User Promo Tokens Management (requires auth)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const tokenIdParamSchema = z.object({
+  id: z.string().uuid('Invalid token ID format'),
+});
+
+/**
+ * GET /api/telegram/promo-tokens
+ * Get all promo tokens for the current user
+ */
+router.get('/telegram/promo-tokens', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const botType = req.query.botType as string | undefined;
+
+    console.log('[Promo Tokens] Fetching tokens for user:', userId, 'botType:', botType);
+
+    const tokens = await promoTokensService.getTokensByUserId(
+      userId,
+      botType as any
+    );
+
+    console.log('[Promo Tokens] Found tokens:', tokens.length);
+
+    res.json({
+      success: true,
+      data: tokens,
+    });
+  } catch (error) {
+    console.error('Get promo tokens error:', error);
+    res.status(500).json({ error: 'Failed to fetch promo tokens' });
+  }
+});
+
+/**
+ * POST /api/telegram/promo-tokens/:id/refresh
+ * Refresh a promo token (generate new token string)
+ */
+router.post('/telegram/promo-tokens/:id/refresh', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = tokenIdParamSchema.parse(req.params);
+
+    const newToken = await promoTokensService.refreshTokenByUser(id, userId);
+
+    if (!newToken) {
+      return res.status(404).json({
+        error: 'Token not found or unauthorized',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: newToken,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Refresh promo token error:', error);
+    res.status(500).json({ error: 'Failed to refresh promo token' });
+  }
+});
+
+/**
+ * DELETE /api/telegram/promo-tokens/:id
+ * Delete a promo token
+ */
+router.delete('/telegram/promo-tokens/:id', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = tokenIdParamSchema.parse(req.params);
+
+    const deleted = await promoTokensService.deleteTokenByUser(id, userId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: 'Token not found or unauthorized',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Token deleted successfully',
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Delete promo token error:', error);
+    res.status(500).json({ error: 'Failed to delete promo token' });
+  }
+});
 
 export default router;

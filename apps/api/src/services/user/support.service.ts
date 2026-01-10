@@ -17,7 +17,7 @@ export class UserSupportService {
   static async createTicket(
     userId: string,
     subject: string,
-    category: string,
+    category: 'GENERAL' | 'BILLING' | 'TECHNICAL' | 'BOT_ARTS' | 'BOT_DOWNLOAD' | 'BOT_PINTEREST' | 'BOT_SUGGESTION' | 'PUBLIC_PAGE',
     message: string,
     attachments: any[] = []
   ) {
@@ -25,9 +25,9 @@ export class UserSupportService {
       data: {
         user_id: userId,
         subject,
-        category,
-        status: SUPPORT_TICKET_STATUSES.OPEN,
-        priority: SUPPORT_TICKET_PRIORITIES.NORMAL,
+        category: category as any,
+        status: SUPPORT_TICKET_STATUSES.OPEN as any,
+        priority: SUPPORT_TICKET_PRIORITIES.NORMAL as any,
         closed_seen_at: null,
         support_messages: {
           create: {
@@ -63,20 +63,7 @@ export class UserSupportService {
     const normalizedStatus = filters?.status;
     const baseWhere: any = {
       user_id: userId,
-      status: { not: SUPPORT_TICKET_STATUSES.ARCHIVED },
     };
-
-    await prisma.support_tickets.updateMany({
-      where: {
-        user_id: userId,
-        status: SUPPORT_TICKET_STATUSES.CLOSED,
-        updated_at: { lt: fifteenDaysAgo },
-      },
-      data: {
-        status: SUPPORT_TICKET_STATUSES.ARCHIVED,
-        updated_at: new Date(),
-      },
-    });
 
     if (normalizedStatus) {
       baseWhere.status = normalizedStatus;
@@ -172,7 +159,7 @@ export class UserSupportService {
 
     await prisma.support_tickets.update({
       where: { id: ticketId },
-      data: { updated_at: new Date(), status: SUPPORT_TICKET_STATUSES.OPEN, closed_seen_at: null },
+      data: { updated_at: new Date(), status: SUPPORT_TICKET_STATUSES.OPEN as any, closed_seen_at: null },
     });
 
     supportEvents.emit(SUPPORT_EVENTS.UPDATED);
@@ -186,7 +173,7 @@ export class UserSupportService {
     ticketId: string,
     userId: string,
     subject: string,
-    category: string,
+    category: 'GENERAL' | 'BILLING' | 'TECHNICAL' | 'BOT_ARTS' | 'BOT_DOWNLOAD' | 'BOT_PINTEREST' | 'BOT_SUGGESTION' | 'PUBLIC_PAGE',
     message: string,
     attachments: any[] = []
   ) {
@@ -205,8 +192,8 @@ export class UserSupportService {
       where: { id: ticketId },
       data: {
         subject,
-        category,
-        status: SUPPORT_TICKET_STATUSES.OPEN,
+        category: category as any,
+        status: SUPPORT_TICKET_STATUSES.OPEN as any,
         updated_at: new Date(),
         closed_seen_at: null,
       },
@@ -251,7 +238,7 @@ export class UserSupportService {
     await prisma.support_tickets.update({
       where: { id: ticketId },
       data: {
-        status: SUPPORT_TICKET_STATUSES.CLOSED,
+        status: SUPPORT_TICKET_STATUSES.CLOSED as any,
         updated_at: new Date(),
         closed_seen_at: new Date(),
       },
@@ -268,40 +255,6 @@ export class UserSupportService {
     supportEvents.emit(SUPPORT_EVENTS.UPDATED);
   }
 
-  /**
-   * Archive ticket by user
-   */
-  static async archiveTicket(ticketId: string, userId: string) {
-    if (!UserSupportService.isValidUuid(userId)) {
-      throw new Error('Invalid user');
-    }
-    const ticket = await prisma.support_tickets.findFirst({
-      where: { id: ticketId, user_id: userId },
-    });
-
-    if (!ticket) {
-      throw new Error('Ticket not found or access denied');
-    }
-
-    await prisma.support_tickets.update({
-      where: { id: ticketId },
-      data: {
-        status: SUPPORT_TICKET_STATUSES.ARCHIVED,
-        updated_at: new Date(),
-        closed_seen_at: new Date(),
-      },
-    });
-
-    await prisma.support_ticket_events.create({
-      data: {
-        ticket_id: ticketId,
-        event_type: 'archived_by_user',
-        metadata: { userId },
-      },
-    });
-
-    supportEvents.emit(SUPPORT_EVENTS.UPDATED);
-  }
 
   /**
    * Mark closed tickets as seen
@@ -313,7 +266,7 @@ export class UserSupportService {
     await prisma.support_tickets.updateMany({
       where: {
         user_id: userId,
-        status: SUPPORT_TICKET_STATUSES.CLOSED,
+        status: SUPPORT_TICKET_STATUSES.CLOSED as any,
         closed_seen_at: null,
       },
       data: { closed_seen_at: new Date() },
@@ -330,7 +283,7 @@ export class UserSupportService {
     return prisma.support_tickets.count({
       where: {
         user_id: userId,
-        status: SUPPORT_TICKET_STATUSES.CLOSED,
+        status: SUPPORT_TICKET_STATUSES.CLOSED as any,
         closed_seen_at: null,
       },
     });

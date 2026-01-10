@@ -103,4 +103,27 @@ router.get(
   }
 );
 
+/**
+ * GET /admin/usage/by-bot-type
+ * Get usage data separated by bot type (renders, downloads, suggestions, pins)
+ */
+router.get(
+  '/by-bot-type',
+  requireAdmin,
+  requirePermission('usage'),
+  async (req: AdminRequest, res: Response) => {
+    try {
+      const usageByBotType = await AdminUsageService.getUsageByBotType();
+
+      res.json({
+        success: true,
+        data: usageByBotType,
+      });
+    } catch (error) {
+      console.error('Error fetching usage by bot type:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
 export default router;

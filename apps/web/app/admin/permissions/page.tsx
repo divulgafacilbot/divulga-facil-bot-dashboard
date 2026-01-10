@@ -35,6 +35,7 @@ export default function AdminPermissionsPage() {
     [AdminPermission.SUPPORT]: 'Suporte ao cliente',
     [AdminPermission.FINANCE]: 'Gestão do Financeiro',
     [AdminPermission.PERMISSIONS]: 'Gestão de colaboradores',
+    [AdminPermission.PROMO_TOKENS]: 'Tokens Promocionais',
   };
 
   useEffect(() => {

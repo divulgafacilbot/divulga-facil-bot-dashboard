@@ -252,4 +252,72 @@ export class AdminUsageService {
       (a, b) => b.totalViolations - a.totalViolations
     );
   }
+
+  /**
+   * Get usage by bot type - renders, downloads, suggestions, pins per user
+   */
+  static async getUsageByBotType() {
+    // Get renders and downloads from usage_counters
+    const usageData = await prisma.usage_counters.groupBy({
+      by: ['user_id'],
+      _sum: {
+        renders_count: true,
+        downloads_count: true,
+      },
+    });
+
+    // Get suggestions per user from suggestion_history
+    const suggestionsData = await prisma.$queryRaw<{ user_id: string; count: number }[]>`
+      SELECT user_id, COUNT(*)::int AS count
+      FROM suggestion_history
+      GROUP BY user_id
+    `;
+
+    // Get pins created per user from public_cards (source = BOT)
+    const pinsData = await prisma.$queryRaw<{ user_id: string; count: number }[]>`
+      SELECT user_id, COUNT(*)::int AS count
+      FROM public_cards
+      WHERE source = 'BOT'
+      GROUP BY user_id
+    `;
+
+    // Get all unique user IDs
+    const allUserIds = new Set<string>();
+    usageData.forEach(u => u.user_id && allUserIds.add(u.user_id));
+    suggestionsData.forEach(u => allUserIds.add(u.user_id));
+    pinsData.forEach(u => allUserIds.add(u.user_id));
+
+    // Get user details
+    const users = await prisma.user.findMany({
+      where: { id: { in: Array.from(allUserIds) } },
+      select: { id: true, email: true },
+    });
+
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const usageMap = new Map(usageData.map(u => [u.user_id, u]));
+    const suggestionsMap = new Map(suggestionsData.map(s => [s.user_id, s.count]));
+    const pinsMap = new Map(pinsData.map(p => [p.user_id, p.count]));
+
+    // Combine all data
+    const result = Array.from(allUserIds).map(userId => {
+      const user = userMap.get(userId);
+      const usage = usageMap.get(userId);
+
+      return {
+        userId,
+        email: user?.email || null,
+        renders: usage?._sum.renders_count || 0,
+        downloads: usage?._sum.downloads_count || 0,
+        suggestions: suggestionsMap.get(userId) || 0,
+        pinsCreated: pinsMap.get(userId) || 0,
+      };
+    });
+
+    return {
+      byRenders: [...result].sort((a, b) => b.renders - a.renders),
+      byDownloads: [...result].sort((a, b) => b.downloads - a.downloads),
+      bySuggestions: [...result].sort((a, b) => b.suggestions - a.suggestions),
+      byPins: [...result].sort((a, b) => b.pinsCreated - a.pinsCreated),
+    };
+  }
 }

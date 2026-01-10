@@ -6,6 +6,7 @@ interface GetTicketsFilters {
   priority?: string;
   category?: string;
   userId?: string;
+  botType?: string;
 }
 
 interface Pagination {
@@ -39,6 +40,12 @@ export class AdminSupportService {
       where.user_id = filters.userId;
     }
 
+    // Filter by bot type using category mapping
+    if (filters.botType) {
+      const botCategory = `BOT_${filters.botType.toUpperCase()}`;
+      where.category = botCategory;
+    }
+
     const [tickets, total] = await Promise.all([
       prisma.support_tickets.findMany({
         where,
@@ -46,7 +53,7 @@ export class AdminSupportService {
         take: limit,
         orderBy: { created_at: 'desc' },
         include: {
-          users: {
+          user: {
             select: {
               id: true,
               email: true,
@@ -85,7 +92,7 @@ export class AdminSupportService {
     const ticket = await prisma.support_tickets.findUnique({
       where: { id: ticketId },
       include: {
-        users: {
+        user: {
           select: {
             id: true,
             email: true,
@@ -155,8 +162,8 @@ export class AdminSupportService {
     const ticket = await prisma.support_tickets.update({
       where: { id: ticketId },
       data: {
-        status,
-        closed_seen_at: status === 'closed' ? null : undefined,
+        status: status as any,
+        closed_seen_at: status === 'CLOSED' ? null : undefined,
         updated_at: new Date(),
       },
     });
@@ -184,7 +191,7 @@ export class AdminSupportService {
   static async updateTicketPriority(ticketId: string, priority: string, adminUserId: string) {
     const ticket = await prisma.support_tickets.update({
       where: { id: ticketId },
-      data: { priority },
+      data: { priority: priority as any },
     });
 
     // Create event
@@ -208,7 +215,7 @@ export class AdminSupportService {
   static async resolveTicket(ticketId: string, adminUserId: string, resolution: string) {
     const ticket = await prisma.support_tickets.update({
       where: { id: ticketId },
-      data: { status: 'closed', closed_seen_at: null, updated_at: new Date() },
+      data: { status: 'CLOSED' as any, closed_seen_at: null, updated_at: new Date() },
     });
 
     // Create resolution message
@@ -242,7 +249,7 @@ export class AdminSupportService {
   static async reopenTicket(ticketId: string, adminUserId: string, reason: string) {
     const ticket = await prisma.support_tickets.update({
       where: { id: ticketId },
-      data: { status: 'open', closed_seen_at: null, updated_at: new Date() },
+      data: { status: 'OPEN' as any, closed_seen_at: null, updated_at: new Date() },
     });
 
     // Create event
@@ -275,9 +282,9 @@ export class AdminSupportService {
       ticketsByStatus,
     ] = await Promise.all([
       prisma.support_tickets.count(),
-      prisma.support_tickets.count({ where: { status: 'open' } }),
-      prisma.support_tickets.count({ where: { status: 'closed' } }),
-      prisma.support_tickets.count({ where: { status: 'in_progress' } }),
+      prisma.support_tickets.count({ where: { status: 'OPEN' as any } }),
+      prisma.support_tickets.count({ where: { status: 'CLOSED' as any } }),
+      prisma.support_tickets.count({ where: { status: 'IN_PROGRESS' as any } }),
       prisma.support_tickets.groupBy({
         by: ['priority'],
         _count: { id: true },

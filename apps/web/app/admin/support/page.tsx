@@ -5,6 +5,17 @@ import {
   SupportTicketPriority,
   SupportTicketStatus,
 } from '@/lib/admin-enums';
+
+const TICKET_CATEGORY_LABELS: Record<string, string> = {
+  GENERAL: 'Geral',
+  BILLING: 'Cobrança',
+  TECHNICAL: 'Técnico',
+  BOT_ARTS: 'Bot de Artes',
+  BOT_DOWNLOAD: 'Bot de Download',
+  BOT_PINTEREST: 'Bot de Pins',
+  BOT_SUGGESTION: 'Bot de Sugestões',
+  PUBLIC_PAGE: 'Página Pública',
+};
 import { useEffect, useState } from 'react';
 import { showToast } from '@/lib/toast';
 
@@ -119,12 +130,18 @@ export default function AdminSupportPage() {
             </option>
           ))}
         </select>
-        <input
+        <select
           className="rounded border border-[var(--color-border)] px-3 py-2 text-sm"
-          placeholder="Categoria"
           value={filters.category}
           onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
-        />
+        >
+          <option value="">Todas as categorias</option>
+          {Object.entries(TICKET_CATEGORY_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
       </div>
       <div id='lista-de-tickets-em-aberto' className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div id='card-de-ticket' className="space-y-4 max-h-[520px] overflow-y-auto pr-1">
@@ -135,7 +152,14 @@ export default function AdminSupportPage() {
               onClick={() => fetchTicketDetail(ticket.id)}
               className="w-full cursor-pointer text-left bg-white p-4 rounded-lg shadow transition hover:shadow-lg hover:border hover:border-[var(--color-primary)]"
             >
-              <h3 className="font-semibold">{ticket.subject}</h3>
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold">{ticket.subject}</h3>
+                {ticket.category && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">
+                    {TICKET_CATEGORY_LABELS[ticket.category] || ticket.category}
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-600">
                 Status: {ticket.status_label || SUPPORT_TICKET_STATUS_LABELS[ticket.status] || ticket.status}
               </p>
@@ -165,6 +189,19 @@ export default function AdminSupportPage() {
           {!selectedTicket && <p className="text-sm text-gray-600">Selecione um ticket.</p>}
           {selectedTicket && (
             <>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                  {TICKET_CATEGORY_LABELS[selectedTicket.category] || selectedTicket.category}
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  selectedTicket.status === 'open' ? 'bg-yellow-100 text-yellow-700' :
+                  selectedTicket.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                  selectedTicket.status === 'closed' ? 'bg-green-100 text-green-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {SUPPORT_TICKET_STATUS_LABELS[selectedTicket.status] || selectedTicket.status}
+                </span>
+              </div>
               <p className="text-sm text-gray-600">
                 Usuario: {selectedTicket.users?.email || 'Sem e-mail'}
               </p>

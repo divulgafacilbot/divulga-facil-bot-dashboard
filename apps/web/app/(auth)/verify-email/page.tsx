@@ -3,6 +3,7 @@
 import { Button } from "@/components/forms/Button";
 import { api } from "@/lib/api";
 import { ComponentStatus, AuthRoute } from "@/lib/common-enums";
+import { ROUTES } from "@/lib/constants";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -118,7 +119,7 @@ function VerifyEmailContent() {
                 {message}
               </p>
               <div className="mt-6">
-                <Link href="/login">
+                <Link href={ROUTES.auth.login}>
                   <Button variant="primary">Voltar ao login</Button>
                 </Link>
               </div>

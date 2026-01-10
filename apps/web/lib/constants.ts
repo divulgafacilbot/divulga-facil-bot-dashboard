@@ -1,6 +1,2 @@
-export const BOT_NAME = "Divulga Fácil";
-
-export const BOT_TYPES = {
-  ARTS: "ARTS",
-  DOWNLOAD: "DOWNLOAD",
-} as const;
+// Re-export from constants folder for convenience
+export * from './constants/index';

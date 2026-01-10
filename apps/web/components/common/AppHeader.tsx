@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/forms/Button";
-import { BOT_NAME } from "@/lib/constants";
+import { BOT_NAME, ROUTES } from "@/lib/constants";
 import Image from "next/image";
 
 type HeaderVariant = "home" | "auth" | "dashboard" | "admin";
@@ -88,16 +88,16 @@ export default function AppHeader({ variant, onLogout }: AppHeaderProps) {
       <header className="fixed left-0 right-0 top-0 z-40 h-[70px] bg-[#FF308E] text-[var(--color-text-inverse)]">
         <div className="mx-auto flex h-full w-full items-center justify-between px-6 py-3">
           <LogoTitle href="/" />
-          <nav className="flex flex-nowrap items-center gap-3 text-sm font-semibold">
+          <nav aria-label="Ações de autenticação" className="flex flex-nowrap items-center gap-3 text-sm font-semibold">
             <Link
               className="rounded-[var(--radius-sm)] border border-white/30 bg-white/10 px-4 py-2 text-white shadow-[var(--shadow-sm)] transition hover:border-white/60 hover:bg-white/20"
-              href="/login"
+              href={ROUTES.auth.login}
             >
               Entrar
             </Link>
             <Link
               className="rounded-[var(--radius-sm)] bg-[var(--color-secondary)] px-4 py-2 text-white shadow-[var(--shadow-md)] transition hover:opacity-90"
-              href="/register"
+              href={ROUTES.auth.register}
             >
               Criar conta
             </Link>

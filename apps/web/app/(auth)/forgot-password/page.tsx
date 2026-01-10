@@ -3,6 +3,7 @@
 import { Button } from "@/components/forms/Button";
 import { Input } from "@/components/forms/Input";
 import { api } from "@/lib/api";
+import { ROUTES } from "@/lib/constants";
 import { forgotPasswordSchema } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
@@ -66,7 +67,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <Link
-          href="/login"
+          href={ROUTES.auth.login}
           className="group flex items-center justify-center gap-2 rounded-[var(--radius-md)] border-2 border-[var(--color-border)] bg-white px-6 py-3 text-sm font-semibold text-[var(--color-text-main)] transition-all duration-200 hover:border-[var(--color-primary)] hover:bg-[color:rgba(245,61,45,0.05)] hover:shadow-[var(--shadow-sm)]"
         >
           <svg
@@ -156,7 +157,7 @@ export default function ForgotPasswordPage() {
       </div>
 
       <Link
-        href="/login"
+        href={ROUTES.auth.login}
         className="group flex items-center justify-center gap-2 rounded-[var(--radius-md)] border-2 border-[var(--color-border)] bg-white px-6 py-3 text-sm font-semibold text-[var(--color-text-main)] transition-all duration-200 hover:border-[var(--color-primary)] hover:bg-[color:rgba(245,61,45,0.05)] hover:shadow-[var(--shadow-sm)]"
       >
         <svg

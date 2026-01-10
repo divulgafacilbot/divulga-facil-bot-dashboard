@@ -6,31 +6,118 @@ datasource db {
   provider = "postgresql"
 }
 
+// ============================================================
+// MILESTONE_1 - Public Marketplace Enums
+// ============================================================
+
+enum BotType {
+  ARTS
+  DOWNLOAD
+  PINTEREST
+  SUGGESTION
+}
+
+enum CardSource {
+  BOT
+  MANUAL
+}
+
+enum Marketplace {
+  MERCADO_LIVRE
+  SHOPEE
+  AMAZON
+  MAGALU
+}
+
+enum CardStatus {
+  ACTIVE
+  HIDDEN
+  BLOCKED
+  ERROR
+}
+
+enum PublicEventType {
+  PUBLIC_PROFILE_VIEW
+  PUBLIC_CARD_VIEW
+  PUBLIC_CTA_CLICK
+  PUBLIC_CARD_CLICK
+}
+
+enum SuggestionType {
+  TITLE_OPTIMIZATION
+  DESCRIPTION_IMPROVEMENT
+  CATEGORY_SUGGESTION
+  PRICING_INSIGHT
+}
+
+enum SuggestionStatus {
+  PENDING
+  APPLIED
+  DISMISSED
+}
+
+enum TicketCategory {
+  GENERAL
+  BILLING
+  TECHNICAL
+  BOT_ARTS
+  BOT_DOWNLOAD
+  BOT_PINTEREST
+  BOT_SUGGESTION
+  PUBLIC_PAGE
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_USER
+  RESOLVED
+  CLOSED
+}
+
 model User {
-  id                  String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email               String               @unique @db.VarChar(255)
-  passwordHash        String               @map("password_hash") @db.VarChar(255)
-  role                String?              @default("USER") @db.VarChar(50)
-  isActive                Boolean?                   @default(true) @map("is_active")
-  emailVerified           Boolean?                   @default(false) @map("email_verified")
-  createdAt               DateTime?                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime?                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  passwordResetTokens     PasswordResetToken[]
-  refreshTokens           RefreshToken[]
-  emailVerificationTokens EmailVerificationToken[]
-  loginHistory            LoginHistory[]
-  subscriptions           subscriptions?
-  telegram_bot_links      telegram_bot_links[]
-  telegram_links          telegram_links[]
-  telemetry_events        telemetry_events[]
-  usage_counters          usage_counters[]
-  user_brand_configs      user_brand_configs?
-  user_templates          user_templates[]
-  user_layout_preferences user_layout_preferences?
-  support_tickets         support_tickets[]
-  payments                payments[]
-  billing_disputes        billing_disputes[]
-  campaign_downloads      campaign_downloads[]
+  id                          String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email                       String                       @unique @db.VarChar(255)
+  passwordHash                String                       @map("password_hash") @db.VarChar(255)
+  role                        String?                      @default("USER") @db.VarChar(50)
+  isActive                    Boolean?                     @default(true) @map("is_active")
+  emailVerified               Boolean?                     @default(false) @map("email_verified")
+  createdAt                   DateTime?                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                   DateTime?                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  passwordResetTokens         PasswordResetToken[]
+  refreshTokens               RefreshToken[]
+  emailVerificationTokens     EmailVerificationToken[]
+  loginHistory                LoginHistory[]
+  subscriptions               subscriptions?
+  telegram_bot_links          telegram_bot_links[]
+  telegram_links              telegram_links[]
+  telegram_link_tokens        telegram_link_tokens[]
+  telemetry_events            telemetry_events[]
+  usage_counters              usage_counters[]
+  user_brand_configs          user_brand_configs?
+  user_templates              user_templates[]
+  user_layout_preferences     user_layout_preferences?
+  support_tickets             support_tickets[]
+  payments                    payments[]
+  billing_disputes            billing_disputes[]
+  campaign_downloads          campaign_downloads[]
+  public_page_settings        public_page_settings?
+  public_cards                public_cards[]
+  public_events               public_events[]
+  marketplace_products        marketplace_products[]
+  suggestion_history          suggestion_history[]
+  user_suggestion_preferences user_suggestion_preferences?
+  user_button_click_state     user_button_click_state[]
+  card_suggestions            card_suggestions[]
+  pinterest_bot_config        pinterest_bot_configs?
+  promo_tokens                promo_tokens[]
 
   @@index([email], map: "idx_users_email")
   @@index([role], map: "idx_users_role")
@@ -147,32 +234,54 @@ model subscriptions {
   @@index([user_id], map: "idx_subscriptions_user_id")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model telegram_bot_links {
-  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id          String    @db.Uuid
-  bot_type         String    @db.VarChar(50)
-  telegram_user_id String    @db.VarChar(100)
-  chat_id          String    @db.VarChar(100)
-  linked_at        DateTime? @default(now()) @db.Timestamptz(6)
-  users            User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String   @map("user_id") @db.Uuid
+  bot_type         BotType  @map("bot_type")
+  telegram_user_id String   @map("telegram_user_id") @db.VarChar(100)
+  chat_id          String   @map("chat_id") @db.VarChar(100)
+  promo_token_id   String?  @map("promo_token_id") @db.Uuid
+  linked_at        DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
 
-  @@unique([user_id, bot_type], map: "user_id_bot_type")
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, bot_type])
   @@index([user_id], map: "idx_telegram_bot_links_user_id")
+  @@index([promo_token_id], map: "idx_telegram_bot_links_promo_token_id")
+  @@map("telegram_bot_links")
 }
 
 model telegram_links {
-  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id    String    @db.Uuid
-  bot_type   String    @default("ARTS") @db.VarChar(50)
-  token      String    @db.VarChar(255)
-  expires_at DateTime  @db.Timestamptz(6)
-  status     String    @default("PENDING") @db.VarChar(50)
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  users      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String   @map("user_id") @db.Uuid
+  bot_type   BotType  @default(ARTS) @map("bot_type")
+  token      String   @db.VarChar(255)
+  expires_at DateTime @map("expires_at") @db.Timestamptz(6)
+  status     String   @default("PENDING") @db.VarChar(50)
+  created_at DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id], map: "idx_telegram_links_user_id")
   @@index([token], map: "idx_telegram_links_token")
+  @@map("telegram_links")
+}
+
+/// Temporary tokens for bot linking (10-minute expiry)
+model telegram_link_tokens {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  token      String   @unique @db.VarChar(10)
+  user_id    String   @map("user_id") @db.Uuid
+  bot_type   BotType  @map("bot_type")
+  expires_at DateTime @map("expires_at") @db.Timestamptz(6)
+  created_at DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([expires_at])
+  @@index([user_id, bot_type])
+  @@map("telegram_link_tokens")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -223,48 +332,48 @@ model user_brand_configs {
 }
 
 model user_templates {
-  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id    String   @db.Uuid
-  name       String   @db.VarChar(120)
-  feed_url   String   @db.VarChar(500)
-  story_url  String   @db.VarChar(500)
-  type       String   @default("custom") @db.VarChar(50)
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String    @db.Uuid
+  name       String    @db.VarChar(120)
+  feed_url   String    @db.VarChar(500)
+  story_url  String    @db.VarChar(500)
+  type       String    @default("custom") @db.VarChar(50)
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
-  users      User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_user_templates_user_id")
   @@map("user_templates")
 }
 
 model user_layout_preferences {
-  id                     String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id                String    @unique @db.Uuid
+  id      String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id String @unique @db.Uuid
 
   // Feed/Card layout preferences
-  feed_show_title        Boolean   @default(true)
-  feed_show_description  Boolean   @default(true)
-  feed_show_price        Boolean   @default(true)
+  feed_show_title          Boolean @default(true)
+  feed_show_description    Boolean @default(true)
+  feed_show_price          Boolean @default(true)
   feed_show_original_price Boolean @default(true)
-  feed_show_product_url  Boolean   @default(true)
-  feed_show_coupon       Boolean   @default(true)
-  feed_show_disclaimer   Boolean   @default(false)
+  feed_show_product_url    Boolean @default(true)
+  feed_show_coupon         Boolean @default(true)
+  feed_show_disclaimer     Boolean @default(false)
   feed_show_sales_quantity Boolean @default(false)
-  feed_show_custom_text  Boolean   @default(false)
-  feed_order             Json?
+  feed_show_custom_text    Boolean @default(false)
+  feed_order               Json?
 
   // Story layout preferences
-  story_show_title       Boolean   @default(true)
-  story_show_price       Boolean   @default(true)
+  story_show_title          Boolean @default(true)
+  story_show_price          Boolean @default(true)
   story_show_original_price Boolean @default(true)
-  story_show_coupon      Boolean   @default(true)
-  story_show_custom_text Boolean   @default(false)
-  story_order            Json?
-  story_colors           Json?
+  story_show_coupon         Boolean @default(true)
+  story_show_custom_text    Boolean @default(false)
+  story_order               Json?
+  story_colors              Json?
 
-  created_at             DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
-  users                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  users      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_user_layout_preferences_user_id")
 }
@@ -275,23 +384,26 @@ model user_layout_preferences {
 
 /// Support tickets table - tracks user support requests
 model support_tickets {
-  id                  String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id             String                 @db.Uuid
-  subject             String                 @db.VarChar(255)
-  category            String                 @db.VarChar(50)
-  status              String                 @default("open") @db.VarChar(50)
-  priority            String                 @default("normal") @db.VarChar(20)
-  created_at          DateTime               @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
-  closed_seen_at      DateTime?              @db.Timestamptz(6)
-  users               User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  support_messages    support_messages[]
+  id             String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id        String         @map("user_id") @db.Uuid
+  subject        String         @db.VarChar(255)
+  category       TicketCategory
+  status         TicketStatus   @default(OPEN)
+  priority       TicketPriority @default(NORMAL)
+  created_at     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  closed_seen_at DateTime?      @map("closed_seen_at") @db.Timestamptz(6)
+
+  user                  User                    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  support_messages      support_messages[]
   support_ticket_events support_ticket_events[]
 
   @@index([user_id], map: "idx_support_tickets_user_id")
   @@index([status], map: "idx_support_tickets_status")
   @@index([priority], map: "idx_support_tickets_priority")
+  @@index([category], map: "idx_support_tickets_category")
   @@index([created_at(sort: Desc)], map: "idx_support_tickets_created_at")
+  @@map("support_tickets")
 }
 
 /// Support messages table - conversation thread for tickets
@@ -323,17 +435,17 @@ model support_ticket_events {
 
 /// Payments table - tracks all payment transactions
 model payments {
-  id                String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id           String             @db.Uuid
-  provider          String             @default("kiwify") @db.VarChar(50)
-  amount            Decimal            @db.Decimal(10, 2)
-  currency          String             @default("BRL") @db.VarChar(3)
-  status            String             @db.VarChar(50)
-  transaction_id    String?            @unique @db.VarChar(255)
-  paid_at           DateTime?          @db.Timestamptz(6)
-  created_at        DateTime           @default(now()) @db.Timestamptz(6)
-  users             User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  billing_disputes  billing_disputes[]
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String             @db.Uuid
+  provider         String             @default("kiwify") @db.VarChar(50)
+  amount           Decimal            @db.Decimal(10, 2)
+  currency         String             @default("BRL") @db.VarChar(3)
+  status           String             @db.VarChar(50)
+  transaction_id   String?            @unique @db.VarChar(255)
+  paid_at          DateTime?          @db.Timestamptz(6)
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  users            User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  billing_disputes billing_disputes[]
 
   @@index([user_id], map: "idx_payments_user_id")
   @@index([status], map: "idx_payments_status")
@@ -370,6 +482,7 @@ model admin_users {
   created_at        DateTime            @default(now()) @db.Timestamptz(6)
   updated_at        DateTime            @default(now()) @updatedAt @db.Timestamptz(6)
   admin_permissions admin_permissions[]
+  promo_tokens      promo_tokens[]
 
   @@index([email], map: "idx_admin_users_email")
   @@index([is_active], map: "idx_admin_users_is_active")
@@ -389,15 +502,15 @@ model admin_permissions {
 
 /// Templates table - stores base and user-uploaded templates
 model templates {
-  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name           String    @db.VarChar(255)
-  story_image    String    @db.VarChar(500)
-  feed_image     String    @db.VarChar(500)
-  category       String    @db.VarChar(100)
-  owner_user_id  String?   @db.Uuid
-  is_active      Boolean   @default(true)
-  created_at     DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name          String   @db.VarChar(255)
+  story_image   String   @db.VarChar(500)
+  feed_image    String   @db.VarChar(500)
+  category      String   @db.VarChar(100)
+  owner_user_id String?  @db.Uuid
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   @@index([category], map: "idx_templates_category")
   @@index([owner_user_id], map: "idx_templates_owner_user_id")
@@ -410,15 +523,15 @@ model templates {
 
 /// Campaigns table - stores promotional campaigns created by admins
 model campaigns {
-  id                  String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name                String              @db.VarChar(255)
-  price               Decimal             @db.Decimal(10, 2)
-  product_url         String              @db.VarChar(500)
-  main_video_url      String              @db.VarChar(500)
-  created_at          DateTime            @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime            @default(now()) @updatedAt @db.Timestamptz(6)
-  campaign_assets     campaign_assets[]
-  campaign_downloads  campaign_downloads[]
+  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name               String               @db.VarChar(255)
+  price              Decimal              @db.Decimal(10, 2)
+  product_url        String               @db.VarChar(500)
+  main_video_url     String               @db.VarChar(500)
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+  campaign_assets    campaign_assets[]
+  campaign_downloads campaign_downloads[]
 
   @@index([created_at(sort: Desc)], map: "idx_campaigns_created_at")
 }
@@ -447,4 +560,356 @@ model campaign_downloads {
   @@index([campaign_id], map: "idx_campaign_downloads_campaign_id")
   @@index([user_id], map: "idx_campaign_downloads_user_id")
   @@index([downloaded_at(sort: Desc)], map: "idx_campaign_downloads_downloaded_at")
+}
+
+// ============================================================
+// MILESTONE_1 - Public Marketplace Models
+// ============================================================
+
+/// Public page settings - user's public marketplace mini-site configuration
+model public_page_settings {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String   @unique @map("user_id") @db.Uuid
+  public_slug      String   @unique @map("public_slug") @db.VarChar(30)
+  display_name     String   @map("display_name") @db.VarChar(100)
+  header_color     String   @default("#FF006B") @map("header_color") @db.VarChar(7)
+  title_color      String   @default("#FFFFFF") @map("title_color") @db.VarChar(7)
+  header_image_url String   @default("/logo-bot-bg.png") @map("header_image_url") @db.VarChar(500)
+  bio              String?  @db.VarChar(500)
+  created_at       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([public_slug])
+  @@map("public_page_settings")
+}
+
+/// Public cards - product cards displayed on user's public page
+model public_cards {
+  id             String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  card_slug      String      @map("card_slug") @db.VarChar(50)
+  user_id        String      @map("user_id") @db.Uuid
+  source         CardSource
+  marketplace    Marketplace
+  title          String      @db.VarChar(200)
+  description    String?     @db.Text
+  price          String      @db.VarChar(50)
+  original_price String?     @map("original_price") @db.VarChar(50)
+  image_url      String      @map("image_url") @db.VarChar(500)
+  affiliate_url  String      @map("affiliate_url") @db.VarChar(1000)
+  coupon         String?     @db.VarChar(100)
+  category       String      @db.VarChar(100)
+  status         CardStatus  @default(ACTIVE)
+  metadata       Json?
+  created_at     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user             User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  card_suggestions card_suggestions[]
+
+  @@unique([user_id, card_slug])
+  @@index([user_id, status, created_at(sort: Desc), id(sort: Desc)])
+  @@index([user_id, marketplace, status, created_at(sort: Desc)])
+  @@index([user_id, category, status, created_at(sort: Desc)])
+  @@index([user_id, source, status])
+  @@map("public_cards")
+}
+
+/// Public events - tracking events for analytics (views, clicks, CTAs)
+model public_events {
+  id           String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id      String          @map("user_id") @db.Uuid
+  card_id      String?         @map("card_id") @db.Uuid
+  event_type   PublicEventType @map("event_type")
+  marketplace  Marketplace?
+  source       CardSource?
+  referrer     String?         @db.VarChar(200)
+  utm_source   String?         @map("utm_source") @db.VarChar(100)
+  utm_medium   String?         @map("utm_medium") @db.VarChar(100)
+  utm_campaign String?         @map("utm_campaign") @db.VarChar(100)
+  visitor_id   String?         @map("visitor_id") @db.VarChar(50)
+  ip_hash      String?         @map("ip_hash") @db.VarChar(64)
+  user_agent   String?         @map("user_agent") @db.VarChar(160)
+  created_at   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  expires_at   DateTime?       @map("expires_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, event_type, created_at(sort: Desc)])
+  @@index([card_id, event_type, created_at(sort: Desc)])
+  @@index([created_at])
+  @@index([expires_at])
+  @@map("public_events")
+}
+
+/// Public event deduplication - prevents duplicate event tracking
+model public_event_dedupe {
+  dedupe_key String   @id @map("dedupe_key") @db.VarChar(150)
+  expires_at DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expires_at])
+  @@map("public_event_dedupe")
+}
+
+/// Card suggestions - AI-generated suggestions for card optimization
+model card_suggestions {
+  id              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  card_id         String           @map("card_id") @db.Uuid
+  user_id         String           @map("user_id") @db.Uuid
+  suggestion_type SuggestionType   @map("suggestion_type")
+  content         Json
+  status          SuggestionStatus @default(PENDING)
+  applied_at      DateTime?        @map("applied_at") @db.Timestamptz(6)
+  dismissed_at    DateTime?        @map("dismissed_at") @db.Timestamptz(6)
+  created_at      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  card public_cards @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, status])
+  @@index([card_id])
+  @@map("card_suggestions")
+}
+
+// ============================================================
+// FEATURE_3 - Promotional Tokens Management
+// ============================================================
+
+/// Promotional tokens - for bot promotions and special access
+model promo_tokens {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  bot_type      String    @map("bot_type") @db.VarChar(50)
+  name          String    @db.VarChar(100)
+  description   String?   @db.Text
+  token         String    @unique @db.VarChar(64)
+  expires_at    DateTime? @map("expires_at") @db.Timestamptz(6)
+  is_active     Boolean   @default(true) @map("is_active")
+  created_by_id String    @map("created_by_id") @db.Uuid
+  user_id       String    @map("user_id") @db.Uuid
+  created_at    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  admin_user admin_users @relation(fields: [created_by_id], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token], map: "idx_promo_tokens_token")
+  @@index([bot_type, created_at(sort: Desc)], map: "idx_promo_tokens_bot_type_created_at")
+  @@index([bot_type, expires_at], map: "idx_promo_tokens_bot_type_expires_at")
+  @@index([is_active], map: "idx_promo_tokens_is_active")
+  @@index([created_by_id], map: "idx_promo_tokens_created_by_id")
+  @@index([user_id], map: "idx_promo_tokens_user_id")
+  @@map("promo_tokens")
+}
+
+// ============================================================
+// FEATURE_4 - Pinterest Bot & Suggestions System
+// ============================================================
+
+/// Pinterest bot configuration - per-user settings for Pinterest bot behavior
+model pinterest_bot_configs {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String   @unique @map("user_id") @db.Uuid
+  enabled          Boolean  @default(true)
+  auto_publish     Boolean  @default(true) @map("auto_publish")
+  default_category String?  @map("default_category") @db.VarChar(100)
+  created_at       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "idx_pinterest_bot_configs_user_id")
+  @@map("pinterest_bot_configs")
+}
+
+/// Marketplace products - products published via Pinterest bot or manually
+model marketplace_products {
+  id      String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id String     @map("user_id") @db.Uuid
+  slug    String     @db.VarChar(255)
+  source  CardSource
+
+  title            String   @db.VarChar(500)
+  description      String?  @db.Text
+  price            Decimal? @db.Decimal(10, 2)
+  original_price   Decimal? @map("original_price") @db.Decimal(10, 2)
+  discount_percent Int?     @map("discount_percent")
+  category         String?  @db.VarChar(100)
+
+  affiliate_url String      @map("affiliate_url") @db.Text
+  image_url     String      @map("image_url") @db.Text
+  marketplace   Marketplace
+
+  coupon_code String? @map("coupon_code") @db.VarChar(100)
+  custom_note String? @map("custom_note") @db.Text
+
+  is_hidden   Boolean @default(false) @map("is_hidden")
+  is_featured Boolean @default(false) @map("is_featured")
+
+  view_count  Int @default(0) @map("view_count")
+  click_count Int @default(0) @map("click_count")
+
+  created_at DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, slug], name: "unique_user_product_slug")
+  @@index([user_id], map: "idx_marketplace_products_user_id")
+  @@index([slug], map: "idx_marketplace_products_slug")
+  @@index([category], map: "idx_marketplace_products_category")
+  @@index([created_at(sort: Desc)], map: "idx_marketplace_products_created_at")
+  @@index([is_hidden], map: "idx_marketplace_products_is_hidden")
+  @@map("marketplace_products")
+}
+
+/// Suggestion history - tracks all AI-generated product suggestions
+model suggestion_history {
+  id      String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id String @map("user_id") @db.Uuid
+
+  suggested_product_url String   @map("suggested_product_url") @db.Text
+  suggested_title       String   @map("suggested_title") @db.VarChar(500)
+  suggested_category    String   @map("suggested_category") @db.VarChar(100)
+  suggested_marketplace String   @map("suggested_marketplace") @db.VarChar(50)
+  suggested_at          DateTime @default(now()) @map("suggested_at") @db.Timestamptz(6)
+
+  user_action String?   @map("user_action") @db.VarChar(20) // ACCEPTED, REJECTED, IGNORED
+  action_at   DateTime? @map("action_at") @db.Timestamptz(6)
+
+  score Float? // Relevance score 0-1
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "idx_suggestion_history_user_id")
+  @@index([suggested_at(sort: Desc)], map: "idx_suggestion_history_suggested_at")
+  @@map("suggestion_history")
+}
+
+/// User suggestion preferences - configures AI suggestion behavior per user
+model user_suggestion_preferences {
+  id      String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id String @unique @map("user_id") @db.Uuid
+
+  suggestions_enabled       Boolean @default(false) @map("suggestions_enabled")
+  frequency                 String  @default("DAILY") @db.VarChar(20) // DAILY, WEEKLY
+  max_suggestions_per_batch Int     @default(5) @map("max_suggestions_per_batch")
+
+  preferred_categories  String[] @map("preferred_categories") @db.VarChar(100)
+  excluded_marketplaces String[] @map("excluded_marketplaces") @db.VarChar(50)
+
+  created_at         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  last_suggestion_at DateTime? @map("last_suggestion_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_suggestion_preferences")
+}
+
+// ============================================================
+// FEATURE 5 - Time Infrastructure & TTL
+// ============================================================
+
+/// Job locks - distributed lock system for preventing concurrent job execution
+model job_locks {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  job_name     String   @unique @db.VarChar(100) // Name of job (e.g., "housekeeping")
+  locked_until DateTime @db.Timestamptz(6) // Lock expires after this timestamp
+  locked_by    String?  @db.VarChar(255) // Identifier of instance (optional)
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([job_name], map: "idx_job_locks_job_name")
+  @@index([locked_until], map: "idx_job_locks_locked_until")
+  @@map("job_locks")
+}
+
+// ============================================================
+// FEATURE 6 - Intelligent Suggestions Bot
+// ============================================================
+
+/// Cache de sugestões (30 dias TTL)
+model suggestion_cache {
+  id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+
+  // Identificação (cache global, não por usuário)
+  cache_key String @unique @default("global") @db.VarChar(50)
+
+  // Dados cacheados (JSON) - 4 marketplaces
+  mercado_livre Json // Array de 5 produtos
+  shopee        Json // Array de 5 produtos
+  amazon        Json // Array de 5 produtos
+  magalu        Json // Array de 5 produtos
+
+  // Metadados
+  input_context Json? // INPUT CONTEXT usado na geração
+
+  // Timestamps
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  expires_at DateTime @db.Timestamptz(6) // TTL 30 dias
+
+  @@index([expires_at], map: "idx_suggestion_cache_expires_at")
+  @@map("suggestion_cache")
+}
+
+/// Rastreamento de cliques para renovação
+model user_button_click_state {
+  id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id            String   @db.Uuid // ID do usuário
+  marketplace_button String   @db.VarChar(50) // 'MERCADO_LIVRE', 'SHOPEE', etc
+  last_click_day_key String   @db.VarChar(10) // dayKey do último clique (YYYY-MM-DD)
+  created_at         DateTime @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  User User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, marketplace_button], name: "unique_user_marketplace_button")
+  @@index([user_id], map: "idx_user_button_click_state_user_id")
+  @@map("user_button_click_state")
+}
+
+/// Campanhas promocionais (admin)
+model promotional_campaigns {
+  id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+
+  // Dados do produto
+  name          String  @db.VarChar(255) // Nome da campanha
+  product_title String  @db.VarChar(500) // Título do produto
+  product_url   String  @db.Text // URL do produto (para inferir marketplace)
+  category      String? @db.VarChar(100)
+  marketplace   String  @db.VarChar(50) // Inferido: SHOPEE, MERCADO_LIVRE, etc
+
+  // Gancho/descrição
+  hook_angle String? @db.VarChar(255) // "antes/depois", "presente barato", etc
+
+  // Controle
+  is_active Boolean @default(true)
+  priority  Int     @default(0) // Para ordenação manual
+
+  // Timestamps
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  // Relação com estado de rotação
+  campaign_rotation_state campaign_rotation_state[]
+
+  @@index([marketplace], map: "idx_promotional_campaigns_marketplace")
+  @@index([is_active], map: "idx_promotional_campaigns_is_active")
+  @@map("promotional_campaigns")
+}
+
+/// Estado de rotação de campanhas
+model campaign_rotation_state {
+  id                String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  marketplace       String   @unique @db.VarChar(50) // 'MERCADO_LIVRE', 'SHOPEE', etc
+  last_campaign_id  String?  @db.Uuid // ID da última campanha usada
+  last_used_day_key String?  @db.VarChar(10) // dayKey quando foi usada (YYYY-MM-DD)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  // Relação
+  promotional_campaigns promotional_campaigns? @relation(fields: [last_campaign_id], references: [id], onDelete: SetNull)
+
+  @@map("campaign_rotation_state")
 }
