@@ -7,6 +7,7 @@ import { EmailService } from '../services/mail/email.service.js';
 import { RefreshTokenService } from '../services/auth/refresh-token.service.js';
 import { EmailVerificationService } from '../services/auth/email-verification.service.js';
 import { LoginHistoryService } from '../services/auth/login-history.service.js';
+import { PublicPageService } from '../services/pinterest/public-page.service.js';
 import {
   registerSchema,
   loginSchema,
@@ -45,6 +46,15 @@ export class AuthController {
           role: true,
         },
       });
+
+      // Create public page settings for the new user
+      try {
+        const emailLocalPart = email.split('@')[0];
+        await PublicPageService.create(user.id, emailLocalPart);
+      } catch (publicPageError) {
+        console.error('Failed to create public page settings (non-blocking):', publicPageError);
+        // Non-blocking: user can still use the platform
+      }
 
       // Generate verification token
       const verificationToken = await EmailVerificationService.createVerificationToken(user.id);

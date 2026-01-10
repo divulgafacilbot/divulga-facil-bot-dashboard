@@ -1,19 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useId } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
 }
 
-export function Input({ label, error, ...props }: InputProps) {
+export function Input({ label, error, id, ...props }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const errorId = `${inputId}-error`;
 
   return (
     <div className="flex flex-col gap-2">
       <label
-        htmlFor={props.id}
+        htmlFor={inputId}
         className={`text-sm font-semibold transition-colors duration-200 ${
           isFocused
             ? 'text-[var(--color-primary)]'
@@ -27,6 +30,9 @@ export function Input({ label, error, ...props }: InputProps) {
       <div className="relative">
         <input
           {...props}
+          id={inputId}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? errorId : undefined}
           onFocus={(e) => {
             setIsFocused(true);
             props.onFocus?.(e);
@@ -45,11 +51,16 @@ export function Input({ label, error, ...props }: InputProps) {
         />
       </div>
       {error && (
-        <div className="flex items-center gap-1 animate-[slideDown_0.2s_ease-out]">
+        <div
+          id={errorId}
+          role="alert"
+          className="flex items-center gap-1 animate-[slideDown_0.2s_ease-out]"
+        >
           <svg
             className="h-4 w-4 flex-shrink-0 text-[var(--color-danger)]"
             fill="currentColor"
             viewBox="0 0 20 20"
+            aria-hidden="true"
           >
             <path
               fillRule="evenodd"

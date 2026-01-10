@@ -33,8 +33,8 @@ export default function AdminCampaignsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
-    fetchCampaigns();
-    fetchStats();
+    // Parallel fetch to eliminate waterfall
+    Promise.all([fetchCampaigns(), fetchStats()]);
   }, []);
 
   const fetchCampaigns = async () => {

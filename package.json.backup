@@ -1,0 +1,19 @@
+# Para usar webpack em vez de Turbopack, altere os scripts em package.json para:
+
+```json
+{
+  "scripts": {
+    "dev": "next dev --no-turbopack",
+    "dev:turbo": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  }
+}
+```
+
+# Depois execute:
+# npm run dev
+
+# Para retornar ao Turbopack:
+# npm run dev:turbo

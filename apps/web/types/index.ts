@@ -77,3 +77,9 @@ export interface LoginStats {
   successful: number;
   failed: number;
 }
+
+// Re-export new Zod-based types and schemas
+export * from './user';
+export * from './card';
+export * from './metrics';
+export * from './api';

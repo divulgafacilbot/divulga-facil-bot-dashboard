@@ -189,6 +189,7 @@ export default function TemplatesPage() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
+  // Consolidated initial data loading - parallel fetch to eliminate waterfall
   useEffect(() => {
     const loadCustomTemplates = async () => {
       try {
@@ -198,7 +199,7 @@ export default function TemplatesPage() {
         });
 
         if (!response.ok) {
-          return;
+          return [];
         }
 
         const data = await response.json();
@@ -207,73 +208,15 @@ export default function TemplatesPage() {
           if (data.templates.length > 0) {
             setSelectedTemplate(data.templates[0]);
           }
+          return data.templates;
         }
+        return [];
       } catch (error) {
         console.error("Erro ao carregar templates personalizados:", error);
+        return [];
       }
     };
 
-    loadCustomTemplates();
-  }, [apiBaseUrl]);
-
-  useEffect(() => {
-    const normalizeFeedOrder = (order: string[]) =>
-      order
-        .map((item) => {
-          if (item === "promotionalPrice") return "price";
-          if (item === "fullPrice") return "originalPrice";
-          if (item === "affiliateLink") return "productUrl";
-          return item;
-        })
-        .filter((item): item is RenderFieldId => DEFAULT_FEED_ORDER.includes(item as RenderFieldId));
-
-    const normalizeStoryOrder = (order: string[]) =>
-      order
-        .map((item) => {
-          if (item === "promotionalPrice") return "price";
-          if (item === "fullPrice") return "originalPrice";
-          return item;
-        })
-        .filter((item): item is StoryFieldId => DEFAULT_STORY_ORDER.includes(item as StoryFieldId));
-
-    const storedFeedOrder = localStorage.getItem(FEED_ORDER_STORAGE_KEY);
-    const storedStoryOrder = localStorage.getItem(STORY_ORDER_STORAGE_KEY);
-
-    if (storedFeedOrder) {
-      try {
-        const parsed = JSON.parse(storedFeedOrder) as string[];
-        const normalized = normalizeFeedOrder(parsed);
-        if (normalized.length) {
-          setFeedOrder(normalized);
-        }
-      } catch (error) {
-        console.error("Erro ao ler a ordem do feed:", error);
-      }
-    }
-
-    if (storedStoryOrder) {
-      try {
-        const parsed = JSON.parse(storedStoryOrder) as string[];
-        const normalized = normalizeStoryOrder(parsed);
-        if (normalized.length) {
-          setStoryOrder(normalized);
-        }
-      } catch (error) {
-        console.error("Erro ao ler a ordem do story:", error);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(FEED_ORDER_STORAGE_KEY, JSON.stringify(feedOrder));
-  }, [feedOrder]);
-
-  useEffect(() => {
-    localStorage.setItem(STORY_ORDER_STORAGE_KEY, JSON.stringify(storyOrder));
-  }, [storyOrder]);
-
-  // Load layout preferences on component mount
-  useEffect(() => {
     const loadLayoutPreferences = async () => {
       try {
         const response = await fetch(`${apiBaseUrl}/api/me/layout-preferences`, {
@@ -347,11 +290,7 @@ export default function TemplatesPage() {
       }
     };
 
-    loadLayoutPreferences();
-  }, [apiBaseUrl]);
-
-  useEffect(() => {
-    const loadBrandConfig = async () => {
+    const loadBrandConfig = async (loadedTemplates: TemplateOption[]) => {
       try {
         const response = await fetch(`${apiBaseUrl}/api/me/brand-config`, {
           method: "GET",
@@ -367,7 +306,7 @@ export default function TemplatesPage() {
         setCouponText(data?.couponText || "");
         if (data?.templateId) {
           const templateMatch =
-            customTemplates.find((template) => template.id === data.templateId) ||
+            loadedTemplates.find((template) => template.id === data.templateId) ||
             SYSTEM_TEMPLATES.find((template) => template.id === data.templateId);
           if (templateMatch) {
             setSelectedTemplate(templateMatch);
@@ -378,8 +317,74 @@ export default function TemplatesPage() {
       }
     };
 
-    loadBrandConfig();
-  }, [apiBaseUrl, customTemplates]);
+    // Load all data in parallel
+    const loadAllData = async () => {
+      const [templates] = await Promise.all([
+        loadCustomTemplates(),
+        loadLayoutPreferences(),
+      ]);
+      // loadBrandConfig depends on templates, so run after
+      await loadBrandConfig(templates || []);
+    };
+
+    loadAllData();
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
+    const normalizeFeedOrder = (order: string[]) =>
+      order
+        .map((item) => {
+          if (item === "promotionalPrice") return "price";
+          if (item === "fullPrice") return "originalPrice";
+          if (item === "affiliateLink") return "productUrl";
+          return item;
+        })
+        .filter((item): item is RenderFieldId => DEFAULT_FEED_ORDER.includes(item as RenderFieldId));
+
+    const normalizeStoryOrder = (order: string[]) =>
+      order
+        .map((item) => {
+          if (item === "promotionalPrice") return "price";
+          if (item === "fullPrice") return "originalPrice";
+          return item;
+        })
+        .filter((item): item is StoryFieldId => DEFAULT_STORY_ORDER.includes(item as StoryFieldId));
+
+    const storedFeedOrder = localStorage.getItem(FEED_ORDER_STORAGE_KEY);
+    const storedStoryOrder = localStorage.getItem(STORY_ORDER_STORAGE_KEY);
+
+    if (storedFeedOrder) {
+      try {
+        const parsed = JSON.parse(storedFeedOrder) as string[];
+        const normalized = normalizeFeedOrder(parsed);
+        if (normalized.length) {
+          setFeedOrder(normalized);
+        }
+      } catch (error) {
+        console.error("Erro ao ler a ordem do feed:", error);
+      }
+    }
+
+    if (storedStoryOrder) {
+      try {
+        const parsed = JSON.parse(storedStoryOrder) as string[];
+        const normalized = normalizeStoryOrder(parsed);
+        if (normalized.length) {
+          setStoryOrder(normalized);
+        }
+      } catch (error) {
+        console.error("Erro ao ler a ordem do story:", error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(FEED_ORDER_STORAGE_KEY, JSON.stringify(feedOrder));
+  }, [feedOrder]);
+
+  useEffect(() => {
+    localStorage.setItem(STORY_ORDER_STORAGE_KEY, JSON.stringify(storyOrder));
+  }, [storyOrder]);
 
   // Handle save layout preferences
   const handleSaveLayout = async () => {
@@ -1738,15 +1743,15 @@ export default function TemplatesPage() {
             <h2 className="text-2xl font-bold text-[var(--color-text-main)]">
               Editar no Canva
             </h2>
-            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               <strong>1) </strong>Seu layout novo necessita obrigatoriamente de 2 formatos, ambos padronizados no Canva: formato feed e formato story.
-            </h5>
-            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+            </p>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               <strong>2) </strong>Após clicar no botão e o temhplate padrão se abrir, clique em <strong>Arquivo</strong> &gt; <strong>Fazer uma cópia</strong>, conforme o vídeo abaixo.
-            </h5>
-            <h5 className="mt-2 text-sm text-[var(--color-text-secondary)]">
+            </p>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               <strong>3) </strong>Depois de prontas as duas artes, anexe pelo botão <strong>Upload de arte</strong>.
-            </h5>
+            </p>
 
             <div className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
               <video

@@ -9,6 +9,8 @@ import financeRoutes from './finance.routes.js';
 import staffRoutes from './staff.routes.js';
 import templatesRoutes from './templates.routes.js';
 import campaignsRoutes from './campaigns.routes.js';
+import promoTokensRoutes from './promo-tokens.routes.js';
+import promotionalCampaignsRoutes from './promotional-campaigns.routes.js';
 
 const router = Router();
 
@@ -22,5 +24,7 @@ router.use('/finance', financeRoutes);
 router.use('/staff', staffRoutes);
 router.use('/templates', templatesRoutes);
 router.use('/campaigns', campaignsRoutes);
+router.use('/promo-tokens', promoTokensRoutes);
+router.use('/promotional-campaigns', promotionalCampaignsRoutes);
 
 export default router;

@@ -1,6 +1,7 @@
 import { prisma } from '../../db/prisma.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import { BotType } from '../../constants/bot-types.js';
 
 interface GetUsersFilters {
   isActive?: boolean;
@@ -174,11 +175,11 @@ export class AdminUsersService {
   /**
    * Unlink a user's bot connection
    */
-  static async unlinkUserBot(userId: string, botType: string) {
+  static async unlinkUserBot(userId: string, botType: BotType) {
     await prisma.telegram_bot_links.deleteMany({
       where: {
         user_id: userId,
-        bot_type: botType,
+        bot_type: botType as any,
       },
     });
 
@@ -201,5 +202,29 @@ export class AdminUsersService {
     });
 
     return { temporaryPassword: tempPassword };
+  }
+
+  /**
+   * Search users by email (for promo token assignment)
+   * Returns simplified user list with id and email only
+   */
+  static async searchUsersByEmail(emailQuery: string) {
+    const users = await prisma.user.findMany({
+      where: {
+        email: {
+          contains: emailQuery,
+          mode: 'insensitive',
+        },
+        isActive: true,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+      take: 10,
+      orderBy: { email: 'asc' },
+    });
+
+    return users;
   }
 }

@@ -4,6 +4,7 @@ import { Button } from "@/components/forms/Button";
 import { Input } from "@/components/forms/Input";
 import { api } from "@/lib/api";
 import { AuthRoute } from "@/lib/common-enums";
+import { ROUTES } from "@/lib/constants";
 import { resetPasswordSchema } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
@@ -80,7 +81,7 @@ function ResetPasswordForm() {
           </p>
         </div>
         <Link
-          href="/forgot-password"
+          href={ROUTES.auth.forgotPassword}
           className="group flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-gradient-primary px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition-all duration-200 hover:shadow-[var(--shadow-primary-lg)] hover:-translate-y-0.5"
         >
           Solicitar novo link
@@ -170,7 +171,7 @@ function ResetPasswordForm() {
       </div>
 
       <Link
-        href="/login"
+        href={ROUTES.auth.login}
         className="group flex items-center justify-center gap-2 rounded-[var(--radius-md)] border-2 border-[var(--color-border)] bg-white px-6 py-3 text-sm font-semibold text-[var(--color-text-main)] transition-all duration-200 hover:border-[var(--color-primary)] hover:bg-[color:rgba(245,61,45,0.05)] hover:shadow-[var(--shadow-sm)]"
       >
         <svg

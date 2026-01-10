@@ -3,6 +3,8 @@ import { BOT_TYPES, type BotType } from './bot-types.js';
 export const BOT_TYPE_LABELS: Record<BotType, string> = {
   [BOT_TYPES.ARTS]: 'Artes',
   [BOT_TYPES.DOWNLOAD]: 'Download',
+  [BOT_TYPES.PINTEREST]: 'Pinterest',
+  [BOT_TYPES.SUGGESTION]: 'Sugestões',
 };
 
 export const SUBSCRIPTION_STATUSES = {
@@ -42,48 +44,52 @@ export const KIWIFY_EVENT_TYPE_LABELS: Record<string, string> = {
 };
 
 export const SUPPORT_TICKET_STATUSES = {
-  OPEN: 'open',
-  IN_PROGRESS: 'in_progress',
-  CLOSED: 'closed',
-  ARCHIVED: 'archived',
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  CLOSED: 'CLOSED',
+  WAITING_USER: 'WAITING_USER',
+  RESOLVED: 'RESOLVED',
 } as const;
 
 export type SupportTicketStatus =
   (typeof SUPPORT_TICKET_STATUSES)[keyof typeof SUPPORT_TICKET_STATUSES];
 
 export const SUPPORT_TICKET_STATUS_LABELS: Record<string, string> = {
-  open: 'Aberto',
-  in_progress: 'Em andamento',
-  closed: 'Fechado',
-  archived: 'Arquivado',
+  OPEN: 'Aberto',
+  IN_PROGRESS: 'Em andamento',
+  WAITING_USER: 'Aguardando usuário',
+  RESOLVED: 'Resolvido',
+  CLOSED: 'Fechado',
 };
 
 export const SUPPORT_TICKET_PRIORITIES = {
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
-  NORMAL: 'normal',
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
 } as const;
 
 export type SupportTicketPriority =
   (typeof SUPPORT_TICKET_PRIORITIES)[keyof typeof SUPPORT_TICKET_PRIORITIES];
 
 export const SUPPORT_TICKET_PRIORITY_LABELS: Record<string, string> = {
-  low: 'Baixa',
-  medium: 'Media',
-  high: 'Alta',
-  normal: 'Normal',
+  LOW: 'Baixa',
+  NORMAL: 'Normal',
+  HIGH: 'Alta',
+  URGENT: 'Urgente',
 };
 
 const SUPPORT_PRIORITY_ALIASES: Record<string, SupportTicketPriority> = {
   alta: SUPPORT_TICKET_PRIORITIES.HIGH,
   high: SUPPORT_TICKET_PRIORITIES.HIGH,
   hight: SUPPORT_TICKET_PRIORITIES.HIGH,
-  media: SUPPORT_TICKET_PRIORITIES.MEDIUM,
-  medium: SUPPORT_TICKET_PRIORITIES.MEDIUM,
+  media: SUPPORT_TICKET_PRIORITIES.HIGH,
+  medium: SUPPORT_TICKET_PRIORITIES.HIGH,
   baixa: SUPPORT_TICKET_PRIORITIES.LOW,
   low: SUPPORT_TICKET_PRIORITIES.LOW,
   normal: SUPPORT_TICKET_PRIORITIES.NORMAL,
+  urgente: SUPPORT_TICKET_PRIORITIES.URGENT,
+  urgent: SUPPORT_TICKET_PRIORITIES.URGENT,
 };
 
 const SUPPORT_STATUS_ALIASES: Record<string, SupportTicketStatus> = {
@@ -94,10 +100,11 @@ const SUPPORT_STATUS_ALIASES: Record<string, SupportTicketStatus> = {
   in_progress: SUPPORT_TICKET_STATUSES.IN_PROGRESS,
   fechado: SUPPORT_TICKET_STATUSES.CLOSED,
   closed: SUPPORT_TICKET_STATUSES.CLOSED,
-  resolvido: SUPPORT_TICKET_STATUSES.CLOSED,
-  resolved: SUPPORT_TICKET_STATUSES.CLOSED,
-  arquivado: SUPPORT_TICKET_STATUSES.ARCHIVED,
-  archived: SUPPORT_TICKET_STATUSES.ARCHIVED,
+  resolvido: SUPPORT_TICKET_STATUSES.RESOLVED,
+  resolved: SUPPORT_TICKET_STATUSES.RESOLVED,
+  aguardando: SUPPORT_TICKET_STATUSES.WAITING_USER,
+  waiting: SUPPORT_TICKET_STATUSES.WAITING_USER,
+  waiting_user: SUPPORT_TICKET_STATUSES.WAITING_USER,
 };
 
 export const normalizeSupportPriority = (value?: string) => {
@@ -128,3 +135,29 @@ export enum AdminRole {
   COLABORADOR = 'COLABORADOR',
   ADMIN_MASTER = 'ADMIN_MASTER',
 }
+
+export enum AdminPermission {
+  OVERVIEW = 'overview',
+  USERS = 'users',
+  BOTS = 'bots',
+  USAGE = 'usage',
+  TEMPLATES = 'templates',
+  CAMPAIGNS = 'campaigns',
+  SUPPORT = 'support',
+  FINANCE = 'finance',
+  PERMISSIONS = 'permissions',
+  PROMO_TOKENS = 'promo_tokens',
+}
+
+export const ADMIN_PERMISSIONS = [
+  AdminPermission.OVERVIEW,
+  AdminPermission.USERS,
+  AdminPermission.BOTS,
+  AdminPermission.USAGE,
+  AdminPermission.TEMPLATES,
+  AdminPermission.CAMPAIGNS,
+  AdminPermission.SUPPORT,
+  AdminPermission.FINANCE,
+  AdminPermission.PERMISSIONS,
+  AdminPermission.PROMO_TOKENS,
+] as const;

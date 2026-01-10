@@ -2,6 +2,10 @@
   "name": "posting-bot-monorepo",
   "version": "0.1.0",
   "private": true,
+  "volta": {
+    "node": "22.14.0",
+    "pnpm": "10.23.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"

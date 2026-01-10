@@ -1,0 +1,18 @@
+# Railway Configuration for divulga-facil-bot-dashboard API
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npm run start"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Housekeeping job - runs daily at 06:15 BRT (America/Sao_Paulo)
+# Cleanup de dados expirados: public_events, caches, dedupe keys, etc.
+# Note: 06:15 BRT = 09:15 UTC (BRT is UTC-3)
+[[deploy.cron]]
+schedule = "15 9 * * *"
+command = "curl -X POST -H 'x-internal-job-secret: $INTERNAL_JOBS_SECRET' $RAILWAY_STATIC_URL/internal/jobs/housekeeping"

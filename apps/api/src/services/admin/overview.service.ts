@@ -26,6 +26,8 @@ export class AdminOverviewService {
       rendersByMarketplace,
       downloadsByPlatform,
       criticalErrors,
+      totalPinsCreated,
+      totalSuggestionsGenerated,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
@@ -63,6 +65,18 @@ export class AdminOverviewService {
           created_at: { gte: sevenDaysAgo },
         },
       }),
+      prisma.telemetry_events.count({
+        where: {
+          event_type: 'PINTEREST_PIN_CREATED',
+          created_at: { gte: thirtyDaysAgo },
+        },
+      }),
+      prisma.telemetry_events.count({
+        where: {
+          event_type: 'SUGGESTION_GENERATED',
+          created_at: { gte: thirtyDaysAgo },
+        },
+      }),
     ]);
 
     const tokenCounts = activeBotTokens.reduce(
@@ -73,9 +87,15 @@ export class AdminOverviewService {
         if (item.bot_type === BOT_TYPES.DOWNLOAD) {
           acc.download += item._count._all;
         }
+        if (item.bot_type === BOT_TYPES.PINTEREST) {
+          acc.pinterest += item._count._all;
+        }
+        if (item.bot_type === BOT_TYPES.SUGGESTION) {
+          acc.suggestion += item._count._all;
+        }
         return acc;
       },
-      { arts: 0, download: 0 }
+      { arts: 0, download: 0, pinterest: 0, suggestion: 0 }
     );
     const marketplaceCounts = rendersByMarketplace.reduce(
       (acc, item) => {
@@ -123,6 +143,10 @@ export class AdminOverviewService {
       totalDownloads: totalDownloads._sum.downloads_count || 0,
       activeArtsBots: tokenCounts.arts,
       activeDownloadBots: tokenCounts.download,
+      activePinterestBots: tokenCounts.pinterest,
+      activeSuggestionBots: tokenCounts.suggestion,
+      totalPinsCreated,
+      totalSuggestionsGenerated,
       rendersByMarketplace: marketplaceCounts,
       downloadsByPlatform: downloadCounts,
       criticalErrors,
@@ -164,6 +188,15 @@ export class AdminOverviewService {
       GROUP BY 1
       ORDER BY 1
     `;
+
+    // Bot links by type (4 separate series)
+    const botsSeriesByType = await prisma.$queryRaw<{ date: Date; bot_type: string; count: number }[]>`
+      SELECT date_trunc('day', linked_at) AS date, bot_type, COUNT(*)::int AS count
+      FROM telegram_bot_links
+      WHERE linked_at >= ${startDate}
+      GROUP BY 1, 2
+      ORDER BY 1
+    `;
     let revenueSeries: { date: Date; amount: number }[] = [];
     try {
       revenueSeries = await prisma.$queryRaw<{ date: Date; amount: number }[]>`
@@ -179,6 +212,46 @@ export class AdminOverviewService {
       console.warn('[admin-overview] revenue series unavailable', error);
     }
 
+    // Transform botsSeriesByType into separate arrays by bot type
+    const botLinksByType = {
+      arts: [] as { date: Date; count: number }[],
+      download: [] as { date: Date; count: number }[],
+      pinterest: [] as { date: Date; count: number }[],
+      suggestion: [] as { date: Date; count: number }[],
+    };
+
+    for (const row of botsSeriesByType) {
+      const entry = { date: row.date, count: row.count };
+      if (row.bot_type === 'ARTS') {
+        botLinksByType.arts.push(entry);
+      } else if (row.bot_type === 'DOWNLOAD') {
+        botLinksByType.download.push(entry);
+      } else if (row.bot_type === 'PINTEREST') {
+        botLinksByType.pinterest.push(entry);
+      } else if (row.bot_type === 'SUGGESTION') {
+        botLinksByType.suggestion.push(entry);
+      }
+    }
+
+    // Time series for suggestions (30d)
+    const suggestionsSeries = await prisma.$queryRaw<{ date: Date; count: number }[]>`
+      SELECT date_trunc('day', suggested_at) AS date, COUNT(*)::int AS count
+      FROM suggestion_history
+      WHERE suggested_at >= ${startDate}
+      GROUP BY 1
+      ORDER BY 1
+    `;
+
+    // Time series for pins created by bot (30d)
+    const pinsSeries = await prisma.$queryRaw<{ date: Date; count: number }[]>`
+      SELECT date_trunc('day', created_at) AS date, COUNT(*)::int AS count
+      FROM public_cards
+      WHERE source = 'BOT'
+        AND created_at >= ${startDate}
+      GROUP BY 1
+      ORDER BY 1
+    `;
+
     return {
       usage: usageSeries,
       newUsers: usersSeries.map((row) => ({
@@ -189,9 +262,18 @@ export class AdminOverviewService {
         date: row.date,
         count: row.count,
       })),
+      botLinksByType,
       revenue: revenueSeries.map((row) => ({
         date: row.date,
         amount: row.amount,
+      })),
+      suggestions: suggestionsSeries.map((row) => ({
+        date: row.date,
+        count: row.count,
+      })),
+      pinsCreated: pinsSeries.map((row) => ({
+        date: row.date,
+        count: row.count,
       })),
     };
   }
@@ -210,7 +292,7 @@ export class AdminOverviewService {
         created_at: 'desc',
       },
       include: {
-        users: {
+        user: {
           select: {
             email: true,
           },
@@ -223,7 +305,7 @@ export class AdminOverviewService {
       token: token.token,
       botType: token.bot_type,
       createdAt: token.created_at,
-      userEmail: token.users?.email || null,
+      userEmail: token.user?.email || null,
     }));
   }
 
@@ -287,5 +369,208 @@ export class AdminOverviewService {
       ...event,
       event_type_label: KIWIFY_EVENT_TYPE_LABELS[event.event_type || ''] || event.event_type,
     }));
+  }
+
+  /**
+   * Get public page metrics (all users combined)
+   */
+  static async getPublicPageMetrics(days: number = 30) {
+    const startDate = subDays(new Date(), days);
+
+    const [
+      profileViews,
+      cardViews,
+      ctaClicks,
+      marketplaceBreakdown,
+      publicPageTimeSeries,
+    ] = await Promise.all([
+      // Total profile views
+      prisma.public_events.count({
+        where: {
+          event_type: 'PUBLIC_PROFILE_VIEW',
+          created_at: { gte: startDate },
+        },
+      }),
+      // Total card views
+      prisma.public_events.count({
+        where: {
+          event_type: 'PUBLIC_CARD_VIEW',
+          created_at: { gte: startDate },
+        },
+      }),
+      // Total CTA clicks
+      prisma.public_events.count({
+        where: {
+          event_type: { in: ['PUBLIC_CTA_CLICK', 'PUBLIC_CARD_CLICK'] },
+          created_at: { gte: startDate },
+        },
+      }),
+      // Clicks by marketplace
+      prisma.$queryRaw<{ marketplace: string | null; count: number }[]>`
+        SELECT marketplace::text, COUNT(*)::int AS count
+        FROM public_events
+        WHERE event_type IN ('PUBLIC_CTA_CLICK', 'PUBLIC_CARD_CLICK')
+          AND created_at >= ${startDate}
+          AND marketplace IS NOT NULL
+        GROUP BY 1
+      `,
+      // Time series for public page events
+      prisma.$queryRaw<{ date: Date; event_type: string; count: number }[]>`
+        SELECT date_trunc('day', created_at) AS date, event_type::text, COUNT(*)::int AS count
+        FROM public_events
+        WHERE created_at >= ${startDate}
+        GROUP BY 1, 2
+        ORDER BY 1
+      `,
+    ]);
+
+    // Transform marketplace breakdown
+    const marketplaceCounts = {
+      MERCADO_LIVRE: 0,
+      SHOPEE: 0,
+      AMAZON: 0,
+      MAGALU: 0,
+    };
+
+    for (const row of marketplaceBreakdown) {
+      if (row.marketplace && row.marketplace in marketplaceCounts) {
+        marketplaceCounts[row.marketplace as keyof typeof marketplaceCounts] = row.count;
+      }
+    }
+
+    // Transform time series by event type
+    const timeSeriesByType = {
+      profileViews: [] as { date: Date; count: number }[],
+      cardViews: [] as { date: Date; count: number }[],
+      ctaClicks: [] as { date: Date; count: number }[],
+    };
+
+    for (const row of publicPageTimeSeries) {
+      const entry = { date: row.date, count: row.count };
+      if (row.event_type === 'PUBLIC_PROFILE_VIEW') {
+        timeSeriesByType.profileViews.push(entry);
+      } else if (row.event_type === 'PUBLIC_CARD_VIEW') {
+        timeSeriesByType.cardViews.push(entry);
+      } else if (row.event_type === 'PUBLIC_CTA_CLICK' || row.event_type === 'PUBLIC_CARD_CLICK') {
+        // Aggregate CTA and card clicks
+        const existing = timeSeriesByType.ctaClicks.find(
+          (e) => e.date.getTime() === row.date.getTime()
+        );
+        if (existing) {
+          existing.count += row.count;
+        } else {
+          timeSeriesByType.ctaClicks.push(entry);
+        }
+      }
+    }
+
+    return {
+      profileViews,
+      cardViews,
+      ctaClicks,
+      marketplaceBreakdown: marketplaceCounts,
+      timeSeries: timeSeriesByType,
+    };
+  }
+
+  /**
+   * Get Pinterest bot specific metrics
+   */
+  static async getPinterestBotMetrics(days: number = 30) {
+    const startDate = subDays(new Date(), days);
+
+    const [
+      totalCards,
+      cardsByMarketplace,
+      activeUsers,
+    ] = await Promise.all([
+      prisma.public_cards.count({
+        where: {
+          source: 'BOT',
+          created_at: { gte: startDate },
+        },
+      }),
+      prisma.$queryRaw<{ marketplace: string; count: number }[]>`
+        SELECT marketplace::text, COUNT(*)::int AS count
+        FROM public_cards
+        WHERE source = 'BOT'
+          AND created_at >= ${startDate}
+        GROUP BY 1
+      `,
+      prisma.pinterest_bot_configs.count({
+        where: {
+          enabled: true,
+        },
+      }),
+    ]);
+
+    const marketplaceCounts = {
+      MERCADO_LIVRE: 0,
+      SHOPEE: 0,
+      AMAZON: 0,
+      MAGALU: 0,
+    };
+
+    for (const row of cardsByMarketplace) {
+      if (row.marketplace in marketplaceCounts) {
+        marketplaceCounts[row.marketplace as keyof typeof marketplaceCounts] = row.count;
+      }
+    }
+
+    return {
+      totalCardsGenerated: totalCards,
+      cardsByMarketplace: marketplaceCounts,
+      activeConfigs: activeUsers,
+    };
+  }
+
+  /**
+   * Get Suggestion bot specific metrics
+   */
+  static async getSuggestionBotMetrics(days: number = 30) {
+    const startDate = subDays(new Date(), days);
+
+    const [
+      totalSuggestions,
+      suggestionsByMarketplace,
+      activeUsers,
+    ] = await Promise.all([
+      prisma.suggestion_history.count({
+        where: {
+          suggested_at: { gte: startDate },
+        },
+      }),
+      prisma.$queryRaw<{ marketplace: string | null; count: number }[]>`
+        SELECT suggested_marketplace AS marketplace, COUNT(*)::int AS count
+        FROM suggestion_history
+        WHERE suggested_at >= ${startDate}
+        GROUP BY 1
+      `,
+      prisma.user_suggestion_preferences.count({
+        where: {
+          suggestions_enabled: true,
+        },
+      }),
+    ]);
+
+    const marketplaceCounts = {
+      MERCADO_LIVRE: 0,
+      SHOPEE: 0,
+      AMAZON: 0,
+      MAGALU: 0,
+    };
+
+    for (const row of suggestionsByMarketplace) {
+      const marketplace = row.marketplace;
+      if (marketplace && marketplace in marketplaceCounts) {
+        marketplaceCounts[marketplace as keyof typeof marketplaceCounts] = row.count;
+      }
+    }
+
+    return {
+      totalSuggestions,
+      suggestionsByMarketplace: marketplaceCounts,
+      activeUsers,
+    };
   }
 }

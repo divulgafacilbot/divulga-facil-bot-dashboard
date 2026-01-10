@@ -20,14 +20,7 @@ export class ShopeeScraper extends BaseScraper {
     let ids = this.extractIds(resolvedUrl) || this.extractIds(url);
     let searchData: ProductData | null = null;
     const preferSearch = true;
-    const disableShopeeRequests = true;
-
-    if (disableShopeeRequests) {
-      return {
-        success: false,
-        error: "Shopee scraping desativado: usando fallback do Telegram/Google.",
-      };
-    }
+    const disableShopeeRequests = false; // Reativado para tentar scraping direto primeiro
 
     if (!ids) {
       const candidate =

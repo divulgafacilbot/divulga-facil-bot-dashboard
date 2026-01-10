@@ -1,6 +1,8 @@
 export const BOT_TYPE_LABELS = {
   ARTS: 'Artes',
   DOWNLOAD: 'Download',
+  PINTEREST: 'Pinterest',
+  SUGGESTION: 'Sugestões',
 } as const;
 
 export type BotType = keyof typeof BOT_TYPE_LABELS;
@@ -70,6 +72,7 @@ export enum AdminPermission {
   SUPPORT = 'support',
   FINANCE = 'finance',
   PERMISSIONS = 'permissions',
+  PROMO_TOKENS = 'promo_tokens',
 }
 
 export const ADMIN_PERMISSIONS = [
@@ -82,4 +85,5 @@ export const ADMIN_PERMISSIONS = [
   AdminPermission.SUPPORT,
   AdminPermission.FINANCE,
   AdminPermission.PERMISSIONS,
+  AdminPermission.PROMO_TOKENS,
 ] as const;

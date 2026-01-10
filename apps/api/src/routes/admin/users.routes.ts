@@ -35,6 +35,24 @@ router.get('/', requireAdmin, requirePermission('users'), async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/users/search-email
+ * Search users by email for promo token assignment
+ * IMPORTANT: Must be before /:id route to avoid matching "search-email" as id
+ */
+router.get('/search-email', requireAdmin, requirePermission('promo_tokens'), async (req, res) => {
+  try {
+    const email = req.query.email as string;
+    if (!email || email.length < 3) {
+      return res.json({ success: true, data: [] });
+    }
+    const users = await AdminUsersService.searchUsersByEmail(email);
+    res.json({ success: true, data: users });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/:id', requireAdmin, requirePermission('users'), async (req, res) => {
   try {
     const user = await AdminUsersService.getUserDetail(req.params.id);
