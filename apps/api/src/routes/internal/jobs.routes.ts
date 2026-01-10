@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireInternalJobAuth } from '../../middleware/internal-job-auth.middleware';
+import { requireInternalJobAuth } from '../../middleware/internal-job-auth.middleware.js';
 import {
   runHousekeeping,
   getLockStatus,
