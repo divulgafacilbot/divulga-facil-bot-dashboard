@@ -3,14 +3,14 @@
 import { Button } from "@/components/forms/Button";
 import { Input } from "@/components/forms/Input";
 import { api, IS_PRODUCTION } from "@/lib/api";
-import { ApiErrorCode, DashboardRoute } from "@/lib/common-enums";
+import { DashboardRoute } from "@/lib/common-enums";
 import { ROUTES } from "@/lib/constants";
 import { loginSchema } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
 import { useForm } from "react-hook-form";
 
 type LoginForm = {
@@ -19,18 +19,24 @@ type LoginForm = {
   rememberMe?: boolean;
 };
 
-export default function LoginPage() {
-  const router = useRouter();
+function LoginPageContent() {
+  const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showResendButton, setShowResendButton] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Show success message if coming from registration
+  useEffect(() => {
+    if (searchParams.get("registered") === "true") {
+      setSuccessMessage("Conta criada com sucesso! Faça login para continuar.");
+      // Clean URL without refreshing
+      window.history.replaceState({}, "", ROUTES.auth.login);
+    }
+  }, [searchParams]);
 
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<LoginForm>({
     // PRODUCTION MODE: No validation, DEVELOPMENT MODE: Use Zod validation
@@ -48,38 +54,15 @@ export default function LoginPage() {
     // DEVELOPMENT MODE: Normal login flow
     try {
       setError("");
+      setSuccessMessage("");
       setLoading(true);
-      setShowResendButton(false);
 
       await api.auth.login(data.email, data.password, data.rememberMe ?? false);
       window.location.href = DashboardRoute.HOME;
     } catch (err) {
-      const error = err as Error & { code?: string };
-
-      if (error.message?.toLowerCase().includes('não verificado') || error.code === ApiErrorCode.EMAIL_NOT_VERIFIED) {
-        setShowResendButton(true);
-        setError('E-mail não verificado. Verifique sua caixa de entrada ou solicite um novo link.');
-      } else {
-        setError(error.message || "Email ou senha incorretos.");
-      }
+      const error = err as Error;
+      setError(error.message || "Email ou senha incorretos.");
       setLoading(false);
-    }
-  };
-
-  const handleResendVerification = async () => {
-    const email = watch("email");
-    if (!email) return;
-
-    try {
-      setResendLoading(true);
-      setResendSuccess(false);
-      await api.auth.resendVerification(email);
-      setResendSuccess(true);
-      setTimeout(() => setResendSuccess(false), 5000);
-    } catch (error) {
-      console.error("Erro ao reenviar:", error);
-    } finally {
-      setResendLoading(false);
     }
   };
 
@@ -147,39 +130,37 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {successMessage && (
+          <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[color:rgba(34,197,94,0.1)] border-2 border-[var(--color-success)] px-4 py-3 text-sm animate-[slideDown_0.2s_ease-out]">
+            <svg
+              className="h-5 w-5 flex-shrink-0 text-[var(--color-success)]"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="font-medium text-[var(--color-success)]">{successMessage}</span>
+          </div>
+        )}
+
         {error && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[color:rgba(239,68,68,0.1)] border-2 border-[var(--color-danger)] px-4 py-3 text-sm animate-[slideDown_0.2s_ease-out]">
-              <svg
-                className="h-5 w-5 flex-shrink-0 text-[var(--color-danger)]"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span className="font-medium text-[var(--color-danger)]">{error}</span>
-            </div>
-
-            {showResendButton && (
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                disabled={resendLoading}
-                className="w-full rounded-[var(--radius-md)] border-2 border-[var(--color-warning)] bg-[color:rgba(245,158,11,0.1)] px-4 py-2 text-sm font-semibold text-[var(--color-warning)] transition-all hover:bg-[color:rgba(245,158,11,0.2)] disabled:opacity-50"
-              >
-                {resendLoading ? "Enviando..." : "Reenviar link de verificação"}
-              </button>
-            )}
-
-            {resendSuccess && (
-              <div className="rounded-[var(--radius-md)] border-2 border-[var(--color-success)] bg-[color:rgba(34,197,94,0.1)] px-4 py-2 text-sm font-semibold text-[var(--color-success)]">
-                Link de verificação reenviado! Verifique seu e-mail.
-              </div>
-            )}
+          <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[color:rgba(239,68,68,0.1)] border-2 border-[var(--color-danger)] px-4 py-3 text-sm animate-[slideDown_0.2s_ease-out]">
+            <svg
+              className="h-5 w-5 flex-shrink-0 text-[var(--color-danger)]"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="font-medium text-[var(--color-danger)]">{error}</span>
           </div>
         )}
 
@@ -219,5 +200,13 @@ export default function LoginPage() {
         </svg>
       </Link>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[400px]">Carregando...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
