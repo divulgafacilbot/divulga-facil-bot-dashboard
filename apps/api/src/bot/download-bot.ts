@@ -201,20 +201,10 @@ Use /vincular para conectar sua conta.`
     });
 
     if (!link) {
-      // If not linked, allow pasting a raw token to link.
+      // If not linked, allow pasting a raw token to link (supports both regular and promo tokens)
       if (message.length > 10 && !message.includes(' ')) {
-        const chatId = ctx.chat?.id.toString();
-        if (!chatId) {
-          await ctx.reply('❌ Erro ao obter suas informações do Telegram.');
-          return;
-        }
-
-        const result = await telegramLinkService.confirmLink(
-          message.trim(),
-          telegramUserId,
-          chatId,
-          BOT_TYPES.DOWNLOAD
-        );
+        const { handleTokenLink } = await import('./shared/telegram-utils.js');
+        const result = await handleTokenLink(ctx, message.trim(), BOT_TYPES.DOWNLOAD);
 
         if (result.success) {
           await ctx.reply(
@@ -231,7 +221,7 @@ Use /ajuda para ver todos os comandos.`,
           );
         } else {
           await ctx.reply(
-            `❌ Token inválido ou expirado.
+            `❌ ${result.error || 'Token inválido ou expirado.'}
 
 Gere um novo token no dashboard e tente novamente.`
           );
