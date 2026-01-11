@@ -73,7 +73,7 @@ artsBot.command('codigo', async (ctx) => {
   const token = ctx.match?.trim();
 
   if (!token) {
-    await ctx.reply('❌ Por favor, forneça o código de vinculação.\n\nExemplo: `/codigo abc123...`', {
+    await ctx.reply('❌ Por favor, forneça o código de vinculação.\n\n💡 Dica: Você pode simplesmente colar o token diretamente no chat!', {
       parse_mode: 'Markdown',
     });
     return;
