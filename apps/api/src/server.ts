@@ -93,15 +93,32 @@ if (process.env.NODE_ENV !== 'test') {
     // Start housekeeping scheduler (in-process)
     schedulerService.start();
 
-    // Start Telegram bots in parallel
+    // Start Telegram bots with graceful connection cleanup
     try {
+      // Drop pending updates to clear stale connections from previous instances
+      console.log('🔄 Clearing old bot connections...');
       await Promise.all([
-        artsBot.start(),
-        startDownloadBot(),
-        pinterestBot.start(),
-        startSuggestionBot(),
+        artsBot.api.deleteWebhook({ drop_pending_updates: true }),
+        pinterestBot.api.deleteWebhook({ drop_pending_updates: true }),
       ]);
-      console.log('🤖 Telegram bots started successfully');
+
+      // Small delay to ensure Telegram releases the connections
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Start bots sequentially to avoid race conditions
+      console.log('🤖 Starting Arts Bot...');
+      await artsBot.start();
+
+      console.log('🤖 Starting Download Bot...');
+      await startDownloadBot();
+
+      console.log('🤖 Starting Pinterest Bot...');
+      await pinterestBot.start();
+
+      console.log('🤖 Starting Suggestion Bot...');
+      await startSuggestionBot();
+
+      console.log('✅ All Telegram bots started successfully');
     } catch (error) {
       console.error('❌ Failed to start Telegram bots:', error);
       console.error('Make sure TELEGRAM_BOT_ARTS_TOKEN, TELEGRAM_BOT_DOWNLOAD_TOKEN, TELEGRAM_BOT_PINTEREST_TOKEN, and TELEGRAM_BOT_SUGESTION_TOKEN are set in .env file');
