@@ -17,6 +17,28 @@ export class ShopeeScraper extends BaseScraper {
 
   async scrape(url: string, options?: ScrapeOptions) {
     const resolvedUrl = await this.resolveUrl(url);
+    const originalUrl = url;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MÉTODO PRINCIPAL: Iframely API com URL Canônica
+    // Este é o método oficial e mais confiável para produtos da Shopee
+    // ═══════════════════════════════════════════════════════════════════════════
+    const canonicalUrl = this.toCanonicalUrl(resolvedUrl) || this.toCanonicalUrl(url);
+    if (canonicalUrl) {
+      console.log("[Shopee] Tentando Iframely com URL canônica:", canonicalUrl);
+      const iframelyResult = await this.tryIframelyApi(canonicalUrl, originalUrl, options);
+      if (iframelyResult) {
+        console.log("[Shopee] ✅ Iframely retornou dados válidos!");
+        return { success: true, data: iframelyResult };
+      }
+      console.log("[Shopee] Iframely falhou, tentando métodos de fallback...");
+    } else {
+      console.log("[Shopee] Não foi possível gerar URL canônica, pulando Iframely");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FALLBACK: Métodos originais da Shopee (APIs, search, etc)
+    // ═══════════════════════════════════════════════════════════════════════════
     let ids = this.extractIds(resolvedUrl) || this.extractIds(url);
     let searchData: ProductData | null = null;
     const preferSearch = true;
@@ -45,7 +67,7 @@ export class ShopeeScraper extends BaseScraper {
         return { success: true, data: enriched };
       }
     }
-    const canonicalUrl = ids
+    const fallbackCanonicalUrl = ids
       ? `https://shopee.com.br/product/${ids.shopId}/${ids.itemId}`
       : resolvedUrl;
     if (ids) {
@@ -53,7 +75,7 @@ export class ShopeeScraper extends BaseScraper {
         ids.shopId,
         ids.itemId,
         url,
-        canonicalUrl,
+        fallbackCanonicalUrl,
         options
       );
       if (apiResult) {
@@ -69,7 +91,7 @@ export class ShopeeScraper extends BaseScraper {
       }
     }
 
-    const result = await super.scrape(canonicalUrl, {
+    const result = await super.scrape(fallbackCanonicalUrl, {
       ...options,
       originalUrl: options?.originalUrl || url,
     });
@@ -414,6 +436,238 @@ export class ShopeeScraper extends BaseScraper {
     }
 
     return null;
+  }
+
+  /**
+   * Converte qualquer URL da Shopee para o formato canônico.
+   * O formato canônico é necessário para o Iframely funcionar corretamente.
+   */
+  private toCanonicalUrl(url: string): string | null {
+    try {
+      const parsed = new URL(url);
+      if (!parsed.hostname.includes("shopee")) return null;
+      const path = parsed.pathname.replace(/\/+$/, "");
+
+      // Padrão opaanlp: /opaanlp/309710017/22697448516
+      const opaanlpMatch = path.match(/\/opaanlp\/(\d+)\/(\d+)/i);
+      if (opaanlpMatch) {
+        return `https://shopee.com.br/product/${opaanlpMatch[1]}/${opaanlpMatch[2]}`;
+      }
+
+      // Padrão dotted: i.309710017.22697448516
+      const dottedMatch = path.match(/i\.(\d+)\.(\d+)/);
+      if (dottedMatch) {
+        return `https://shopee.com.br/product/${dottedMatch[1]}/${dottedMatch[2]}`;
+      }
+
+      // Padrão slash: /309710017/22697448516 ou /product/309710017/22697448516
+      const slashMatch = path.match(/\/(\d+)\/(\d+)/);
+      if (slashMatch) {
+        return `https://shopee.com.br/product/${slashMatch[1]}/${slashMatch[2]}`;
+      }
+    } catch {}
+    return null;
+  }
+
+  /**
+   * Verifica se o resultado do scraping é um preview genérico da Shopee
+   * (página de login, placeholder, etc) ao invés de dados reais do produto.
+   */
+  private isGenericShopeePreview(title: string, imageUrl: string, url: string): boolean {
+    const normalizedTitle = title.toLowerCase().trim();
+    const normalizedImage = imageUrl.toLowerCase();
+
+    console.log(`[isGenericShopeePreview] Verificando - título: "${normalizedTitle.substring(0, 50)}..." imagem: "${normalizedImage.substring(0, 60)}..."`);
+
+    // Títulos genéricos conhecidos
+    const genericTitlePatterns = [
+      "shopee brasil",
+      "ofertas incríveis",
+      "melhores preços",
+      "faça login",
+      "comece suas compras",
+      "login",
+      "acesse sua conta",
+      "entre na sua conta",
+      "cadastre-se",
+    ];
+
+    // Se título é apenas números (ID do produto)
+    if (/^\d{6,}$/.test(normalizedTitle)) {
+      console.log("[isGenericShopeePreview] REJEITADO: título é apenas ID numérico");
+      return true;
+    }
+
+    // Se título contém padrões genéricos
+    for (const pattern of genericTitlePatterns) {
+      if (normalizedTitle.includes(pattern)) {
+        console.log(`[isGenericShopeePreview] REJEITADO: título contém "${pattern}"`);
+        return true;
+      }
+    }
+
+    // Imagens genéricas conhecidas (logos, assets, etc)
+    const genericImagePatterns = [
+      "logo",
+      "icon",
+      "/assets/",
+      "deo.shopeemobile.com",
+      "shopee-pcmall-live",
+      "placeholder",
+      "default",
+    ];
+
+    for (const pattern of genericImagePatterns) {
+      if (normalizedImage.includes(pattern)) {
+        console.log(`[isGenericShopeePreview] REJEITADO: imagem contém "${pattern}"`);
+        return true;
+      }
+    }
+
+    // Se imagem não contém susercontent.com (CDN de produtos)
+    if (normalizedImage && !normalizedImage.includes("susercontent.com") && !normalizedImage.includes("cf.shopee")) {
+      console.log("[isGenericShopeePreview] REJEITADO: imagem não é do CDN de produtos");
+      return true;
+    }
+
+    console.log("[isGenericShopeePreview] APROVADO: não é preview genérico");
+    return false;
+  }
+
+  /**
+   * MÉTODO PRINCIPAL: Iframely API com URL Canônica
+   *
+   * Este é o método oficial para scraping de produtos da Shopee.
+   * Usa a API Iframely para extrair meta tags Open Graph, que a Shopee
+   * mantém para permitir preview em redes sociais.
+   *
+   * IMPORTANTE: Filtra imagens "promo-dim" para obter imagem limpa do produto.
+   */
+  private async tryIframelyApi(
+    resolvedUrl: string,
+    originalUrl: string,
+    options?: ScrapeOptions
+  ): Promise<ProductData | null> {
+    const apiKey = process.env.IFRAMELY_API_KEY;
+    if (!apiKey) {
+      console.log("[Iframely] SKIP: IFRAMELY_API_KEY não configurada");
+      return null;
+    }
+
+    console.log("[Iframely] Fazendo requisição...");
+
+    try {
+      const response = await axios.get("https://iframe.ly/api/iframely", {
+        timeout: 15000,
+        params: { url: resolvedUrl, api_key: apiKey },
+        headers: { Accept: "application/json" },
+      });
+
+      console.log("[Iframely] Status:", response.status);
+
+      const data = response.data;
+      const meta = data?.meta || {};
+      const title = meta.title;
+      const description = meta.description;
+
+      // Coletar imagens
+      const images = [
+        ...(data?.links?.image?.map((item: { href?: string }) => item.href) || []),
+        ...(data?.links?.thumbnail?.map((item: { href?: string }) => item.href) || [])
+      ].filter(Boolean);
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // FILTRAR IMAGENS: Priorizar imagens SEM overlay "promo-dim"
+      // Imagens "promo-dim" têm overlay de preço, queremos a imagem limpa
+      // ═══════════════════════════════════════════════════════════════════════
+      const cleanImages = images.filter((img: string) => !img.includes("promo-dim"));
+      const imageUrl = cleanImages[0] || images[0] || data?.links?.icon?.[0]?.href || "";
+
+      console.log("[Iframely] Title:", title ? title.substring(0, 50) + "..." : "N/A");
+      console.log("[Iframely] Images:", images.length, `(${cleanImages.length} sem overlay)`);
+      console.log("[Iframely] Image URL:", imageUrl ? imageUrl.substring(0, 50) + "..." : "N/A");
+      console.log("[Iframely] Usando imagem limpa:", cleanImages.length > 0 ? "SIM" : "NÃO (fallback para promo)");
+
+      // Extrair preço dos metadados
+      let price: number | null = null;
+      const priceFields = [
+        meta.price,
+        meta['product:price:amount'],
+        meta['og:price:amount'],
+        meta.amount,
+        meta['price:amount'],
+        meta['product:sale_price:amount'],
+      ];
+
+      console.log("[Iframely] Meta keys:", Object.keys(meta).join(", "));
+      console.log("[Iframely] Price fields:", priceFields.filter(Boolean).join(", "));
+
+      for (const priceField of priceFields) {
+        if (priceField) {
+          let extracted: number | null = null;
+
+          if (typeof priceField === 'number') {
+            // Já é número, usar diretamente
+            extracted = priceField;
+          } else {
+            const priceStr = String(priceField).trim();
+            // Verificar se é formato americano (ex: 49.95) ou brasileiro (ex: 49,95)
+            if (/^\d+\.\d{1,2}$/.test(priceStr)) {
+              // Formato americano: 49.95
+              extracted = parseFloat(priceStr);
+            } else if (/^\d+,\d{1,2}$/.test(priceStr)) {
+              // Formato brasileiro simples: 49,95
+              extracted = parseFloat(priceStr.replace(',', '.'));
+            } else {
+              // Formato brasileiro completo ou outro: usar extractPrice
+              extracted = this.extractPrice(priceStr);
+            }
+          }
+
+          if (extracted !== null && !isNaN(extracted)) {
+            price = extracted;
+            console.log(`[Iframely] Preço encontrado: R$ ${price}`);
+            break;
+          }
+        }
+      }
+
+      // Verificar se não é preview genérico
+      if (this.isGenericShopeePreview(title || "", imageUrl, resolvedUrl)) {
+        console.log("[Iframely] Preview genérico detectado, rejeitando");
+        return null;
+      }
+
+      // Validar dados mínimos
+      if (!title || !imageUrl) {
+        console.log("[Iframely] Dados insuficientes (título ou imagem ausentes)");
+        return null;
+      }
+
+      console.log("[Iframely] ✅ Sucesso!");
+
+      return {
+        title: title.replace(/\s*[-|]\s*Shopee.*$/i, "").trim(),
+        description,
+        price,
+        originalPrice: undefined,
+        discountPercentage: undefined,
+        imageUrl,
+        productUrl: originalUrl,
+        marketplace: MarketplaceEnum.SHOPEE,
+        rating: undefined,
+        reviewCount: undefined,
+        salesQuantity: undefined,
+        seller: meta.brand,
+        inStock: meta.availability?.includes("InStock") || true,
+        scrapedAt: new Date(),
+      };
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log("[Iframely] Erro:", errorMessage);
+      return null;
+    }
   }
 
   private extractSlug(url: string): string | null {

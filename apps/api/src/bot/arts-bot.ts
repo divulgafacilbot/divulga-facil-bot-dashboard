@@ -1,17 +1,45 @@
-import { Bot, InlineKeyboard, InputFile } from 'grammy';
+import { Bot, InlineKeyboard, InputFile, Context } from 'grammy';
 import { prisma } from '../db/prisma.js';
 import { getRequiredScrapeFields } from '../scraping/fields.js';
 import { scraperRouter } from '../scraping/index.js';
 import { brandConfigService } from '../services/brand-config.service.js';
 import { artGeneratorService } from '../services/image-generation/art-generator.service.js';
-import { layoutPreferencesService } from '../services/layout-preferences.service.js';
+import { layoutPreferencesService, LayoutPreferences } from '../services/layout-preferences.service.js';
 import { usageCountersService } from '../services/usage-counters.service.js';
 import { BOT_TYPES } from '../constants/bot-types.js';
 import { scrapingCoreService } from './shared/scraping-core.service.js';
 import { artGenerationCoreService } from './shared/art-generation-core.service.js';
 import * as telegramUtils from './shared/telegram-utils.js';
+import { ProductData } from '../scraping/types.js';
 
 const TELEGRAM_BOT_ARTS_TOKEN = process.env.TELEGRAM_BOT_ARTS_TOKEN;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Estado para confirmação de preço da Shopee (Antibot)
+// ═══════════════════════════════════════════════════════════════════════════════
+interface PendingPriceConfirmation {
+  product: ProductData;
+  url: string;
+  userId: string;
+  botLink: { user_id: string };
+  layoutPreferences: LayoutPreferences | null;
+  processingMsgId: number;
+  chatId: number;
+  timestamp: number;
+}
+
+// Map para armazenar confirmações pendentes por chatId
+const pendingPriceConfirmations = new Map<number, PendingPriceConfirmation>();
+
+// Limpar confirmações antigas (mais de 5 minutos)
+setInterval(() => {
+  const now = Date.now();
+  for (const [chatId, pending] of pendingPriceConfirmations.entries()) {
+    if (now - pending.timestamp > 5 * 60 * 1000) {
+      pendingPriceConfirmations.delete(chatId);
+    }
+  }
+}, 60 * 1000);
 
 if (!TELEGRAM_BOT_ARTS_TOKEN) {
   throw new Error('TELEGRAM_BOT_ARTS_TOKEN is not defined in environment variables');
@@ -84,10 +112,45 @@ artsBot.command('ajuda', async (ctx) => {
  */
 artsBot.on('message:text', async (ctx) => {
   const text = ctx.message.text;
+  const chatId = ctx.chat?.id;
 
   // Skip if it's a command
   if (text.startsWith('/')) {
     return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Verificar se há confirmação de preço pendente (Antibot Shopee)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (chatId && pendingPriceConfirmations.has(chatId)) {
+    const pending = pendingPriceConfirmations.get(chatId)!;
+
+    // Verificar se o texto é um preço (números com , ou .)
+    const priceMatch = text.match(/^R?\$?\s*(\d+[.,]?\d*)$/);
+    if (priceMatch) {
+      const newPrice = parseFloat(priceMatch[1].replace(',', '.'));
+
+      if (!isNaN(newPrice) && newPrice > 0) {
+        // Atualizar preço do produto
+        pending.product.price = newPrice;
+
+        const priceFormatted = `R$ ${newPrice.toFixed(2).replace('.', ',')}`;
+        await ctx.reply(`✅ Preço atualizado para *${priceFormatted}*\n\n🎨 *Gerando arte personalizada...*`, {
+          parse_mode: 'Markdown',
+        });
+
+        try {
+          await generateAndSendArts(ctx, pending.product, pending.userId, pending.layoutPreferences);
+          pendingPriceConfirmations.delete(chatId);
+        } catch (error) {
+          console.error('Error generating art after price change:', error);
+          await ctx.reply('❌ Erro ao gerar arte. Tente novamente.');
+          pendingPriceConfirmations.delete(chatId);
+        }
+        return;
+      }
+    }
+    // Se não é preço válido, continua para processar como URL
   }
 
   // Check if text contains a URL
@@ -192,6 +255,50 @@ artsBot.on('message:text', async (ctx) => {
     const discountText =
       hasPrice && product.discountPercentage ? ` *(-${product.discountPercentage}%)*` : '';
 
+    void priceImageUrl;
+
+    // Get user ID from telegram link
+    let userId: string | null = botLink.user_id;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ANTIBOT SHOPEE: Pedir confirmação de preço
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (marketplace === 'SHOPEE' && hasPrice) {
+      const confirmationMsg = `
+⚠️ *Metadados da Shopee podem estar desatualizados.*
+
+📦 *${product.title}*
+
+💰 Confira se o preço deste produto ainda é: *${priceFormatted}*
+
+🔗 Clique e confira: ${url}
+`;
+
+      await ctx.api.editMessageText(ctx.chat.id, processingMsg.message_id, confirmationMsg, {
+        parse_mode: 'Markdown',
+        link_preview_options: { is_disabled: true },
+        reply_markup: new InlineKeyboard()
+          .text('✅ Confirmar preço', 'confirm_price')
+          .text('✏️ Alterar preço', 'change_price'),
+      });
+
+      // Salvar estado pendente
+      pendingPriceConfirmations.set(ctx.chat.id, {
+        product,
+        url,
+        userId: userId || '',
+        botLink,
+        layoutPreferences,
+        processingMsgId: processingMsg.message_id,
+        chatId: ctx.chat.id,
+        timestamp: Date.now(),
+      });
+
+      // Parar aqui - a continuação será feita pelo callback handler
+      return;
+    }
+
+    // Para outros marketplaces, continuar normalmente
     const productInfo = `
 ✅ *Produto encontrado!*
 
@@ -207,11 +314,6 @@ ${product.rating ? `⭐ Avaliação: ${product.rating}${product.reviewCount ? ` 
     await ctx.api.editMessageText(ctx.chat.id, processingMsg.message_id, productInfo, {
       parse_mode: 'Markdown',
     });
-
-    void priceImageUrl;
-
-    // Get user ID from telegram link
-    let userId: string | null = botLink.user_id;
     let brandConfig;
     brandConfig = await brandConfigService.getConfig(userId);
 
@@ -315,6 +417,135 @@ ${product.rating ? `⭐ Avaliação: ${product.rating}${product.reviewCount ? ` 
       '❌ Ocorreu um erro ao processar o produto. Tente novamente mais tarde.'
     );
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Função auxiliar para gerar e enviar artes
+// ═══════════════════════════════════════════════════════════════════════════════
+async function generateAndSendArts(
+  ctx: Context,
+  product: ProductData,
+  userId: string,
+  layoutPreferences: LayoutPreferences | null
+) {
+  let brandConfig = await brandConfigService.getConfig(userId);
+
+  if (!brandConfig) {
+    brandConfig = {
+      userId: userId,
+      templateId: 'default',
+      bgColor: '#FFFFFF',
+      textColor: '#000000',
+      priceColor: '#FF0000',
+      fontFamily: 'Inter',
+      showCoupon: true,
+      couponText: 'APROVEITE!',
+      ctaText: 'COMPRE AGORA!',
+      customImageUrl: null,
+    };
+  }
+
+  // Generate feed format (4:5)
+  const feedArtBuffer = await artGeneratorService.generateArt(
+    product,
+    brandConfig,
+    'feed',
+    userId,
+    layoutPreferences ?? undefined
+  );
+
+  // Generate story format (9:16)
+  const storyArtBuffer = await artGeneratorService.generateArt(
+    product,
+    brandConfig,
+    'story',
+    userId,
+    layoutPreferences ?? undefined
+  );
+
+  // Send feed art
+  const legendText = artGeneratorService.buildLegendText(
+    product,
+    brandConfig,
+    layoutPreferences ?? undefined
+  );
+
+  await ctx.replyWithPhoto(new InputFile(feedArtBuffer, 'product-feed.png'), {
+    caption: `${legendText}`,
+    parse_mode: 'HTML',
+  });
+
+  // Send story art
+  await ctx.replyWithPhoto(new InputFile(storyArtBuffer, 'product-story.png'), {
+    caption: '',
+    parse_mode: 'HTML',
+    reply_markup: new InlineKeyboard().url('Ver Produto', product.productUrl),
+  });
+
+  await usageCountersService.incrementRenders(userId);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Callback handlers para confirmação de preço Shopee
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Callback: Confirmar preço
+artsBot.callbackQuery(/^confirm_price$/, async (ctx) => {
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+
+  const pending = pendingPriceConfirmations.get(chatId);
+  if (!pending) {
+    await ctx.answerCallbackQuery({ text: '⚠️ Sessão expirada. Envie o link novamente.' });
+    return;
+  }
+
+  await ctx.answerCallbackQuery({ text: '✅ Preço confirmado!' });
+
+  // Remover botões
+  try {
+    await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+  } catch {}
+
+  // Continuar com a geração
+  await ctx.reply('🎨 *Gerando arte personalizada...*', { parse_mode: 'Markdown' });
+
+  try {
+    await generateAndSendArts(ctx, pending.product, pending.userId, pending.layoutPreferences);
+    pendingPriceConfirmations.delete(chatId);
+  } catch (error) {
+    console.error('Error generating art after price confirmation:', error);
+    await ctx.reply('❌ Erro ao gerar arte. Tente novamente.');
+    pendingPriceConfirmations.delete(chatId);
+  }
+});
+
+// Callback: Alterar preço
+artsBot.callbackQuery(/^change_price$/, async (ctx) => {
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+
+  const pending = pendingPriceConfirmations.get(chatId);
+  if (!pending) {
+    await ctx.answerCallbackQuery({ text: '⚠️ Sessão expirada. Envie o link novamente.' });
+    return;
+  }
+
+  await ctx.answerCallbackQuery();
+
+  // Remover botões
+  try {
+    await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+  } catch {}
+
+  // Pedir novo preço
+  await ctx.reply(
+    '💰 *Digite o preço correto do produto:*',
+    { parse_mode: 'Markdown' }
+  );
+
+  // Marcar que está aguardando novo preço
+  pending.timestamp = Date.now(); // Resetar timeout
 });
 
 /**

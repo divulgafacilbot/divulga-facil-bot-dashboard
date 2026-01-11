@@ -502,7 +502,19 @@ export class ArtGeneratorService {
           break;
         case "description":
           if (layoutPreferences?.feedShowDescription !== false && safeDescription) {
-            lines.push(safeDescription);
+            // Limitar descrição a máximo 250 caracteres para evitar caption muito longa
+            const MAX_CHARS = 250;
+            let truncatedDescription = safeDescription;
+            if (truncatedDescription.length > MAX_CHARS) {
+              truncatedDescription = truncatedDescription.substring(0, MAX_CHARS).trim();
+              // Cortar na última palavra completa
+              const lastSpace = truncatedDescription.lastIndexOf(' ');
+              if (lastSpace > MAX_CHARS * 0.6) {
+                truncatedDescription = truncatedDescription.substring(0, lastSpace);
+              }
+              truncatedDescription += '...';
+            }
+            lines.push(truncatedDescription);
           }
           break;
         case "price":

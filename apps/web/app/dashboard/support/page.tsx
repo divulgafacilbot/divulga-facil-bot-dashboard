@@ -24,15 +24,11 @@ type SupportTicket = {
 };
 
 const FAQ_ITEMS = [
+  // Bot de Artes
   {
     question: "O que o Bot de Artes entrega quando eu envio um link?",
     answer:
       "Ele gera um card para Telegram com arte e texto, uma arte para story (9:16) e uma arte quadrada otimizada para WhatsApp, seguindo o template definido no seu dashboard.",
-  },
-  {
-    question: "Como funciona o Bot de Download?",
-    answer:
-      "Basta enviar o link do produto no Telegram. O bot identifica as imagens e arquivos disponiveis e envia os downloads automaticamente na conversa.",
   },
   {
     question: "Preciso configurar um template antes de usar o Bot de Artes?",
@@ -40,9 +36,119 @@ const FAQ_ITEMS = [
       "Nao. Voce pode comecar com o template padrao e ajustar cores, fontes e layout no dashboard quando quiser.",
   },
   {
+    question: "Quanto tempo leva para gerar as artes?",
+    answer:
+      "Em geral, as artes ficam prontas em segundos depois que o bot processa o link.",
+  },
+  {
+    question: "Posso personalizar as cores e fontes das artes?",
+    answer:
+      "Sim. No dashboard voce pode alterar cores de fundo, cores de texto, fontes, tamanhos e posicionamento dos elementos do template.",
+  },
+  {
+    question: "O Bot de Artes funciona com links de afiliado?",
+    answer:
+      "Sim. O bot extrai as informacoes do produto mesmo em links de afiliado dos principais marketplaces como Mercado Livre, Shopee, Amazon e Magazine Luiza.",
+  },
+  // Bot de Download
+  {
+    question: "Como funciona o Bot de Download?",
+    answer:
+      "Basta enviar o link do produto no Telegram. O bot identifica as imagens e arquivos disponiveis e envia os downloads automaticamente na conversa.",
+  },
+  {
+    question: "Quais plataformas o Bot de Download suporta?",
+    answer:
+      "O bot suporta download de conteudo do Instagram, TikTok, Pinterest e YouTube. Basta enviar o link do post ou video.",
+  },
+  {
+    question: "Posso baixar videos do TikTok sem marca d'agua?",
+    answer:
+      "Sim. O Bot de Download remove automaticamente a marca d'agua dos videos do TikTok quando possivel.",
+  },
+  {
+    question: "Existe limite de downloads por dia?",
+    answer:
+      "O limite depende do seu plano de assinatura. Consulte os detalhes do seu plano na area de assinatura do dashboard.",
+  },
+  // Bot de Pinterest
+  {
+    question: "O que o Bot de Pinterest faz?",
+    answer:
+      "Ele gera cards otimizados para Pinterest a partir de links de produtos. Os pins sao criados no formato ideal para a plataforma, aumentando o alcance das suas divulgacoes.",
+  },
+  {
+    question: "Preciso ter conta no Pinterest para usar o bot?",
+    answer:
+      "Nao precisa vincular sua conta. O bot gera as imagens e voce pode salvar e publicar manualmente ou usar ferramentas de agendamento.",
+  },
+  {
+    question: "Os pins gerados ja vem com texto e preco?",
+    answer:
+      "Sim. O bot extrai titulo, preco e imagem do produto e monta o pin automaticamente seguindo o layout configurado no dashboard.",
+  },
+  {
+    question: "Posso agendar a publicacao dos pins?",
+    answer:
+      "O bot gera os pins para voce baixar. Para agendamento, voce pode usar ferramentas externas como Tailwind ou o proprio agendador do Pinterest.",
+  },
+  // Bot de Sugestoes
+  {
+    question: "Como funciona o Bot de Sugestoes?",
+    answer:
+      "Ele analisa produtos e gera sugestoes de titulos, descricoes e hashtags otimizadas para suas divulgacoes em redes sociais.",
+  },
+  {
+    question: "O Bot de Sugestoes usa inteligencia artificial?",
+    answer:
+      "Sim. O bot utiliza IA para analisar o produto e gerar textos persuasivos e hashtags relevantes para aumentar o engajamento.",
+  },
+  {
+    question: "Posso editar as sugestoes geradas pelo bot?",
+    answer:
+      "Sim. As sugestoes sao apenas um ponto de partida. Voce pode copiar e editar conforme preferir antes de publicar.",
+  },
+  {
+    question: "O bot sugere hashtags para quais redes sociais?",
+    answer:
+      "O bot gera hashtags otimizadas para Instagram, TikTok e Twitter/X, considerando as melhores praticas de cada plataforma.",
+  },
+  // Pagina Publica
+  {
+    question: "O que e a Pagina Publica?",
+    answer:
+      "E uma vitrine online personalizada onde voce pode exibir seus produtos de afiliado. Cada produto vira um card clicavel que redireciona para o link de compra.",
+  },
+  {
+    question: "Como compartilho minha Pagina Publica?",
+    answer:
+      "Voce recebe um link unico (ex: divulgafacil.com/seunome) que pode compartilhar na bio do Instagram, grupos de WhatsApp ou qualquer outro lugar.",
+  },
+  {
+    question: "Posso personalizar a aparencia da minha Pagina Publica?",
+    answer:
+      "Sim. No dashboard voce pode alterar foto de perfil, nome de exibicao, descricao, cores e ordenar os produtos como preferir.",
+  },
+  {
+    question: "Quantos produtos posso adicionar na Pagina Publica?",
+    answer:
+      "O limite de produtos depende do seu plano. Planos mais completos permitem adicionar mais produtos e recursos extras.",
+  },
+  {
+    question: "A Pagina Publica rastreia cliques nos produtos?",
+    answer:
+      "Sim. No dashboard voce acompanha metricas como visualizacoes de perfil, visualizacoes de cards e cliques nos links de compra.",
+  },
+  // Geral
+  {
+    question: "Quais tipos de links os bots aceitam?",
+    answer:
+      "Links de produtos e paginas de afiliado sao suportados. Os bots buscam os dados automaticamente para gerar artes ou baixar conteudos.",
+  },
+  {
     question: "Posso contratar apenas um bot?",
     answer:
-      "Sim. Voce pode assinar somente o Bot de Artes, somente o Bot de Download ou o pacote com os dois.",
+      "Sim. Voce pode assinar cada bot separadamente ou optar por pacotes com multiplos bots e recursos.",
   },
   {
     question: "Meu pagamento foi feito com outro e-mail. O que fazer?",
@@ -50,14 +156,19 @@ const FAQ_ITEMS = [
       "Acesse a area de pagamentos e vincule a assinatura usando o e-mail da compra na Kiwify para liberar o acesso automaticamente.",
   },
   {
-    question: "Quanto tempo leva para gerar as artes?",
+    question: "Como vinculo o bot ao meu Telegram?",
     answer:
-      "Em geral, as artes ficam prontas em segundos depois que o bot processa o link.",
+      "No dashboard, acesse a secao Telegram e siga as instrucoes para conectar. Voce recebera um codigo para validar no bot.",
   },
   {
-    question: "Quais tipos de links o bot aceita?",
+    question: "Posso usar os bots em mais de um dispositivo?",
     answer:
-      "Links de produtos e paginas de afiliado sao suportados. O bot busca os dados automaticamente para gerar a arte ou baixar as imagens.",
+      "Sim. Como os bots funcionam pelo Telegram, voce pode acessar de qualquer dispositivo onde estiver logado na sua conta.",
+  },
+  {
+    question: "O que acontece se minha assinatura vencer?",
+    answer:
+      "Os bots param de responder ate a renovacao. Seus templates e configuracoes ficam salvos e serao restaurados ao renovar.",
   },
 ];
 
@@ -69,15 +180,26 @@ const STATUS_LABELS: Record<SupportTicket["status"], string> = {
 };
 
 const CATEGORY_OPTIONS = [
-  "Bot de artes",
-  "Bot de download",
-  "Bot de Pins",
-  "Bot de Sugestão",
-  "Página Pública",
-  "Financeiro",
-  "Material promocional",
-  "Outras duvidas",
+  { label: "Bot de artes", value: "BOT_ARTS" },
+  { label: "Bot de download", value: "BOT_DOWNLOAD" },
+  { label: "Bot de Pins", value: "BOT_PINTEREST" },
+  { label: "Bot de Sugestão", value: "BOT_SUGGESTION" },
+  { label: "Página Pública", value: "PUBLIC_PAGE" },
+  { label: "Financeiro", value: "BILLING" },
+  { label: "Material promocional", value: "GENERAL" },
+  { label: "Outras duvidas", value: "TECHNICAL" },
 ];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  BOT_ARTS: "Bot de artes",
+  BOT_DOWNLOAD: "Bot de download",
+  BOT_PINTEREST: "Bot de Pins",
+  BOT_SUGGESTION: "Bot de Sugestão",
+  PUBLIC_PAGE: "Página Pública",
+  BILLING: "Financeiro",
+  GENERAL: "Material promocional",
+  TECHNICAL: "Outras duvidas",
+};
 
 export default function FaqSupportPage() {
   const [search, setSearch] = useState("");
@@ -474,8 +596,8 @@ export default function FaqSupportPage() {
                 >
                   <option value="">Selecione</option>
                   {CATEGORY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
