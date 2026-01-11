@@ -32,13 +32,13 @@ export class AuthController {
       // Hash password
       const passwordHash = await PasswordService.hash(password);
 
-      // Create user with emailVerified = false
+      // Create user with emailVerified = true (temporarily disabled email verification)
       const user = await prisma.user.create({
         data: {
           email,
           passwordHash,
           role: 'USER',
-          emailVerified: false,
+          emailVerified: true, // TODO: Reativar verificação de email em produção
         },
         select: {
           id: true,
@@ -56,23 +56,19 @@ export class AuthController {
         // Non-blocking: user can still use the platform
       }
 
-      // Generate verification token
-      const verificationToken = await EmailVerificationService.createVerificationToken(user.id);
+      // Email verification temporarily disabled
+      // TODO: Reativar quando for lançar em produção
+      // const verificationToken = await EmailVerificationService.createVerificationToken(user.id);
+      // await EmailVerificationService.sendVerificationEmail(email, verificationToken);
 
-      // Send verification email
-      try {
-        await EmailVerificationService.sendVerificationEmail(email, verificationToken);
-        res.status(201).json({
-          message: 'Conta criada com sucesso! Verifique seu e-mail para ativar sua conta.',
-        });
-      } catch (emailError: unknown) {
-        console.error('Failed to send verification email:', emailError);
-        // User was created but email failed - inform them
-        res.status(201).json({
-          message: 'Conta criada com sucesso! Porém, houve um problema ao enviar o e-mail de verificação. Use a opção "Reenviar e-mail de verificação" para tentar novamente.',
-          warning: 'Email não enviado',
-        });
-      }
+      res.status(201).json({
+        message: 'Conta criada com sucesso!',
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        },
+      });
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Falha na validação', details: error.errors });
