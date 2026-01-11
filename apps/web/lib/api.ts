@@ -1,19 +1,12 @@
 import type { User, ApiError, LoginHistoryResponse, LoginStats } from '@/types';
-import { HttpMethod, ApiEndpoint, ApiErrorCode, UserRole } from './common-enums';
+import { HttpMethod, ApiEndpoint, ApiErrorCode } from './common-enums';
 
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 const API_BASE_URL = configuredBaseUrl || 'http://localhost:4000';
 
-// Detect if we're in production mode (for mock login)
-const isProduction = process.env.NODE_ENV === 'production';
-
-// Export for use in components
-export const IS_PRODUCTION = isProduction;
-
 console.log('🔧 API Configuration:', {
   configuredBaseUrl,
   API_BASE_URL,
-  isProduction,
   isClient: typeof window !== 'undefined',
 });
 
@@ -131,56 +124,24 @@ async function fetchAPI<T = unknown>(endpoint: string, options: RequestInit = {}
   return data as T;
 }
 
-// Mock credentials for demo access
-const MOCK_CREDENTIALS = {
-  email: 'teste@divulgafacil.com.br',
-  password: 'Divulga123',
-};
-
-const MOCK_USER: User = {
-  id: 'mock-user-id',
-  email: 'teste@divulgafacil.com.br',
-  role: UserRole.USER,
-  emailVerified: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
-
 export const api = {
   auth: {
     register: (email: string, password: string) =>
-      fetchAPI<{ message: string; warning?: string }>(ApiEndpoint.AUTH_REGISTER, {
+      fetchAPI<{ message: string; warning?: string; user?: { id: string; email: string; role: string } }>(ApiEndpoint.AUTH_REGISTER, {
         method: HttpMethod.POST,
         body: JSON.stringify({ email, password }),
       }),
 
-    login: async (email: string, password: string, rememberMe: boolean = false): Promise<{ user: User }> => {
-      // PRODUCTION MODE: Accept ANY credentials and return mock user
-      if (isProduction) {
-        console.log('🏭 PRODUCTION MODE: Auto-login (any credentials accepted)');
-        return { user: MOCK_USER };
-      }
-
-      // DEVELOPMENT MODE: Use real API
-      console.log('🔧 Development mode: Calling API...');
-      return fetchAPI<{ user: User }>(ApiEndpoint.AUTH_LOGIN, {
+    login: (email: string, password: string, rememberMe: boolean = false): Promise<{ user: User }> =>
+      fetchAPI<{ user: User }>(ApiEndpoint.AUTH_LOGIN, {
         method: HttpMethod.POST,
         body: JSON.stringify({ email, password, rememberMe }),
-      });
-    },
+      }),
 
-    logout: async (): Promise<{ message: string }> => {
-      // PRODUCTION MODE: Just return success
-      if (isProduction) {
-        console.log('🏭 PRODUCTION MODE: Logout (no-op)');
-        return { message: 'Logout realizado com sucesso' };
-      }
-
-      // DEVELOPMENT MODE: Use real API
-      return fetchAPI<{ message: string }>(ApiEndpoint.AUTH_LOGOUT, {
+    logout: (): Promise<{ message: string }> =>
+      fetchAPI<{ message: string }>(ApiEndpoint.AUTH_LOGOUT, {
         method: HttpMethod.POST,
-      });
-    },
+      }),
 
     forgotPassword: (email: string) =>
       fetchAPI<{ message: string }>(ApiEndpoint.AUTH_FORGOT_PASSWORD, {
@@ -213,17 +174,7 @@ export const api = {
   },
 
   user: {
-    getMe: async (): Promise<User> => {
-      // PRODUCTION MODE: Always return mock user (no authentication check)
-      if (isProduction) {
-        console.log('🏭 PRODUCTION MODE: Returning mock user (no auth check)');
-        return MOCK_USER;
-      }
-
-      // DEVELOPMENT MODE: Use real API
-      console.log('🔧 Development mode: Calling API...');
-      return fetchAPI<User>(ApiEndpoint.USER_ME);
-    },
+    getMe: (): Promise<User> => fetchAPI<User>(ApiEndpoint.USER_ME),
     changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>
       fetchAPI<{ message: string }>(ApiEndpoint.USER_CHANGE_PASSWORD, {
         method: HttpMethod.POST,
