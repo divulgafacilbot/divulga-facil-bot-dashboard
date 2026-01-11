@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from "@/components/forms/Button";
-import { api, IS_PRODUCTION } from "@/lib/api";
-import { UserRole } from "@/lib/common-enums";
+import { api } from "@/lib/api";
 import { ROUTES } from "@/lib/constants";
 import type { User } from "@/types";
 import Link from "next/link";
@@ -31,24 +30,6 @@ export default function DashboardLayout({
 
   useEffect(() => {
     async function loadUser() {
-      // PRODUCTION MODE: Set mock user directly without any API call
-      if (IS_PRODUCTION) {
-        console.log('🏭 PRODUCTION: Setting mock user directly');
-        const mockUser: User = {
-          id: 'mock-user-id',
-          email: 'teste@divulgafacil.com.br',
-          role: UserRole.USER,
-          emailVerified: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        setUser(mockUser);
-        setLoading(false);
-        return;
-      }
-
-      // DEVELOPMENT MODE: Normal flow
-      console.log('🔧 Dashboard: Loading user from API...');
       try {
         const userData = await api.user.getMe();
         console.log('✅ Dashboard: User loaded:', userData.email);

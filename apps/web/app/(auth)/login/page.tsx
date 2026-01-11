@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/forms/Button";
 import { Input } from "@/components/forms/Input";
-import { api, IS_PRODUCTION } from "@/lib/api";
+import { api } from "@/lib/api";
 import { DashboardRoute } from "@/lib/common-enums";
 import { ROUTES } from "@/lib/constants";
 import { loginSchema } from "@/lib/validation";
@@ -39,19 +39,10 @@ function LoginPageContent() {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginForm>({
-    // PRODUCTION MODE: No validation, DEVELOPMENT MODE: Use Zod validation
-    resolver: IS_PRODUCTION ? undefined : zodResolver(loginSchema),
+    resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = async (data: LoginForm) => {
-    // PRODUCTION MODE: Redirect directly to dashboard
-    if (IS_PRODUCTION) {
-      console.log('🏭 PRODUCTION: Redirecting directly to dashboard');
-      window.location.href = DashboardRoute.HOME;
-      return;
-    }
-
-    // DEVELOPMENT MODE: Normal login flow
     try {
       setError("");
       setSuccessMessage("");
