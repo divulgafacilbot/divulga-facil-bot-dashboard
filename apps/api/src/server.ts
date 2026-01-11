@@ -93,9 +93,19 @@ if (process.env.NODE_ENV !== 'test') {
     // Start housekeeping scheduler (in-process)
     schedulerService.start();
 
-    // Start Telegram bots with retry logic for handling deploy conflicts
-    // Telegram long-poll timeout is 30s, so we need longer delays
-    const startBotsWithRetry = async (maxRetries = 5, baseDelay = 10000) => {
+    // Check if Telegram bots should be disabled (for local development)
+    if (process.env.DISABLE_TELEGRAM_BOTS === 'true') {
+      console.log('⚠️ Telegram bots disabled (DISABLE_TELEGRAM_BOTS=true)');
+    } else {
+      // Start Telegram bots with retry logic for handling deploy conflicts
+      // Telegram long-poll timeout is 30s, so we need longer delays
+      await startTelegramBots();
+    }
+  });
+}
+
+async function startTelegramBots() {
+  const startBotsWithRetry = async (maxRetries = 5, baseDelay = 10000) => {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           console.log(`🔄 Starting Telegram bots (attempt ${attempt}/${maxRetries})...`);
@@ -111,18 +121,21 @@ if (process.env.NODE_ENV !== 'test') {
           console.log(`⏳ Waiting ${delay/1000}s for connections to clear...`);
           await new Promise(resolve => setTimeout(resolve, delay));
 
-          // Start bots sequentially
+          // Start bots (fire-and-forget since bot.start() blocks forever)
           console.log('🤖 Starting Arts Bot...');
-          await artsBot.start();
+          artsBot.start().catch(err => console.error('Arts Bot error:', err));
 
           console.log('🤖 Starting Download Bot...');
-          await startDownloadBot();
+          startDownloadBot().catch(err => console.error('Download Bot error:', err));
 
           console.log('🤖 Starting Pinterest Bot...');
-          await pinterestBot.start();
+          pinterestBot.start().catch(err => console.error('Pinterest Bot error:', err));
 
           console.log('🤖 Starting Suggestion Bot...');
-          await startSuggestionBot();
+          startSuggestionBot().catch(err => console.error('Suggestion Bot error:', err));
+
+          // Wait a bit to see if any bot throws immediately
+          await new Promise(resolve => setTimeout(resolve, 3000));
 
           console.log('✅ All Telegram bots started successfully');
           return; // Success, exit retry loop
@@ -141,11 +154,10 @@ if (process.env.NODE_ENV !== 'test') {
       }
     };
 
-    try {
-      await startBotsWithRetry();
-    } catch (error) {
-      console.error('❌ Failed to start Telegram bots after all retries:', error);
-      console.error('Make sure TELEGRAM_BOT_ARTS_TOKEN, TELEGRAM_BOT_DOWNLOAD_TOKEN, TELEGRAM_BOT_PINTEREST_TOKEN, and TELEGRAM_BOT_SUGESTION_TOKEN are set in .env file');
-    }
-  });
+  try {
+    await startBotsWithRetry();
+  } catch (error) {
+    console.error('❌ Failed to start Telegram bots after all retries:', error);
+    console.error('Make sure TELEGRAM_BOT_ARTS_TOKEN, TELEGRAM_BOT_DOWNLOAD_TOKEN, TELEGRAM_BOT_PINTEREST_TOKEN, and TELEGRAM_BOT_SUGESTION_TOKEN are set in .env file');
+  }
 }
