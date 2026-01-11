@@ -6,6 +6,7 @@ import type {
   GetPromoTokensFilters,
   PromoTokensListResponse,
 } from '../../types/promo-token.types';
+import { getAdminToken } from '../admin-auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
@@ -18,18 +19,10 @@ interface ApiErrorExtended extends Error {
 }
 
 /**
- * Get auth token from localStorage
- */
-function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('admin_token');
-}
-
-/**
  * Generic fetcher for SWR
  */
 async function fetcher<T>(url: string): Promise<T> {
-  const token = getAuthToken();
+  const token = getAdminToken();
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -58,7 +51,7 @@ async function mutate<T>(
   method: 'POST' | 'PATCH' | 'DELETE',
   body?: unknown
 ): Promise<T> {
-  const token = getAuthToken();
+  const token = getAdminToken();
   const options: RequestInit = {
     method,
     headers: {
@@ -87,7 +80,7 @@ async function mutate<T>(
  * Specialized fetcher for promo tokens list that handles the API response structure
  */
 async function promoTokensListFetcher(url: string): Promise<PromoTokensListResponse> {
-  const token = getAuthToken();
+  const token = getAdminToken();
   const response = await fetch(url, {
     method: 'GET',
     headers: {
