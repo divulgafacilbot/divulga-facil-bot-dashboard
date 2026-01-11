@@ -93,34 +93,57 @@ if (process.env.NODE_ENV !== 'test') {
     // Start housekeeping scheduler (in-process)
     schedulerService.start();
 
-    // Start Telegram bots with graceful connection cleanup
+    // Start Telegram bots with retry logic for handling deploy conflicts
+    const startBotsWithRetry = async (maxRetries = 3, baseDelay = 5000) => {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`🔄 Starting Telegram bots (attempt ${attempt}/${maxRetries})...`);
+
+          // Drop pending updates to clear stale connections
+          await Promise.all([
+            artsBot.api.deleteWebhook({ drop_pending_updates: true }),
+            pinterestBot.api.deleteWebhook({ drop_pending_updates: true }),
+          ]);
+
+          // Wait for Telegram to release connections (longer on retries)
+          const delay = baseDelay * attempt;
+          console.log(`⏳ Waiting ${delay/1000}s for connections to clear...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+
+          // Start bots sequentially
+          console.log('🤖 Starting Arts Bot...');
+          await artsBot.start();
+
+          console.log('🤖 Starting Download Bot...');
+          await startDownloadBot();
+
+          console.log('🤖 Starting Pinterest Bot...');
+          await pinterestBot.start();
+
+          console.log('🤖 Starting Suggestion Bot...');
+          await startSuggestionBot();
+
+          console.log('✅ All Telegram bots started successfully');
+          return; // Success, exit retry loop
+        } catch (error: any) {
+          const isConflict = error?.error_code === 409 || error?.message?.includes('409');
+
+          if (isConflict && attempt < maxRetries) {
+            console.warn(`⚠️ Bot conflict detected (attempt ${attempt}/${maxRetries}), retrying...`);
+            // Stop any partially started bots before retry
+            try { artsBot.stop(); } catch {}
+            try { pinterestBot.stop(); } catch {}
+          } else {
+            throw error;
+          }
+        }
+      }
+    };
+
     try {
-      // Drop pending updates to clear stale connections from previous instances
-      console.log('🔄 Clearing old bot connections...');
-      await Promise.all([
-        artsBot.api.deleteWebhook({ drop_pending_updates: true }),
-        pinterestBot.api.deleteWebhook({ drop_pending_updates: true }),
-      ]);
-
-      // Small delay to ensure Telegram releases the connections
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Start bots sequentially to avoid race conditions
-      console.log('🤖 Starting Arts Bot...');
-      await artsBot.start();
-
-      console.log('🤖 Starting Download Bot...');
-      await startDownloadBot();
-
-      console.log('🤖 Starting Pinterest Bot...');
-      await pinterestBot.start();
-
-      console.log('🤖 Starting Suggestion Bot...');
-      await startSuggestionBot();
-
-      console.log('✅ All Telegram bots started successfully');
+      await startBotsWithRetry();
     } catch (error) {
-      console.error('❌ Failed to start Telegram bots:', error);
+      console.error('❌ Failed to start Telegram bots after all retries:', error);
       console.error('Make sure TELEGRAM_BOT_ARTS_TOKEN, TELEGRAM_BOT_DOWNLOAD_TOKEN, TELEGRAM_BOT_PINTEREST_TOKEN, and TELEGRAM_BOT_SUGESTION_TOKEN are set in .env file');
     }
   });
