@@ -3,6 +3,7 @@
 import { getAdminToken, getAdminUser } from '@/lib/admin-auth';
 import { AdminPermission, AdminRole } from '@/lib/admin-enums';
 import { useEffect, useState } from 'react';
+import { BarChart, Bar, LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 type OverviewPayload = {
   kpis: {
@@ -302,28 +303,16 @@ export default function AdminOverviewPage() {
     { value: publicMarketplaceBreakdown.AMAZON, color: '#374151' },
   ]);
 
-  const stats = [
-    ...(showUsersMetrics ? [{ name: 'Usuários Ativos', value: kpis?.activeUsers || 0 }] : []),
-    ...(showBotMetrics
-      ? [
-          { name: 'Bots de Artes Ativos', value: kpis?.activeArtsBots || 0 },
-          { name: 'Bots de Download Ativos', value: kpis?.activeDownloadBots || 0 },
-          { name: 'Bots de Pinterest Ativos', value: kpis?.activePinterestBots || 0 },
-          { name: 'Bots de Sugestões Ativos', value: kpis?.activeSuggestionBots || 0 },
-        ]
-      : []),
-    ...(showFinanceMetrics
-      ? [
-          {
-            name: 'Faturamento (30d)',
-            value: revenue30d.toLocaleString('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            }),
-          },
-        ]
-      : []),
+  const stats: { name: string; value: string | number }[] = [];
+
+  // Dados para o gráfico de bots ativos
+  const botStatsData = [
+    { name: 'Artes', value: kpis?.activeArtsBots || 0, color: '#2D6AEF' },
+    { name: 'Download', value: kpis?.activeDownloadBots || 0, color: '#10B981' },
+    { name: 'Pinterest', value: kpis?.activePinterestBots || 0, color: '#F97316' },
+    { name: 'Sugestões', value: kpis?.activeSuggestionBots || 0, color: '#8B5CF6' },
   ];
+  const totalActiveBots = botStatsData.reduce((acc, item) => acc + item.value, 0);
 
   return (
     <div>
@@ -352,7 +341,233 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      {/* Bot de Artes & Bot de Download */}
+      {/* Grid 1: Páginas Públicas, Faturamento, Bots Ativos, Usuários */}
+      {(showBotMetrics || showUsersMetrics || showFinanceMetrics) && (
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Páginas Públicas */}
+          {showBotMetrics && (
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)] @container">
+            <div className="flex flex-col mb-4">
+              <h2 className="text-base font-semibold uppercase tracking-[0.2em] text-[#F53D2D] mb-0">
+                PÁGINAS PÚBLICAS
+              </h2>
+              <p className="text-sm font-semibold tracking-[0.2em] text-gray-500">
+                Métricas agregadas (30d)
+              </p>
+            </div>
+
+            <div className="flex gap-6">
+              {/* Coluna esquerda - Gráfico e Legenda (70%) */}
+              <div className="flex flex-col gap-3" style={{ width: '70%' }}>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+                  Cliques por Marketplace
+                </h3>
+                <div className="flex flex-col @[540px]:flex-row gap-4 items-center">
+                  <div className="flex items-center justify-center">
+                    <div
+                      className="h-52 w-52 rounded-full"
+                      style={{ background: publicPieBackground }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 justify-center">
+                    <div className="flex items-center gap-2" style={{ width: '130px' }}>
+                      <span className="h-3 w-3 rounded-full bg-[#FBBF24] shrink-0" />
+                      <span className="text-xs text-gray-600 flex-1">Mercado Livre</span>
+                      <span className="text-sm font-bold text-gray-900">{publicMarketplaceBreakdown.MERCADO_LIVRE}</span>
+                    </div>
+                    <div className="flex items-center gap-2" style={{ width: '130px' }}>
+                      <span className="h-3 w-3 rounded-full bg-[#2D6AEF] shrink-0" />
+                      <span className="text-xs text-gray-600 flex-1">Magazine Luiza</span>
+                      <span className="text-sm font-bold text-gray-900">{publicMarketplaceBreakdown.MAGALU}</span>
+                    </div>
+                    <div className="flex items-center gap-2" style={{ width: '130px' }}>
+                      <span className="h-3 w-3 rounded-full bg-[#F97316] shrink-0" />
+                      <span className="text-xs text-gray-600 flex-1">Shopee</span>
+                      <span className="text-sm font-bold text-gray-900">{publicMarketplaceBreakdown.SHOPEE}</span>
+                    </div>
+                    <div className="flex items-center gap-2" style={{ width: '130px' }}>
+                      <span className="h-3 w-3 rounded-full bg-[#374151] shrink-0" />
+                      <span className="text-xs text-gray-600 flex-1">Amazon</span>
+                      <span className="text-sm font-bold text-gray-900">{publicMarketplaceBreakdown.AMAZON}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coluna direita - Métricas agregadas (30%) */}
+              <div className="flex flex-col gap-2" style={{ width: '30%' }}>
+                <div className="rounded-xl border border-[var(--color-border)] bg-gray-50 p-3">
+                  <p className="text-xs font-medium text-gray-600">Visualizações de Perfil</p>
+                  <p className="mt-1 text-xl font-bold text-gray-900">{publicPageMetrics?.profileViews || 0}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--color-border)] bg-gray-50 p-3">
+                  <p className="text-xs font-medium text-gray-600">Visualizações de Cards</p>
+                  <p className="mt-1 text-xl font-bold text-gray-900">{publicPageMetrics?.cardViews || 0}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--color-border)] bg-gray-50 p-3">
+                  <p className="text-xs font-medium text-gray-600">Cliques CTA</p>
+                  <p className="mt-1 text-xl font-bold text-gray-900">{publicPageMetrics?.ctaClicks || 0}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* Faturamento */}
+          {showFinanceMetrics && (
+            <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-base font-semibold uppercase tracking-[0.2em] text-gray-700">
+                    Faturamento
+                  </h2>
+                  <p className="text-sm text-gray-500">Receita por dia (30d)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-gray-600">Total (30d):</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {revenue30d.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                </div>
+              </div>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsLineChart data={revenueSeries} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10 }}
+                      tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return `${date.getDate()}/${date.getMonth() + 1}`;
+                      }}
+                      interval={3}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={{ stroke: '#e5e7eb' }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(value) => `R$${value}`}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={{ stroke: '#e5e7eb' }}
+                    />
+                    <Tooltip
+                      formatter={(value) => [
+                        Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+                        'Receita'
+                      ]}
+                      labelFormatter={(label) => {
+                        const date = new Date(label);
+                        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+                      }}
+                      contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="#22C55E"
+                      strokeWidth={2}
+                      dot={{ fill: '#22C55E', strokeWidth: 0, r: 3 }}
+                      activeDot={{ r: 5, fill: '#22C55E' }}
+                    />
+                  </RechartsLineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                  Receita diária
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Bots Ativos */}
+          {showBotMetrics && (
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-semibold uppercase tracking-[0.2em] text-gray-700">
+                  Bots Ativos
+                </h2>
+                <p className="text-sm text-gray-500">Comparativo por tipo de bot</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{totalActiveBots}</p>
+              </div>
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={botStatsData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                  <XAxis type="number" allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 14 }} />
+                  <Tooltip
+                    formatter={(value) => [`${value}`, 'Bots ativos']}
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={32}>
+                    {botStatsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          )}
+
+          {/* Usuários Ativos */}
+          {showUsersMetrics && (
+            <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-base font-semibold uppercase tracking-[0.2em] text-gray-700">
+                    Usuários Ativos
+                  </h2>
+                  <p className="text-sm text-gray-500">Novos usuários por dia (30d)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-gray-600">Total de usuários:</p>
+                  <p className="text-2xl font-bold text-gray-900">{kpis?.activeUsers || 0}</p>
+                </div>
+              </div>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={newUsersSeries} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10 }}
+                      tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return `${date.getDate()}/${date.getMonth() + 1}`;
+                      }}
+                      interval={4}
+                    />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip
+                      formatter={(value) => [`${value} novos usuários`, '']}
+                      labelFormatter={(label) => {
+                        const date = new Date(label);
+                        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+                      }}
+                      contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                    />
+                    <Bar dataKey="count" fill="#2D6AEF" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#2D6AEF]" />
+                  Novos usuários
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Grid 2: Bot de Artes, Bot de Download, Bot de Pinterest, Bot de Sugestões */}
       {showBotMetrics && (
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Bot de Artes */}
@@ -488,12 +703,7 @@ export default function AdminOverviewPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Bot de Pinterest & Bot de Sugestões */}
-      {showBotMetrics && (
-        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Bot de Pinterest */}
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
             <div className="flex flex-col gap-6 lg:flex-row">
@@ -627,134 +837,6 @@ export default function AdminOverviewPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Public Pages Metrics */}
-      {showBotMetrics && (
-        <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <div className="flex flex-col">
-            <h2 className="text-base font-semibold uppercase tracking-[0.2em] text-[#F53D2D] mb-0">
-              PÁGINAS PÚBLICAS
-            </h2>
-            <p className="text-sm font-semibold tracking-[0.2em] text-gray-500 mb-6">
-              Métricas agregadas de todas as páginas públicas (30d)
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="rounded-xl border border-[var(--color-border)] bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-600">Visualizações de Perfil</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{publicPageMetrics?.profileViews || 0}</p>
-            </div>
-            <div className="rounded-xl border border-[var(--color-border)] bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-600">Visualizações de Cards</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{publicPageMetrics?.cardViews || 0}</p>
-            </div>
-            <div className="rounded-xl border border-[var(--color-border)] bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-600">Cliques CTA</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{publicPageMetrics?.ctaClicks || 0}</p>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6 lg:flex-row">
-            <div className="flex w-full flex-col gap-4 lg:w-1/2">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
-                Cliques por Marketplace
-              </h2>
-              <div className="flex items-center justify-center">
-                <div
-                  className="h-48 w-48 rounded-full"
-                  style={{ background: publicPieBackground }}
-                />
-              </div>
-            </div>
-            <div className="grid w-full gap-3 lg:w-1/2">
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#FBBF24]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Mercado Livre
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {publicMarketplaceBreakdown.MERCADO_LIVRE}
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#2D6AEF]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Magalu
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {publicMarketplaceBreakdown.MAGALU}
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#F97316]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Shopee
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {publicMarketplaceBreakdown.SHOPEE}
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-[var(--color-border)] bg-white p-2 pl-8">
-                <div className="absolute left-0 top-0 h-full w-5 rounded-l-xl bg-[#374151]" />
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 mb-0">
-                  Amazon
-                </p>
-                <p className="mt-0 mb-0 text-2xl font-bold text-gray-900">
-                  {publicMarketplaceBreakdown.AMAZON}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* User Metrics & Finance */}
-      {(showUsersMetrics || showFinanceMetrics) && (
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {showUsersMetrics && (
-            <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Novos usuários por dia (30d)</h2>
-              <div className="flex items-end gap-1 h-40">
-                {newUsersSeries.map((item) => (
-                  <div
-                    key={item.date}
-                    className="flex-1 rounded-t bg-[#2D6AEF]/70 hover:bg-[#2D6AEF]"
-                    style={{ height: `${(item.count / maxNewUsers) * 100}%` }}
-                    title={`${formatDate(item.date)}: ${item.count}`}
-                  />
-                ))}
-              </div>
-              <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#2D6AEF]" />
-                  Novos usuários
-                </span>
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>{newUsersSeries.length ? formatDate(newUsersSeries[0].date) : '-'}</span>
-                <span>{newUsersSeries.length ? formatDate(newUsersSeries[newUsersSeries.length - 1].date) : '-'}</span>
-              </div>
-            </div>
-          )}
-
-          {showFinanceMetrics && (
-            <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Receita (30d)</h2>
-              <LineChart
-                data={revenueSeries}
-                series={[{ key: 'amount', color: '#22C55E' }]}
-              />
-              <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
-                  Receita
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

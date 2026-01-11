@@ -1,11 +1,11 @@
-import { Bot, InlineKeyboard, InputFile } from 'grammy';
+import { Bot, InlineKeyboard, InputFile, Context } from 'grammy';
 import { prisma } from '../db/prisma.js';
 import { CardSource, Marketplace } from '@prisma/client';
 import { getRequiredScrapeFields } from '../scraping/fields.js';
 import { scraperRouter } from '../scraping/index.js';
 import { brandConfigService } from '../services/brand-config.service.js';
 import { artGeneratorService } from '../services/image-generation/art-generator.service.js';
-import { layoutPreferencesService, DEFAULT_LAYOUT_PREFERENCES } from '../services/layout-preferences.service.js';
+import { layoutPreferencesService, LayoutPreferences, DEFAULT_LAYOUT_PREFERENCES } from '../services/layout-preferences.service.js';
 import { usageCountersService } from '../services/usage-counters.service.js';
 import { telemetryService } from '../services/telemetry.service.js';
 import { BOT_TYPES } from '../constants/bot-types.js';
@@ -16,8 +16,36 @@ import { PublicCardService } from '../services/pinterest/public-card.service.js'
 import { PinterestBotConfigService } from '../services/pinterest/pinterest-bot-config.service.js';
 import { PublicPageService } from '../services/pinterest/public-page.service.js';
 import { CategoryInferenceService } from '../services/category-inference.service.js';
+import { ProductData } from '../scraping/types.js';
 
 const TELEGRAM_BOT_PINTEREST_TOKEN = process.env.TELEGRAM_BOT_PINTEREST_TOKEN;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Estado para confirmação de preço da Shopee (Antibot)
+// ═══════════════════════════════════════════════════════════════════════════════
+interface PendingPriceConfirmation {
+  product: ProductData;
+  url: string;
+  userId: string;
+  botLink: { user_id: string };
+  layoutPreferences: LayoutPreferences;
+  processingMsgId: number;
+  chatId: number;
+  timestamp: number;
+}
+
+// Map para armazenar confirmações pendentes por chatId
+const pendingPriceConfirmations = new Map<number, PendingPriceConfirmation>();
+
+// Limpar confirmações antigas (mais de 5 minutos)
+setInterval(() => {
+  const now = Date.now();
+  for (const [chatId, pending] of pendingPriceConfirmations.entries()) {
+    if (now - pending.timestamp > 5 * 60 * 1000) {
+      pendingPriceConfirmations.delete(chatId);
+    }
+  }
+}, 60 * 1000);
 
 if (!TELEGRAM_BOT_PINTEREST_TOKEN) {
   throw new Error('TELEGRAM_BOT_PINTEREST_TOKEN is not defined in environment variables');
@@ -315,6 +343,7 @@ Acesse o suporte pelo dashboard web.
 pinterestBot.on('message:text', async (ctx) => {
   const text = ctx.message.text;
   const telegramUserId = ctx.from?.id.toString();
+  const chatId = ctx.chat?.id;
 
   console.log('[Pinterest] ========== NOVA MENSAGEM ==========');
   console.log('[Pinterest] Telegram User ID:', telegramUserId);
@@ -324,6 +353,40 @@ pinterestBot.on('message:text', async (ctx) => {
   if (text.startsWith('/')) {
     console.log('[Pinterest] Ignorando: é um comando');
     return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Verificar se há confirmação de preço pendente (Antibot Shopee)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (chatId && pendingPriceConfirmations.has(chatId)) {
+    const pending = pendingPriceConfirmations.get(chatId)!;
+
+    // Verificar se o texto é um preço (números com , ou .)
+    const priceMatch = text.match(/^R?\$?\s*(\d+[.,]?\d*)$/);
+    if (priceMatch) {
+      const newPrice = parseFloat(priceMatch[1].replace(',', '.'));
+
+      if (!isNaN(newPrice) && newPrice > 0) {
+        // Atualizar preço do produto
+        pending.product.price = newPrice;
+
+        const priceFormatted = `R$ ${newPrice.toFixed(2).replace('.', ',')}`;
+        await ctx.reply(`✅ Preço atualizado para *${priceFormatted}*\n\n🎨 *Gerando pin do Pinterest...*`, {
+          parse_mode: 'Markdown',
+        });
+
+        try {
+          await generateAndSendPins(ctx, pending.product, pending.userId, pending.layoutPreferences);
+          pendingPriceConfirmations.delete(chatId);
+        } catch (error) {
+          console.error('[Pinterest] Error generating pin after price change:', error);
+          await ctx.reply('❌ Erro ao gerar pin. Tente novamente.');
+          pendingPriceConfirmations.delete(chatId);
+        }
+        return;
+      }
+    }
+    // Se não é preço válido, continua para processar como URL
   }
 
   // Check if text contains a URL
@@ -560,6 +623,48 @@ pinterestBot.on('message:text', async (ctx) => {
       origin: 'pinterest-bot',
       metadata: { marketplace, url, productTitle: product.title, hasPrice: product.price !== null }
     });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ANTIBOT SHOPEE: Pedir confirmação de preço
+    // ═══════════════════════════════════════════════════════════════════════════
+    const priceValue = typeof product.price === "number" && Number.isFinite(product.price) ? product.price : null;
+    const hasPrice = priceValue !== null;
+    const priceFormatted = hasPrice ? `R$ ${priceValue.toFixed(2).replace('.', ',')}` : "";
+
+    if (marketplace === 'SHOPEE' && hasPrice) {
+      const confirmationMsg = `
+⚠️ *Metadados da Shopee podem estar desatualizados.*
+
+📦 *${product.title}*
+
+💰 Confira se o preço deste produto ainda é: *${priceFormatted}*
+
+🔗 Clique e confira: ${url}
+`;
+
+      await ctx.api.editMessageText(ctx.chat.id, processingMsg.message_id, confirmationMsg, {
+        parse_mode: 'Markdown',
+        link_preview_options: { is_disabled: true },
+        reply_markup: new InlineKeyboard()
+          .text('✅ Confirmar preço', 'pinterest_confirm_price')
+          .text('✏️ Alterar preço', 'pinterest_change_price'),
+      });
+
+      // Salvar estado pendente
+      pendingPriceConfirmations.set(ctx.chat.id, {
+        product,
+        url,
+        userId: botLink.user_id,
+        botLink,
+        layoutPreferences,
+        processingMsgId: processingMsg.message_id,
+        chatId: ctx.chat.id,
+        timestamp: Date.now(),
+      });
+
+      // Parar aqui - a continuação será feita pelo callback handler
+      return;
+    }
 
     // Format product info message
     const productInfo = telegramUtils.formatProductInfo(product);
@@ -915,6 +1020,210 @@ pinterestBot.on('message:text', async (ctx) => {
       '❌ Ocorreu um erro ao processar o produto. Tente novamente mais tarde.'
     );
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Função auxiliar para gerar e enviar pins
+// ═══════════════════════════════════════════════════════════════════════════════
+async function generateAndSendPins(
+  ctx: Context,
+  product: ProductData,
+  userId: string,
+  layoutPreferences: LayoutPreferences
+) {
+  let brandConfig = await brandConfigService.getConfig(userId);
+
+  if (!brandConfig) {
+    brandConfig = {
+      userId: userId,
+      templateId: 'default',
+      bgColor: '#FFFFFF',
+      textColor: '#000000',
+      priceColor: '#FF0000',
+      fontFamily: 'Inter',
+      showCoupon: true,
+      couponText: 'APROVEITE!',
+      ctaText: 'COMPRE AGORA!',
+      customImageUrl: null,
+    };
+  }
+
+  // Generate feed format (4:5)
+  const feedArtBuffer = await artGeneratorService.generateArt(
+    product,
+    brandConfig,
+    'feed',
+    userId,
+    layoutPreferences
+  );
+
+  // Generate story format (9:16)
+  const storyArtBuffer = await artGeneratorService.generateArt(
+    product,
+    brandConfig,
+    'story',
+    userId,
+    layoutPreferences
+  );
+
+  // Build caption/legend for FEED
+  const legendText = artGeneratorService.buildLegendText(
+    product,
+    brandConfig,
+    layoutPreferences
+  );
+
+  // Truncate caption if needed
+  const TELEGRAM_CAPTION_LIMIT = 1024;
+  let caption = legendText;
+  if (caption.length > TELEGRAM_CAPTION_LIMIT) {
+    caption = caption.substring(0, TELEGRAM_CAPTION_LIMIT - 50) + '...';
+    const openBold = (caption.match(/<b>/g) || []).length;
+    const closeBold = (caption.match(/<\/b>/g) || []).length;
+    if (openBold > closeBold) {
+      caption += '</b>';
+    }
+  }
+
+  // Send FEED art WITH caption
+  await ctx.replyWithPhoto(new InputFile(feedArtBuffer, 'pinterest-feed.png'), {
+    caption,
+    parse_mode: 'HTML',
+  });
+
+  // Send STORY art WITHOUT caption
+  await ctx.replyWithPhoto(new InputFile(storyArtBuffer, 'pinterest-story.png'), {
+    caption: '',
+    parse_mode: 'HTML',
+    reply_markup: new InlineKeyboard().url('Ver Produto', product.productUrl),
+  });
+
+  // Check if autoPublish is enabled
+  const autoPublishEnabled = await PinterestBotConfigService.isAutoPublishEnabled(userId);
+
+  if (autoPublishEnabled) {
+    try {
+      const inferredCategory = CategoryInferenceService.infer(product.title);
+      const defaultCategory = await PinterestBotConfigService.getDefaultCategory(userId);
+      const finalCategory = defaultCategory || inferredCategory;
+
+      const priceValue = typeof product.price === 'number' && Number.isFinite(product.price) ? product.price : null;
+      const priceString = priceValue !== null ? `R$ ${priceValue.toFixed(2).replace('.', ',')}` : 'Preço indisponível';
+      const originalPriceString = typeof product.originalPrice === 'number' && Number.isFinite(product.originalPrice)
+        ? `R$ ${product.originalPrice.toFixed(2).replace('.', ',')}`
+        : undefined;
+
+      const duplicateCheck = await PublicCardService.checkDuplicate(userId, product.productUrl);
+
+      if (duplicateCheck.isDuplicate) {
+        const publicPage = await PublicPageService.getByUserId(userId);
+        const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://divulgafacil.com';
+        const cardLink = publicPage?.public_slug && duplicateCheck.existingCard?.card_slug
+          ? `${baseUrl}/${publicPage.public_slug}/${duplicateCheck.existingCard.card_slug}`
+          : null;
+
+        await ctx.reply(
+          `⚠️ *Este produto não foi postado na página pública por já existir lá.*\n\n` +
+          `📌 O card já está disponível na sua página.` +
+          (cardLink ? `\n\n🔗 ${cardLink}` : ''),
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        const card = await PublicCardService.create({
+          userId,
+          source: CardSource.BOT,
+          marketplace: product.marketplace as Marketplace,
+          title: product.title,
+          description: product.description,
+          price: priceString,
+          originalPrice: originalPriceString,
+          imageUrl: product.imageUrl,
+          affiliateUrl: product.productUrl,
+          coupon: brandConfig.showCoupon && brandConfig.couponText ? brandConfig.couponText : undefined,
+          category: finalCategory,
+        });
+
+        const publicPage = await PublicPageService.getByUserId(userId);
+        const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://divulgafacil.com';
+        const cardLink = publicPage?.public_slug
+          ? `${baseUrl}/${publicPage.public_slug}/${card.card_slug}`
+          : null;
+
+        await ctx.reply(
+          `✅ *Card publicado na sua página pública!*` +
+          (cardLink ? `\n\n🔗 ${cardLink}` : '\n\n📌 Acesse: /status para ver o link da sua página.'),
+          { parse_mode: 'Markdown' }
+        );
+      }
+    } catch (cardError) {
+      console.error('[Pinterest] Erro ao criar card na página pública:', cardError);
+    }
+  }
+
+  await usageCountersService.incrementRenders(userId);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Callback handlers para confirmação de preço Shopee
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Callback: Confirmar preço
+pinterestBot.callbackQuery(/^pinterest_confirm_price$/, async (ctx) => {
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+
+  const pending = pendingPriceConfirmations.get(chatId);
+  if (!pending) {
+    await ctx.answerCallbackQuery({ text: '⚠️ Sessão expirada. Envie o link novamente.' });
+    return;
+  }
+
+  await ctx.answerCallbackQuery({ text: '✅ Preço confirmado!' });
+
+  // Remover botões
+  try {
+    await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+  } catch {}
+
+  // Continuar com a geração
+  await ctx.reply('🎨 *Gerando pin do Pinterest...*', { parse_mode: 'Markdown' });
+
+  try {
+    await generateAndSendPins(ctx, pending.product, pending.userId, pending.layoutPreferences);
+    pendingPriceConfirmations.delete(chatId);
+  } catch (error) {
+    console.error('[Pinterest] Error generating pin after price confirmation:', error);
+    await ctx.reply('❌ Erro ao gerar pin. Tente novamente.');
+    pendingPriceConfirmations.delete(chatId);
+  }
+});
+
+// Callback: Alterar preço
+pinterestBot.callbackQuery(/^pinterest_change_price$/, async (ctx) => {
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+
+  const pending = pendingPriceConfirmations.get(chatId);
+  if (!pending) {
+    await ctx.answerCallbackQuery({ text: '⚠️ Sessão expirada. Envie o link novamente.' });
+    return;
+  }
+
+  await ctx.answerCallbackQuery();
+
+  // Remover botões
+  try {
+    await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+  } catch {}
+
+  // Pedir novo preço
+  await ctx.reply(
+    '💰 *Digite o preço correto do produto:*',
+    { parse_mode: 'Markdown' }
+  );
+
+  // Resetar timeout
+  pending.timestamp = Date.now();
 });
 
 // ============================================================
