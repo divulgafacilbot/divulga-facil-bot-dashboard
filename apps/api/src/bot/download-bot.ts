@@ -336,6 +336,8 @@ Verifique se:
 export async function startDownloadBot() {
   if (downloadBot) {
     console.log('🚀 Starting Download Bot...');
+    // Clear stale connections from previous instances
+    await downloadBot.api.deleteWebhook({ drop_pending_updates: true });
     await downloadBot.start();
     console.log('✅ Download Bot is online');
   } else {

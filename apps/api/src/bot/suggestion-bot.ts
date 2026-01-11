@@ -575,6 +575,8 @@ export async function startSuggestionBot() {
   }
 
   try {
+    // Clear stale connections from previous instances
+    await suggestionBot.api.deleteWebhook({ drop_pending_updates: true });
     await suggestionBot.start({
       onStart: (botInfo) => {
         console.log(`✅ Suggestion Bot started: @${botInfo.username}`);
