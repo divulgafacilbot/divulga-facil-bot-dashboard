@@ -94,7 +94,8 @@ if (process.env.NODE_ENV !== 'test') {
     schedulerService.start();
 
     // Start Telegram bots with retry logic for handling deploy conflicts
-    const startBotsWithRetry = async (maxRetries = 3, baseDelay = 5000) => {
+    // Telegram long-poll timeout is 30s, so we need longer delays
+    const startBotsWithRetry = async (maxRetries = 5, baseDelay = 10000) => {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           console.log(`🔄 Starting Telegram bots (attempt ${attempt}/${maxRetries})...`);
