@@ -110,11 +110,19 @@ async function startTelegramBots() {
         try {
           console.log(`🔄 Starting Telegram bots (attempt ${attempt}/${maxRetries})...`);
 
-          // Drop pending updates to clear stale connections
-          await Promise.all([
-            artsBot.api.deleteWebhook({ drop_pending_updates: true }),
-            pinterestBot.api.deleteWebhook({ drop_pending_updates: true }),
-          ]);
+          // Try to drop pending updates (ignore errors - may timeout)
+          try {
+            await Promise.race([
+              Promise.all([
+                artsBot.api.deleteWebhook({ drop_pending_updates: true }),
+                pinterestBot.api.deleteWebhook({ drop_pending_updates: true }),
+              ]),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Webhook cleanup timeout')), 5000))
+            ]);
+            console.log('✅ Webhook cleanup successful');
+          } catch (e) {
+            console.warn('⚠️ Webhook cleanup skipped (timeout or error)');
+          }
 
           // Wait for Telegram to release connections (longer on retries)
           const delay = baseDelay * attempt;
