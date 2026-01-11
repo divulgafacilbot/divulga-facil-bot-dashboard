@@ -9,8 +9,8 @@ import { loginSchema } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
 import { useForm } from "react-hook-form";
 
 type LoginForm = {
@@ -19,8 +19,7 @@ type LoginForm = {
   rememberMe?: boolean;
 };
 
-export default function LoginPage() {
-  const router = useRouter();
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -201,5 +200,13 @@ export default function LoginPage() {
         </svg>
       </Link>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[400px]">Carregando...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
