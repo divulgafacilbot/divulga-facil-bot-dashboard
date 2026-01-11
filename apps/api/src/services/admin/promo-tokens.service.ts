@@ -74,17 +74,22 @@ class PromoTokensService {
   ): Promise<PromoTokensListResponse> {
     const {
       botType,
-      isActive = true, // Default to showing only active tokens
       page = 1,
       limit = 50,
     } = filters;
 
+    // Default to showing only active tokens (isActive = true)
+    // Handle explicit undefined from query params
+    const isActive = filters.isActive ?? true;
+
     const where: any = {
-      is_active: isActive, // Always filter by isActive (default true)
+      is_active: isActive,
     };
     if (botType) {
       where.bot_type = botType;
     }
+
+    console.log('[PromoTokensService] Query where:', JSON.stringify(where));
 
     const skip = (page - 1) * limit;
 
