@@ -83,7 +83,7 @@ pinterestBot.command('codigo', async (ctx) => {
   const token = ctx.match?.trim();
 
   if (!token) {
-    await ctx.reply('❌ Por favor, forneça o código de vinculação.\n\nExemplo: `/codigo abc123...`', {
+    await ctx.reply('❌ Por favor, forneça o código de vinculação.\n\n💡 Dica: Você pode simplesmente colar o token diretamente no chat!', {
       parse_mode: 'Markdown',
     });
     return;
@@ -315,10 +315,11 @@ ${scraperRouter.getSupportedMarketplaces().map((m) => `• ${m}`).join('\n')}
 *Comandos:*
 /start - Mensagem de boas-vindas
 /vincular - Vincular sua conta
-/codigo <token> - Completar vinculação
 /status - Ver status e uso
 /config - Ver configurações detalhadas
 /ajuda - Esta mensagem
+
+💡 *Para vincular:* Cole o token gerado no dashboard diretamente no chat
 
 *Dicas:*
 • Cole o link direto do produto

@@ -52,9 +52,13 @@ export async function handleTokenLink(
     return { success: false, error: 'Erro ao obter suas informações do Telegram.' };
   }
 
+  // Trim token to remove any whitespace
+  const cleanToken = token.trim();
+  console.log('[handleTokenLink] Processing token for botType:', botType, 'tokenLength:', cleanToken.length);
+
   // First, try regular link token
   const result = await telegramLinkService.confirmLink(
-    token,
+    cleanToken,
     telegramUserId,
     chatId,
     botType
@@ -62,13 +66,15 @@ export async function handleTokenLink(
 
   // If regular token worked, return success
   if (result.success) {
+    console.log('[handleTokenLink] Regular link token worked for user:', result.userId);
     return result;
   }
 
-  // If regular token failed, try promo token
-  console.log('[handleTokenLink] Regular token failed, trying promo token for botType:', botType);
+  console.log('[handleTokenLink] Regular token failed:', result.error, '- trying promo token for botType:', botType);
 
-  const promoResult = await promoTokensService.validateToken(token, botType);
+  // If regular token failed, try promo token
+  const promoResult = await promoTokensService.validateToken(cleanToken, botType);
+  console.log('[handleTokenLink] Promo token validation result:', JSON.stringify(promoResult));
 
   if (promoResult.valid && promoResult.tokenId) {
     console.log('[handleTokenLink] Promo token valid, linking telegram user');
@@ -127,8 +133,20 @@ export async function handleTokenLink(
     };
   }
 
-  // Both token types failed
-  console.log('[handleTokenLink] Both token types failed. Promo result:', promoResult);
+  // Both token types failed - provide more specific error
+  console.log('[handleTokenLink] Both token types failed. Promo result:', JSON.stringify(promoResult));
+
+  // Return more specific error based on promo result
+  if (promoResult.error?.includes('is for')) {
+    return { success: false, error: promoResult.error };
+  }
+  if (promoResult.error?.includes('inactive')) {
+    return { success: false, error: 'Token inativo.' };
+  }
+  if (promoResult.error?.includes('expired')) {
+    return { success: false, error: 'Token expirado.' };
+  }
+
   return { success: false, error: 'Token inválido ou expirado.' };
 }
 

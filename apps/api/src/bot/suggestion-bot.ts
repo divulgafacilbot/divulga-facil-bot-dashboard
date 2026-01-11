@@ -41,10 +41,9 @@ suggestionBot.command('start', async (ctx) => {
       `*Como vincular:*\n` +
       `1. Acesse o dashboard web\n` +
       `2. Gere um token de vinculação\n` +
-      `3. Envie o token aqui ou use /codigo <token>\n\n` +
+      `3. Cole o token aqui\n\n` +
       `Comandos:\n` +
       `/vincular - Instruções de vinculação\n` +
-      `/codigo <token> - Vincular com token\n` +
       `/status - Verificar status\n` +
       `/ajuda - Ajuda`,
       { parse_mode: 'Markdown' }
@@ -86,7 +85,7 @@ suggestionBot.command('codigo', async (ctx) => {
   if (!token) {
     await ctx.reply(
       '❌ Por favor, forneça o código de vinculação.\n\n' +
-      'Exemplo: `/codigo abc123...`',
+      '💡 Dica: Você pode simplesmente colar o token diretamente no chat!',
       { parse_mode: 'Markdown' }
     );
     return;
@@ -180,9 +179,10 @@ Este bot sugere produtos em alta para você divulgar como afiliado, usando intel
 *Comandos:*
 /start - Ver marketplaces e sugestões
 /vincular - Vincular sua conta
-/codigo <token> - Completar vinculação
 /status - Ver status da conta
 /ajuda - Esta mensagem
+
+💡 *Para vincular:* Cole o token gerado no dashboard diretamente no chat
 
 *Dica:* Clique duas vezes no mesmo marketplace para forçar atualização das sugestões!
 

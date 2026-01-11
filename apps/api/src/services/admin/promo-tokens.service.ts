@@ -258,18 +258,39 @@ class PromoTokensService {
     token: string,
     botType: BotType
   ): Promise<ValidateTokenResponse> {
+    console.log('[PromoTokens] Validating token, length:', token.length, 'botType:', botType);
+    console.log('[PromoTokens] Token first 10 chars:', token.substring(0, 10), '...');
+
     const promoToken = await prisma.promo_tokens.findUnique({
       where: { token },
     });
 
+    console.log('[PromoTokens] Database lookup result:', promoToken ? 'FOUND' : 'NOT FOUND');
+
     // Token not found
     if (!promoToken) {
+      // Try to find any token that starts with the same prefix (debug)
+      const similarTokens = await prisma.promo_tokens.findMany({
+        where: {
+          token: {
+            startsWith: token.substring(0, 10),
+          },
+        },
+        select: { id: true, token: true, bot_type: true, is_active: true },
+      });
+      console.log('[PromoTokens] Similar tokens found:', similarTokens.length);
+      if (similarTokens.length > 0) {
+        console.log('[PromoTokens] First similar token length:', similarTokens[0].token.length);
+      }
+
       await this.logValidation(null, botType, false, 'Token not found');
       return {
         valid: false,
         error: 'Token not found',
       };
     }
+
+    console.log('[PromoTokens] Token found - bot_type:', promoToken.bot_type, 'is_active:', promoToken.is_active, 'expires_at:', promoToken.expires_at);
 
     // Token is inactive
     if (!promoToken.is_active) {

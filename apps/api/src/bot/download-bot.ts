@@ -49,7 +49,7 @@ Use /ajuda para ver todos os comandos.`
 
 1. Acesse o dashboard
 2. Gere um token para o Bot de Download
-3. Envie aqui: \`/codigo SEU_TOKEN\`
+3. Cole o token aqui
 
 Ou use /vincular para mais informações.`;
 
@@ -65,7 +65,7 @@ Ou use /vincular para mais informações.`;
 1. Acesse o dashboard
 2. Clique em "Gerar Token" na seção Bot de Download
 3. Copie o token gerado
-4. Envie aqui: \`/codigo SEU_TOKEN\`
+4. Cole o token aqui
 
 O token expira em 10 minutos.`;
 
@@ -157,11 +157,12 @@ Use /vincular para conectar sua conta.`
 
 /start - Iniciar bot
 /vincular - Instruções para vincular conta
-/codigo <token> - Vincular com token
 /status - Ver status da vinculação
 /ajuda - Ver esta mensagem
 
-💡 *Para usar, basta enviar um link público de:*
+💡 *Para vincular:* Cole o token gerado no dashboard
+
+💡 *Para usar:* Envie um link público de:
 • Instagram (post/reel)
 • TikTok (vídeo)
 • Pinterest (pin)
