@@ -159,7 +159,10 @@ function selectVideoFromVideoList(videoList?: Record<string, VideoListEntry>): s
   }
 
   const candidates = Object.values(videoList)
-    .filter((entry): entry is VideoListEntry => typeof entry?.url === 'string' && entry.url.endsWith('.mp4'))
+    .filter(
+      (entry): entry is VideoListEntry & { url: string } =>
+        typeof entry?.url === 'string' && entry.url.endsWith('.mp4')
+    )
     .map((entry) => ({
       url: entry.url,
       width: parseNumeric(entry.width),

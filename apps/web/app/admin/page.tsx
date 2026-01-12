@@ -567,16 +567,16 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      {/* Grid 2: Bot de Artes, Bot de Download, Bot de Pinterest, Bot de Sugestões */}
+      {/* Grid 2: Bot de Promoções, Bot de Download, Bot de Pinterest, Bot de Sugestões */}
       {showBotMetrics && (
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Bot de Artes */}
+          {/* Bot de Promoções */}
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
             <div className="flex flex-col gap-6 lg:flex-row">
               <div className="flex w-full flex-col gap-6 lg:w-1/2">
                 <div className="flex flex-col">
                   <h2 className="text-base font-semibold uppercase tracking-[0.2em] text-gray-700 mb-0">
-                    BOT DE ARTES
+                    BOT DE PROMOÇÕES
                   </h2>
                   <p className="text-sm font-semibold tracking-[0.2em] text-gray-500">
                     Métrica detalhada

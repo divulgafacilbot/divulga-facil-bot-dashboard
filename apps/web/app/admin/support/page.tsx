@@ -10,7 +10,7 @@ const TICKET_CATEGORY_LABELS: Record<string, string> = {
   GENERAL: 'Geral',
   BILLING: 'Cobrança',
   TECHNICAL: 'Técnico',
-  BOT_ARTS: 'Bot de Artes',
+  BOT_ARTS: 'Bot de Promoções',
   BOT_DOWNLOAD: 'Bot de Download',
   BOT_PINTEREST: 'Bot de Pins',
   BOT_SUGGESTION: 'Bot de Sugestões',

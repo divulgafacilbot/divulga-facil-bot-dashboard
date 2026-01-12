@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 const BOTS = [
-  { type: 'ARTS', name: 'Bot de Artes', handle: '@DivulgaFacilArtesBot', description: 'Geração automática de artes' },
+  { type: 'ARTS', name: 'Bot de Promoções', handle: '@DivulgaFacilArtesBot', description: 'Geração automática de artes' },
   { type: 'DOWNLOAD', name: 'Bot de Download', handle: '@DivulgaFacilDownloadBot', description: 'Downloads de mídias sociais' },
   { type: 'PINTEREST', name: 'Bot de Pins', handle: '@DivulgaFacilPinterestBot', description: 'Criação automática de cards' },
   { type: 'SUGGESTION', name: 'Bot de Sugestões', handle: '@DivulgaFacilSugestaoBot', description: 'Sugestões personalizadas' }

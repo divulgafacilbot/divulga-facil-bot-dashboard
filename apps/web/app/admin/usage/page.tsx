@@ -45,14 +45,14 @@ export default function AdminUsagePage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {/* Bot de Artes - Renderizações */}
+        {/* Bot de Promoções - Renderizações */}
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-[#F53D2D]/10 flex items-center justify-center">
               <span className="text-lg">🎨</span>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900">Bot de Artes</h2>
+              <h2 className="text-base font-semibold text-gray-900">Bot de Promoções</h2>
               <p className="text-xs text-gray-500">Por nº de renderizações</p>
             </div>
           </div>

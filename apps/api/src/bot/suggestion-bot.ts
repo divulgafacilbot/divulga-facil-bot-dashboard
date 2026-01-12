@@ -415,18 +415,18 @@ ${product.title}
 Para gerar uma arte personalizada deste produto:
 
 1. Copie o link abaixo
-2. Abra o *Bot de Artes* (@DivulgaFacilArtsBot)
+2. Abra o *Bot de Promoções* (@DivulgaFacilArtsBot)
 3. Cole o link e receba sua arte!
 
 🔗 Link: ${product.url}
 
-💡 *Dica:* O Bot de Artes cria imagens personalizadas com sua marca para você divulgar nas redes sociais!
+💡 *Dica:* O Bot de Promoções cria imagens personalizadas com sua marca para você divulgar nas redes sociais!
 `;
 
   await ctx.reply(artInstructions, {
     parse_mode: 'Markdown',
     reply_markup: new InlineKeyboard()
-      .url('🎨 Abrir Bot de Artes', 'https://t.me/DivulgaFacilArtsBot')
+      .url('🎨 Abrir Bot de Promoções', 'https://t.me/DivulgaFacilArtsBot')
       .row()
       .text('◀️ Voltar', `marketplace:${marketplace}`),
   });

@@ -59,18 +59,18 @@ O Divulga Fácil oferece 4 bots especializados que você pode vincular à sua co
 
 ---
 
-### Bot 1: Bot de Artes (@DivulgaFacilArtesBot)
+### Bot 1: Bot de Promoções (@DivulgaFacilArtesBot)
 
 **O que faz**: Cria artes profissionais automaticamente para suas campanhas.
 
 #### Como vincular:
 
-1. Localize o card "Bot de Artes"
+1. Localize o card "Bot de Promoções"
 2. Clique no botão **"Gerar Token"**
 3. Um código de 10 caracteres aparecerá (exemplo: `ABCD123456`)
 4. Copie este código
 
-**[Screenshot: Card do Bot de Artes com token gerado]**
+**[Screenshot: Card do Bot de Promoções com token gerado]**
 
 5. Abra o Telegram
 6. Procure por `@DivulgaFacilArtesBot`
@@ -81,7 +81,7 @@ O Divulga Fácil oferece 4 bots especializados que você pode vincular à sua co
 
 9. Volte ao dashboard - o bot agora mostrará **"✓ Vinculado"**
 
-**[Screenshot: Bot de Artes com badge "Vinculado"]**
+**[Screenshot: Bot de Promoções com badge "Vinculado"]**
 
 ---
 
@@ -93,7 +93,7 @@ O Divulga Fácil oferece 4 bots especializados que você pode vincular à sua co
 
 #### Como vincular:
 
-Siga os mesmos passos do Bot de Artes, mas use o handle `@DivulgaFacilDownloadBot`
+Siga os mesmos passos do Bot de Promoções, mas use o handle `@DivulgaFacilDownloadBot`
 
 #### Como usar após vincular:
 
@@ -496,7 +496,7 @@ Cada bot tem sua própria seção com:
    - Inclua call-to-action
 
 3. **Use todos os bots**
-   - Bot de Artes: Crie banners promocionais
+   - Bot de Promoções: Crie banners promocionais
    - Bot de Download: Reaproveite conteúdo viral
    - Bot de Pinterest: Automatize criação de cards
    - Bot de Sugestões: Descubra tendências

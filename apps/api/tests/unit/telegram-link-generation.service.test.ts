@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TelegramLinkGenerationService } from '../../src/services/telegram/link-generation.service.js';
-import { prisma } from '../../src/db/prisma.js';
 import { BotType } from '@prisma/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { prisma } from '../../src/db/prisma.js';
+import { TelegramLinkGenerationService } from '../../src/services/telegram/link-generation.service.js';
 
 vi.mock('../../src/db/prisma.js', () => ({
   prisma: {
@@ -77,7 +77,7 @@ describe('TelegramLinkGenerationService', () => {
       const result = await TelegramLinkGenerationService.generateLinkToken('user-789', 'PINTEREST' as BotType);
 
       expect(result.botType).toBe('PINTEREST');
-      expect(result.botName).toBe('Bot de Pinterest');
+      expect(result.botName).toBe('Bot de Pins');
       expect(result.telegramHandle).toBe('@DivulgaFacilPinterestBot');
       expect(result.instructions).toContain('criar cards automáticos');
     });

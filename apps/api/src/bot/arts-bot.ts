@@ -53,7 +53,7 @@ export const artsBot = new Bot(TELEGRAM_BOT_ARTS_TOKEN);
 artsBot.command('start', async (ctx) => {
   await telegramUtils.sendWelcomeMessage(
     ctx,
-    'Bot de Artes',
+    'Bot de Promoções',
     BOT_TYPES.ARTS,
     scraperRouter.getSupportedMarketplaces()
   );
@@ -104,7 +104,7 @@ artsBot.command('status', async (ctx) => {
  * /ajuda command - Help message
  */
 artsBot.command('ajuda', async (ctx) => {
-  await telegramUtils.sendHelpMessage(ctx, 'Bot de Artes', scraperRouter.getSupportedMarketplaces());
+  await telegramUtils.sendHelpMessage(ctx, 'Bot de Promoções', scraperRouter.getSupportedMarketplaces());
 });
 
 /**

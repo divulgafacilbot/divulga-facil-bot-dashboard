@@ -395,16 +395,16 @@ export default function BotsPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {[
           {
-            title: "Bot de Artes (marketplaces)",
+            title: "Bot de Promoções (marketplaces)",
             description:
-              "Gera artes prontas para feed, story e WhatsApp a partir de links.",
+              "Gera artes promocionais prontas para feed, story e WhatsApp a partir de links.",
             status: "Disponível no plano",
             accent: "var(--color-primary)",
             tokenId: "token-para-liberar-bot-de-artes",
             promoTokenId: "token-promocional-bot-de-artes",
             botType: BOT_TYPES.ARTS,
             generateBtnId: "btn-gerar-token-de-artes",
-            generateBtnLabel: "Gerar token do Bot de Artes",
+            generateBtnLabel: "Gerar token do Bot de Promoções",
           },
           {
             title: "Bot de Download (redes sociais)",
@@ -575,7 +575,7 @@ export default function BotsPage() {
         </p>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {[
-            { id: "btn-acessar-bot-de-artes", label: "Acessar o bot de Artes", url: "https://t.me/DivulgaFacilArtes_bot" },
+            { id: "btn-acessar-bot-de-artes", label: "Acessar o bot de Promoções", url: "https://t.me/DivulgaFacilArtes_bot" },
             { id: "btn-acessar-bot-de-download", label: "Acessar o bot de Download", url: "https://t.me/DivulgaFacilDownload_bot" },
             { id: "btn-acessar-bot-de-pinterest", label: "Acessar o bot de Pins", url: "https://t.me/DivulgaFacilPinterest_bot" },
             { id: "btn-acessar-bot-de-sugestao", label: "Acessar o bot de Sugestões", url: "https://t.me/DivulgaFacilSugestion_bot" },

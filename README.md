@@ -6,7 +6,7 @@ Multi-bot SaaS platform for automated social media content generation and social
 
 Posting Bot is a subscription-based service that provides two specialized Telegram bots:
 
-- **Bot de Artes**: Scrapes marketplace product data (Shopee, Mercado Livre, Amazon, Magalu) and generates promotional images in multiple formats (card, story, WhatsApp status)
+- **Bot de Promoções**: Scrapes marketplace product data (Shopee, Mercado Livre, Amazon, Magalu) and generates promotional images in multiple formats (card, story, WhatsApp status)
 - **Bot de Download**: Downloads media from social platforms (Instagram, TikTok, Pinterest)
 
 ## Tech Stack
@@ -134,7 +134,7 @@ implementation/
 - `JWT_SECRET` - JWT signing secret (min 32 chars)
 - `APP_BASE_URL` - Frontend URL (for email links)
 - `EMAIL_SMTP_*` - SMTP configuration (Resend/SendGrid)
-- `TELEGRAM_BOT_ARTS_TOKEN` - Bot de Artes token
+- `TELEGRAM_BOT_ARTS_TOKEN` - Bot de Promoções token
 - `TELEGRAM_BOT_DOWNLOAD_TOKEN` - Bot de Download token
 - `KIWIFY_WEBHOOK_SECRET` - Kiwify webhook validation
 
@@ -173,7 +173,7 @@ implementation/
 - Kiwify payment integration
 - Automatic renewal/expiration
 
-### Bot de Artes
+### Bot de Promoções
 - Marketplace scraping (Shopee, Mercado Livre, Amazon, Magalu)
 - Product data extraction (title, price, image)
 - Automated image generation (3 formats: Card, Story, WhatsApp)

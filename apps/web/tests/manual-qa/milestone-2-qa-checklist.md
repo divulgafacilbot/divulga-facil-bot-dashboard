@@ -19,7 +19,7 @@ This document provides a comprehensive checklist for manual QA testing of Milest
 **Steps**:
 1. Login to dashboard
 2. Navigate to "Meus Bots"
-3. Locate "Bot de Artes" card
+3. Locate "Bot de Promoções" card
 4. Click "Gerar Token" button
 5. Observe token generation
 
@@ -518,7 +518,7 @@ This document provides a comprehensive checklist for manual QA testing of Milest
 
 **Expected Results**:
 - ☐ "Perguntas Gerais" section exists
-- ☐ "Bot de Artes" section exists with FAQs
+- ☐ "Bot de Promoções" section exists with FAQs
 - ☐ "Bot de Download" section exists with FAQs
 - ☐ "Bot de Pinterest" section exists with FAQs
 - ☐ "Bot de Sugestões" section exists with FAQs

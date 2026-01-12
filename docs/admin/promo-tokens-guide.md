@@ -167,7 +167,7 @@ O colaborador agora pode:
 
 O painel de visão geral agora exibe métricas consolidadas para os 4 tipos de bot:
 
-- **Bot de Artes:** Bots ativos + Artes geradas (30 dias)
+- **Bot de Promoções:** Bots ativos + Artes geradas (30 dias)
 - **Bot de Download:** Bots ativos + Downloads realizados (30 dias)
 - **Bot de Pinterest:** Bots ativos + Pins criados (30 dias)
 - **Bot de Sugestões:** Bots ativos + Sugestões geradas (30 dias)

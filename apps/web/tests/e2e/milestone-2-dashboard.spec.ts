@@ -39,7 +39,7 @@ test.describe('Milestone 2: Dashboard de Gerenciamento', () => {
       await page.waitForURL('/dashboard/meus-bots');
 
       // Verify all 4 bots are displayed
-      await expect(page.getByText('Bot de Artes')).toBeVisible();
+      await expect(page.getByText('Bot de Promoções')).toBeVisible();
       await expect(page.getByText('Bot de Download')).toBeVisible();
       await expect(page.getByText('Bot de Pinterest')).toBeVisible();
       await expect(page.getByText('Bot de Sugestões')).toBeVisible();
@@ -57,7 +57,7 @@ test.describe('Milestone 2: Dashboard de Gerenciamento', () => {
 
       // Find ARTS bot section and click generate token
       const artsSection = page.locator('div', {
-        has: page.getByText('Bot de Artes'),
+        has: page.getByText('Bot de Promoções'),
       });
       await artsSection.getByRole('button', { name: /gerar token/i }).click();
 
@@ -78,7 +78,7 @@ test.describe('Milestone 2: Dashboard de Gerenciamento', () => {
 
       // Generate token for ARTS bot
       const artsSection = page.locator('div', {
-        has: page.getByText('Bot de Artes'),
+        has: page.getByText('Bot de Promoções'),
       });
       await artsSection.getByRole('button', { name: /gerar token/i }).click();
       await page.waitForTimeout(500);
@@ -102,7 +102,7 @@ test.describe('Milestone 2: Dashboard de Gerenciamento', () => {
 
       // Generate token
       const artsSection = page.locator('div', {
-        has: page.getByText('Bot de Artes'),
+        has: page.getByText('Bot de Promoções'),
       });
       await artsSection.getByRole('button', { name: /gerar token/i }).click();
 

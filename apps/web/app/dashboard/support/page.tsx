@@ -24,14 +24,14 @@ type SupportTicket = {
 };
 
 const FAQ_ITEMS = [
-  // Bot de Artes
+  // Bot de Promoções
   {
-    question: "O que o Bot de Artes entrega quando eu envio um link?",
+    question: "O que o Bot de Promoções entrega quando eu envio um link?",
     answer:
       "Ele gera um card para Telegram com arte e texto, uma arte para story (9:16) e uma arte quadrada otimizada para WhatsApp, seguindo o template definido no seu dashboard.",
   },
   {
-    question: "Preciso configurar um template antes de usar o Bot de Artes?",
+    question: "Preciso configurar um template antes de usar o Bot de Promoções?",
     answer:
       "Nao. Voce pode comecar com o template padrao e ajustar cores, fontes e layout no dashboard quando quiser.",
   },
@@ -46,7 +46,7 @@ const FAQ_ITEMS = [
       "Sim. No dashboard voce pode alterar cores de fundo, cores de texto, fontes, tamanhos e posicionamento dos elementos do template.",
   },
   {
-    question: "O Bot de Artes funciona com links de afiliado?",
+    question: "O Bot de Promoções funciona com links de afiliado?",
     answer:
       "Sim. O bot extrai as informacoes do produto mesmo em links de afiliado dos principais marketplaces como Mercado Livre, Shopee, Amazon e Magazine Luiza.",
   },
@@ -180,7 +180,7 @@ const STATUS_LABELS: Record<SupportTicket["status"], string> = {
 };
 
 const CATEGORY_OPTIONS = [
-  { label: "Bot de artes", value: "BOT_ARTS" },
+  { label: "Bot de Promoções", value: "BOT_ARTS" },
   { label: "Bot de download", value: "BOT_DOWNLOAD" },
   { label: "Bot de Pins", value: "BOT_PINTEREST" },
   { label: "Bot de Sugestão", value: "BOT_SUGGESTION" },
@@ -191,7 +191,7 @@ const CATEGORY_OPTIONS = [
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  BOT_ARTS: "Bot de artes",
+  BOT_ARTS: "Bot de Promoções",
   BOT_DOWNLOAD: "Bot de download",
   BOT_PINTEREST: "Bot de Pins",
   BOT_SUGGESTION: "Bot de Sugestão",

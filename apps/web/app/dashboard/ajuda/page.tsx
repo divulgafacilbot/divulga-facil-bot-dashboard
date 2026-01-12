@@ -52,24 +52,24 @@ export default function AjudaPage() {
         </div>
       </section>
 
-      {/* Bot de Artes */}
+      {/* Bot de Promoções */}
       <section className="bg-white border border-[var(--color-border)] rounded-lg p-6 mb-6">
-        <h2 className="text-2xl font-semibold text-[var(--color-text-main)] mb-4">🎨 Bot de Artes</h2>
+        <h2 className="text-2xl font-semibold text-[var(--color-text-main)] mb-4">🎨 Bot de Promoções</h2>
 
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold text-[var(--color-text-main)] mb-2">
-              O que faz o Bot de Artes?
+              O que faz o Bot de Promoções?
             </h3>
             <p className="text-[var(--color-text-secondary)]">
-              O Bot de Artes (@DivulgaFacilArtesBot) permite criar designs profissionais automaticamente
+              O Bot de Promoções (@DivulgaFacilArtesBot) permite criar designs profissionais automaticamente
               para suas campanhas de marketing, posts em redes sociais e materiais promocionais.
             </p>
           </div>
 
           <div>
             <h3 className="text-lg font-semibold text-[var(--color-text-main)] mb-2">
-              Como usar o Bot de Artes?
+              Como usar o Bot de Promoções?
             </h3>
             <ol className="list-decimal list-inside text-[var(--color-text-secondary)] ml-4 space-y-1">
               <li>Vincule o bot à sua conta usando o token gerado no dashboard</li>

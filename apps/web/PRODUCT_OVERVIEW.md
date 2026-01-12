@@ -14,7 +14,7 @@ Este produto é um serviço comercial (SaaS) criado para pessoas que trabalham c
 
 Esse produto elimina esse trabalho repetitivo. Ele transforma o processo em um fluxo simples e rápido através de dois bots inicialmente:
 
-- O usuário pode contratar apenas o Bot de Artes, apenas o Bot de Download, ou um pacote promocional com os dois. Cada assinatura libera apenas os bots contratados.
+- O usuário pode contratar apenas o Bot de Promoções, apenas o Bot de Download, ou um pacote promocional com os dois. Cada assinatura libera apenas os bots contratados.
 
 O primeiro bot terá como função fazer o download de artes, vídeos e imagens de sites. 
 Tendo o bot instalado:
@@ -371,7 +371,7 @@ Como os bots são multiusuário, o sistema precisa saber “quem é quem” no T
 
 O dashboard terá uma seção tipo “Conectar Telegram” com botões:
 
-- “Gerar token de conexão do Bot de Artes”
+- “Gerar token de conexão do Bot de Promoções”
 - “Gerar token de conexão do Bot de Download”
 
 Quando o usuário clica:
@@ -402,7 +402,7 @@ Apesar do vínculo ser único, a liberação é feita por bot:
 
 Depois que o usuário:
 - pagou o plano
-- configurou o branding (se aplicável ao Bot de Artes)
+- configurou o branding (se aplicável ao Bot de Promoções)
 - conectou o Telegram no(s) bot(s) contratado(s)
 
 O uso diário fica absurdamente simples:
