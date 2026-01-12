@@ -25,6 +25,7 @@ export const pinterestScraper: SocialScraper = {
         $('meta[property="og:video:url"]').attr('content');
       const ogImage = $('meta[property="og:image"]').attr('content');
       const normalizedBody = normalizeEscapedJsonPayload(response.data);
+      const relayVideoUrl = extractBestVideoUrlFromRelay(response.data);
       const pinVideoMatch = normalizedBody.match(/https:\/\/v\.pinimg\.com\/[^"'\\s]+\.mp4[^"'\\s]*/);
       const pinImageMatch = normalizedBody.match(/https:\/\/i\.pinimg\.com\/[^"'\\s]+\\.(?:jpg|jpeg|png)[^"'\\s]*/);
       const jsonVideoMatch = normalizedBody.match(/"contentUrl":"(https:\/\/v\.pinimg\.com\/[^"]+\.mp4[^"]*)"/);
@@ -52,8 +53,9 @@ export const pinterestScraper: SocialScraper = {
         }
       });
 
-      if (ogVideo || jsonLdVideoUrl || jsonVideoMatch || pinVideoMatch) {
+      if (relayVideoUrl || ogVideo || jsonLdVideoUrl || jsonVideoMatch || pinVideoMatch) {
         const directUrl =
+          relayVideoUrl ||
           ogVideo ||
           jsonLdVideoUrl ||
           (jsonVideoMatch ? jsonVideoMatch[1] : null) ||
@@ -98,3 +100,126 @@ export const pinterestScraper: SocialScraper = {
     }
   },
 };
+
+const RELAY_PAYLOAD_REGEX = /window\.__PWS_RELAY_REGISTER_COMPLETED_REQUEST__\([^,]+,\s*(\{[\s\S]*?\})\);/g;
+
+interface RelayPayload {
+  data?: {
+    v3GetPinQuery?: {
+      data?: {
+        videos?: {
+          videoList?: Record<string, VideoListEntry>;
+          videoUrls?: string[];
+        };
+      };
+    };
+  };
+}
+
+interface VideoListEntry {
+  url?: string;
+  width?: number | string;
+  height?: number | string;
+}
+
+function extractBestVideoUrlFromRelay(html: string): string | null {
+  for (const match of html.matchAll(RELAY_PAYLOAD_REGEX)) {
+    const payloadJson = match[1];
+    if (!payloadJson?.includes('"v3GetPinQuery"')) {
+      continue;
+    }
+
+    try {
+      const payload = JSON.parse(payloadJson) as RelayPayload;
+      const pinData = payload?.data?.v3GetPinQuery?.data;
+      if (!pinData) {
+        continue;
+      }
+
+      const fromVideoList = selectVideoFromVideoList(pinData.videos?.videoList);
+      if (fromVideoList) {
+        return fromVideoList;
+      }
+
+      const fromVideoUrls = selectBestVideoFromUrls(pinData.videos?.videoUrls);
+      if (fromVideoUrls) {
+        return fromVideoUrls;
+      }
+    } catch {
+      // ignore parse errors and continue with next script block
+    }
+  }
+
+  return null;
+}
+
+function selectVideoFromVideoList(videoList?: Record<string, VideoListEntry>): string | null {
+  if (!videoList) {
+    return null;
+  }
+
+  const candidates = Object.values(videoList)
+    .filter((entry): entry is VideoListEntry => typeof entry?.url === 'string' && entry.url.endsWith('.mp4'))
+    .map((entry) => ({
+      url: entry.url,
+      width: parseNumeric(entry.width),
+      height: parseNumeric(entry.height),
+    }));
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  candidates.sort((a, b) => {
+    const heightDiff = (b.height ?? 0) - (a.height ?? 0);
+    if (heightDiff !== 0) {
+      return heightDiff;
+    }
+    return (b.width ?? 0) - (a.width ?? 0);
+  });
+
+  return candidates[0].url;
+}
+
+function selectBestVideoFromUrls(videoUrls?: string[]): string | null {
+  if (!videoUrls?.length) {
+    return null;
+  }
+
+  const candidates = videoUrls
+    .filter((url): url is string => typeof url === 'string' && url.includes('.mp4'))
+    .map((url) => ({
+      url,
+      width: extractWidthFromUrl(url),
+    }));
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  candidates.sort((a, b) => b.width - a.width);
+  return candidates[0].url;
+}
+
+function parseNumeric(value: number | string | undefined): number | undefined {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  return undefined;
+}
+
+function extractWidthFromUrl(url: string): number {
+  const match = url.match(/_(\d+)w/);
+  if (match) {
+    return Number(match[1]);
+  }
+  return 0;
+}
