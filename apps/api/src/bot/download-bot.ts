@@ -41,6 +41,7 @@ if (downloadBot) {
 • TikTok (vídeo público)
 • Pinterest (pin público)
 • YouTube (shorts)
+• Shopee (vídeo de propaganda)
 
 E eu baixo a mídia para você!
 
@@ -107,6 +108,7 @@ Agora você pode enviar links de:
 • TikTok
 • Pinterest
 • YouTube
+• Shopee
 
 Use /ajuda para ver todos os comandos.`,
         { parse_mode: 'Markdown' }
@@ -166,7 +168,8 @@ Use /vincular para conectar sua conta.`
 • Instagram (post/reel)
 • TikTok (vídeo)
 • Pinterest (pin)
-• YouTube (shorts)`;
+• YouTube (shorts)
+• Shopee (vídeo de propaganda)`;
 
     await ctx.reply(helpMessage, { parse_mode: 'Markdown' });
   });
@@ -215,6 +218,7 @@ Agora você pode enviar links de:
 • TikTok
 • Pinterest
 • YouTube
+• Shopee
 
 Use /ajuda para ver todos os comandos.`,
             { parse_mode: 'Markdown' }
@@ -246,6 +250,7 @@ Use /vincular para ver as instruções.`
 • TikTok (vídeo público)
 • Pinterest (pin público)
 • YouTube (shorts)
+• Shopee (vídeo de propaganda)
 
 Exemplo: https://instagram.com/p/ABC123/`
       );

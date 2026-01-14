@@ -1,5 +1,6 @@
 import { instagramScraper } from './instagram.scraper.js';
 import { pinterestScraper } from './pinterest.scraper.js';
+import { shopeeScraper } from './shopee.scraper.js';
 import { tiktokScraper } from './tiktok.scraper.js';
 import { MediaResult, SocialScraper } from './types.js';
 import { youtubeScraper } from './youtube.scraper.js';
@@ -8,6 +9,7 @@ const scrapers: SocialScraper[] = [
   instagramScraper,
   tiktokScraper,
   pinterestScraper,
+  shopeeScraper,
   youtubeScraper,
 ];
 
@@ -21,7 +23,8 @@ export async function scrapeMedia(url: string): Promise<MediaResult> {
       '• Instagram (post/reel)\n' +
       '• TikTok (vídeo)\n' +
       '• Pinterest (pin)\n' +
-      '• YouTube (shorts)'
+      '• YouTube (shorts)\n' +
+      '• Shopee (vídeo de propaganda)'
     );
   }
 
@@ -29,4 +32,3 @@ export async function scrapeMedia(url: string): Promise<MediaResult> {
 }
 
 export type { MediaItem, MediaResult, MediaType, SocialPlatform } from './types.js';
-

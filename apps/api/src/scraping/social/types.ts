@@ -1,4 +1,4 @@
-export type SocialPlatform = 'INSTAGRAM' | 'TIKTOK' | 'PINTEREST' | 'YOUTUBE';
+export type SocialPlatform = 'INSTAGRAM' | 'TIKTOK' | 'PINTEREST' | 'YOUTUBE' | 'SHOPEE';
 
 export type MediaType = 'image' | 'video';
 
