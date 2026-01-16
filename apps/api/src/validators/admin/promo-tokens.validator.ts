@@ -5,7 +5,7 @@ import { BOT_TYPES } from '../../constants/bot-types.js';
  * Schema for creating a promotional token
  */
 export const createPromoTokenSchema = z.object({
-  botType: z.enum([BOT_TYPES.ARTS, BOT_TYPES.DOWNLOAD, BOT_TYPES.PINTEREST, BOT_TYPES.SUGGESTION], {
+  botType: z.enum([BOT_TYPES.PROMOCOES, BOT_TYPES.DOWNLOAD, BOT_TYPES.PINTEREST, BOT_TYPES.SUGGESTION], {
     required_error: 'Bot type is required',
     invalid_type_error: 'Invalid bot type',
   }),
@@ -60,7 +60,7 @@ export const updatePromoTokenSchema = z
  */
 export const getPromoTokensQuerySchema = z.object({
   botType: z
-    .enum([BOT_TYPES.ARTS, BOT_TYPES.DOWNLOAD, BOT_TYPES.PINTEREST, BOT_TYPES.SUGGESTION])
+    .enum([BOT_TYPES.PROMOCOES, BOT_TYPES.DOWNLOAD, BOT_TYPES.PINTEREST, BOT_TYPES.SUGGESTION])
     .optional(),
   isActive: z
     .string()

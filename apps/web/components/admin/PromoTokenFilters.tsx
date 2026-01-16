@@ -63,7 +63,7 @@ export default function PromoTokenFilters({ filters, onFilterChange }: PromoToke
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]"
           >
             <option value="">Todos</option>
-            <option value="ARTS">{BOT_TYPE_LABELS.ARTS}</option>
+            <option value="PROMOCOES">{BOT_TYPE_LABELS.PROMOCOES}</option>
             <option value="DOWNLOAD">{BOT_TYPE_LABELS.DOWNLOAD}</option>
             <option value="PINTEREST">{BOT_TYPE_LABELS.PINTEREST}</option>
             <option value="SUGGESTION">{BOT_TYPE_LABELS.SUGGESTION}</option>

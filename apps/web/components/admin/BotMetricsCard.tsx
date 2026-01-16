@@ -11,7 +11,7 @@ interface BotMetricsCardProps {
 }
 
 const BOT_TYPE_STYLES: Record<string, string> = {
-  ARTS: 'border-l-4 border-red-500 bg-red-50',
+  PROMOCOES: 'border-l-4 border-red-500 bg-red-50',
   DOWNLOAD: 'border-l-4 border-blue-500 bg-blue-50',
   PINTEREST: 'border-l-4 border-pink-500 bg-pink-50',
   SUGGESTION: 'border-l-4 border-purple-500 bg-purple-50',
@@ -56,7 +56,7 @@ export default function BotMetricsCard({
         {/* Usage Count */}
         <div className="pt-4 border-t border-gray-200">
           <p className="text-sm text-[var(--color-text-secondary)] mb-1">
-            {botType === 'ARTS' && 'Artes Geradas (30d)'}
+            {botType === 'PROMOCOES' && 'Promoções Geradas (30d)'}
             {botType === 'DOWNLOAD' && 'Downloads (30d)'}
             {botType === 'PINTEREST' && 'Pins Criados (30d)'}
             {botType === 'SUGGESTION' && 'Sugestões Geradas (30d)'}

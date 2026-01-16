@@ -4,9 +4,9 @@ import type { BotType } from '@prisma/client';
 
 // Bot-specific configurations
 const BOT_CONFIG = {
-  ARTS: {
-    name: 'Bot de Artes',
-    telegramHandle: '@DivulgaFacilArtesBot',
+  PROMOCOES: {
+    name: 'Bot de Promoções',
+    telegramHandle: '@DivulgaFacilPromocoesBot',
     instructions: 'Envie /codigo TOKEN no bot para vincular'
   },
   DOWNLOAD: {

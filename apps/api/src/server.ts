@@ -23,6 +23,10 @@ import marketplaceRoutes from './routes/marketplace.routes.js';
 import suggestionsRoutes from './routes/suggestions.routes.js';
 import publicRoutes from './routes/public.routes.js';
 import internalJobsRoutes from './routes/internal/jobs.routes.js';
+import webhooksRoutes from './routes/webhooks.routes.js';
+import userBillingRoutes from './routes/user/billing.routes.js';
+import userEntitlementsRoutes from './routes/user/entitlements.routes.js';
+import userMarketplacesRoutes from './routes/user/marketplaces.routes.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { CleanupService } from './services/jobs/cleanup.service.js';
 import { schedulerService } from './services/jobs/scheduler.service.js';
@@ -34,6 +38,14 @@ import { startSuggestionBot } from './bot/suggestion-bot.js';
 export const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsPath = path.join(__dirname, '..', 'uploads');
+
+// Webhooks - MUST be before express.json() to capture raw body for signature validation
+app.use('/webhooks', express.json({
+  verify: (req, _res, buf) => {
+    (req as any).rawBody = buf.toString();
+  },
+  limit: '1mb',
+}), webhooksRoutes);
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -59,6 +71,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/user/support', userSupportRoutes);
 app.use('/api/user/finance', userFinanceRoutes);
 app.use('/api/user/campaigns', userCampaignsRoutes);
+app.use('/api/user/billing', userBillingRoutes);
+app.use('/api/user/entitlements', userEntitlementsRoutes);
+app.use('/api/user/marketplaces', userMarketplacesRoutes);
 
 app.use('/api', artGenerationRoutes);  // Must be before routes with global auth middleware
 app.use('/api', telegramRoutes);

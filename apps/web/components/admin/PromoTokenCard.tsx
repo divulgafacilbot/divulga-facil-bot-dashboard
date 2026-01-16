@@ -11,7 +11,7 @@ interface PromoTokenCardProps {
 }
 
 const BOT_TYPE_COLORS: Record<string, string> = {
-  ARTS: 'bg-red-100 text-red-700 border-red-300',
+  PROMOCOES: 'bg-red-100 text-red-700 border-red-300',
   DOWNLOAD: 'bg-blue-100 text-blue-700 border-blue-300',
   PINTEREST: 'bg-pink-100 text-pink-700 border-pink-300',
   SUGGESTION: 'bg-purple-100 text-purple-700 border-purple-300',

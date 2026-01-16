@@ -268,6 +268,18 @@ async function handleMarketplaceSelection(ctx: any, data: string, telegramUserId
     return;
   }
 
+  // Check subscription access (Bot de Sugestões is "plano único" - all marketplaces included)
+  // No marketplace-specific validation needed for this bot
+  const accessResult = await telegramUtils.checkBotAccess(telegramUserId, BOT_TYPES.SUGGESTION);
+  if (!accessResult.hasAccess) {
+    await ctx.answerCallbackQuery({ text: '🔒 Assinatura necessária!' });
+    await ctx.reply(
+      `🔒 *Acesso não autorizado*\n\n${accessResult.reason || 'Sua assinatura expirou ou você não tem acesso a este bot.'}`,
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
   // Log telemetry for button click
   await telemetryService.logEvent({
     eventType: 'SUGGESTION_BOT_BUTTON_CLICKED',

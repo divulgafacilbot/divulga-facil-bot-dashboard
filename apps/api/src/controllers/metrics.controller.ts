@@ -17,7 +17,7 @@ export class MetricsController {
         prisma.telegram_links.count({
           where: {
             user_id: userId,
-            bot_type: BOT_TYPES.ARTS,
+            bot_type: BOT_TYPES.PROMOCOES,
             expires_at: { gt: now },
           },
         }),

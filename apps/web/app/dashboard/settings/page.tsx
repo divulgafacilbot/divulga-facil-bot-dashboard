@@ -345,6 +345,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+
         </div>
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-sm)]">
           <div className="flex flex-col gap-6">

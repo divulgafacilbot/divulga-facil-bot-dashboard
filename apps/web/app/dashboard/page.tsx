@@ -47,7 +47,7 @@ export default function DashboardPage() {
     const loadTokenCounts = async () => {
       try {
         const [artsResponse, downloadResponse, pinterestResponse, suggestionResponse] = await Promise.all([
-          fetch(`${apiBaseUrl}/api/telegram/link-tokens?botType=${BOT_TYPES.ARTS}`, {
+          fetch(`${apiBaseUrl}/api/telegram/link-tokens?botType=${BOT_TYPES.PROMOCOES}`, {
             method: "GET",
             credentials: "include",
           }),

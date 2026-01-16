@@ -104,6 +104,32 @@ function sanitizeUrl(value?: string | null): string | null {
   return null;
 }
 
+/**
+ * Remove watermark parameters from Shopee video URL.
+ *
+ * Shopee adds watermark params to video URLs in the format:
+ * - With watermark: `video-name.16003551759237459.7124.mp4` (smaller file, has watermark)
+ * - Without watermark: `video-name.mp4` (larger file, no watermark)
+ *
+ * The pattern is: `.{timestamp}.{id}.mp4` where timestamp and id are numbers.
+ * Removing these params gives the original video without watermark.
+ */
+function removeWatermarkFromUrl(url: string): string {
+  // Pattern: matches .{numbers}.{numbers}.mp4 at the end of URL
+  // Example: .16003551759237459.7124.mp4 → .mp4
+  const watermarkPattern = /\.(\d+)\.(\d+)\.mp4$/i;
+
+  if (watermarkPattern.test(url)) {
+    const cleanUrl = url.replace(watermarkPattern, '.mp4');
+    console.log('[Shopee] Removendo marca d\'água da URL do vídeo');
+    console.log('[Shopee] URL original:', url.substring(url.length - 50));
+    console.log('[Shopee] URL limpa:', cleanUrl.substring(cleanUrl.length - 30));
+    return cleanUrl;
+  }
+
+  return url;
+}
+
 export const shopeeScraper: SocialScraper = {
   canHandle(url: string): boolean {
     return /shopee\.com/i.test(url) || /shp\.ee/i.test(url) || /sv\.shopee\.com\.br\/share-video/i.test(url);
@@ -138,9 +164,12 @@ export const shopeeScraper: SocialScraper = {
         throw new Error('Não foi possível extrair vídeo da Shopee');
       }
 
+      // Remove watermark from video URL to get the clean version
+      const cleanVideoUrl = removeWatermarkFromUrl(videoUrl);
+
       const item: MediaItem = {
         mediaType: 'video',
-        directUrl: videoUrl,
+        directUrl: cleanVideoUrl,
         filenameHint: 'shopee-video.mp4',
         headers: buildHeaders(finalUrl),
       };

@@ -2,7 +2,10 @@ import { Context } from 'grammy';
 import { prisma } from '../../db/prisma.js';
 import { telegramLinkService } from '../../services/telegram/link-service.js';
 import { promoTokensService } from '../../services/admin/promo-tokens.service.js';
+import { SubscriptionService } from '../../services/billing/subscription.service.js';
+import { EntitlementService } from '../../services/billing/entitlement.service.js';
 import { BotType } from '../../constants/bot-types.js';
+import { MARKETPLACE_DISPLAY_NAMES, MarketplaceType } from '../../constants/enums.js';
 
 /**
  * Telegram utility functions shared across all bots
@@ -34,6 +37,188 @@ export async function getBotLink(telegramUserId: string, botType: BotType) {
       bot_type: botType as any,
     },
   });
+}
+
+/**
+ * Check if user has access to a specific bot type
+ * Uses SubscriptionService.hasAccess() as the single source of truth
+ */
+export async function checkBotAccess(
+  telegramUserId: string,
+  botType: BotType
+): Promise<{ hasAccess: boolean; userId?: string; reason?: string }> {
+  console.log('[checkBotAccess] Checking access for telegramUserId:', telegramUserId, 'botType:', botType);
+
+  // First check if user is linked
+  const botLink = await getBotLink(telegramUserId, botType);
+  console.log('[checkBotAccess] Bot link found:', botLink ? 'YES' : 'NO', botLink ? `userId: ${botLink.user_id}` : '');
+
+  if (!botLink) {
+    return {
+      hasAccess: false,
+      reason: 'Conta não vinculada. Use /vincular para conectar sua conta.',
+    };
+  }
+
+  // Check subscription access using the single source of truth
+  console.log('[checkBotAccess] Checking subscription access for userId:', botLink.user_id, 'botType:', botType);
+  const hasAccess = await SubscriptionService.hasAccess(botLink.user_id, botType);
+  console.log('[checkBotAccess] SubscriptionService.hasAccess result:', hasAccess);
+
+  if (!hasAccess) {
+    // Debug: Check what entitlements exist
+    const entitlements = await prisma.user_entitlements.findMany({
+      where: { user_id: botLink.user_id },
+      select: { id: true, bot_type: true, entitlement_type: true, status: true, expires_at: true },
+    });
+    console.log('[checkBotAccess] User entitlements:', JSON.stringify(entitlements, null, 2));
+
+    return {
+      hasAccess: false,
+      userId: botLink.user_id,
+      reason: 'Sua assinatura expirou ou você não tem acesso a este bot. Acesse o dashboard para verificar.',
+    };
+  }
+
+  return {
+    hasAccess: true,
+    userId: botLink.user_id,
+  };
+}
+
+/**
+ * Check if user has access to a specific marketplace
+ * User must have a MARKETPLACE_SLOT entitlement with this marketplace assigned
+ */
+export async function checkMarketplaceAccess(
+  userId: string,
+  marketplace: string
+): Promise<{
+  hasAccess: boolean;
+  allowedMarketplaces?: string[];
+  reason?: string;
+  needsUpgrade?: boolean;
+}> {
+  // Get user's marketplace summary
+  const summary = await EntitlementService.getMarketplaceAccessSummary(userId);
+
+  // No slots at all - plan doesn't include marketplaces
+  if (summary.totalSlots === 0) {
+    return {
+      hasAccess: false,
+      allowedMarketplaces: [],
+      reason: 'Seu plano nao inclui acesso a marketplaces. Faca upgrade para usar o bot.',
+      needsUpgrade: true,
+    };
+  }
+
+  // Has slots but none configured
+  if (summary.usedSlots === 0) {
+    return {
+      hasAccess: false,
+      allowedMarketplaces: [],
+      reason: `Voce tem ${summary.totalSlots} slot(s) de marketplace, mas ainda nao selecionou quais quer usar. Configure em Configuracoes > Marketplaces no dashboard.`,
+      needsUpgrade: false,
+    };
+  }
+
+  // Check if this specific marketplace is in user's selected list
+  const normalizedMarketplace = marketplace.toUpperCase();
+  const hasAccess = summary.selectedMarketplaces.includes(normalizedMarketplace);
+
+  if (!hasAccess) {
+    const marketplaceName = MARKETPLACE_DISPLAY_NAMES[normalizedMarketplace as MarketplaceType] || marketplace;
+    const allowedNames = summary.selectedMarketplaces.map(
+      (m) => MARKETPLACE_DISPLAY_NAMES[m as MarketplaceType] || m
+    );
+
+    return {
+      hasAccess: false,
+      allowedMarketplaces: summary.selectedMarketplaces,
+      reason: `Voce nao tem acesso ao ${marketplaceName}.\n\nSeus marketplaces liberados:\n${allowedNames.map((n) => `• ${n}`).join('\n')}\n\nPara adicionar mais marketplaces, faca upgrade do seu plano.`,
+      needsUpgrade: true,
+    };
+  }
+
+  return {
+    hasAccess: true,
+    allowedMarketplaces: summary.selectedMarketplaces,
+  };
+}
+
+/**
+ * Combined check for bot access AND marketplace access
+ * Returns detailed information for proper user messaging
+ */
+export async function checkFullAccess(
+  telegramUserId: string,
+  botType: BotType,
+  marketplace: string
+): Promise<{
+  hasAccess: boolean;
+  userId?: string;
+  reason?: string;
+  needsUpgrade?: boolean;
+  allowedMarketplaces?: string[];
+}> {
+  // 1. First check bot access (includes link check and subscription check)
+  const botAccessResult = await checkBotAccess(telegramUserId, botType);
+
+  if (!botAccessResult.hasAccess) {
+    return {
+      hasAccess: false,
+      userId: botAccessResult.userId,
+      reason: botAccessResult.reason,
+      needsUpgrade: false,
+    };
+  }
+
+  // 2. Now check marketplace access
+  const marketplaceResult = await checkMarketplaceAccess(botAccessResult.userId!, marketplace);
+
+  if (!marketplaceResult.hasAccess) {
+    return {
+      hasAccess: false,
+      userId: botAccessResult.userId,
+      reason: marketplaceResult.reason,
+      needsUpgrade: marketplaceResult.needsUpgrade,
+      allowedMarketplaces: marketplaceResult.allowedMarketplaces,
+    };
+  }
+
+  return {
+    hasAccess: true,
+    userId: botAccessResult.userId,
+    allowedMarketplaces: marketplaceResult.allowedMarketplaces,
+  };
+}
+
+/**
+ * Middleware-style function to check access before bot operations
+ * Returns a user-friendly message if access is denied
+ */
+export async function requireBotAccess(
+  ctx: Context,
+  botType: BotType
+): Promise<{ allowed: boolean; userId?: string }> {
+  const telegramUserId = ctx.from?.id.toString();
+
+  if (!telegramUserId) {
+    await ctx.reply('❌ Erro ao obter suas informações do Telegram.');
+    return { allowed: false };
+  }
+
+  const accessResult = await checkBotAccess(telegramUserId, botType);
+
+  if (!accessResult.hasAccess) {
+    await ctx.reply(
+      `🔒 *Acesso não autorizado*\n\n${accessResult.reason}`,
+      { parse_mode: 'Markdown' }
+    );
+    return { allowed: false };
+  }
+
+  return { allowed: true, userId: accessResult.userId };
 }
 
 /**
@@ -114,6 +299,7 @@ export async function handleTokenLink(
       update: {
         telegram_user_id: telegramUserId,
         chat_id: chatId,
+        promo_token_id: promoResult.tokenId,
         linked_at: new Date(),
       },
       create: {
@@ -121,9 +307,25 @@ export async function handleTokenLink(
         bot_type: botType,
         telegram_user_id: telegramUserId,
         chat_id: chatId,
+        promo_token_id: promoResult.tokenId,
         linked_at: new Date(),
       },
     });
+
+    console.log('[handleTokenLink] Telegram link created for user:', promoToken.user_id);
+
+    // CRITICAL: Create the promo access entitlement so user can actually use the bot
+    try {
+      await EntitlementService.addPromoAccess(
+        promoToken.user_id,
+        botType,
+        promoToken.expires_at
+      );
+      console.log('[handleTokenLink] Promo access entitlement created for user:', promoToken.user_id, 'botType:', botType);
+    } catch (entitlementError: any) {
+      // Log error but don't fail the link - user might already have entitlement
+      console.error('[handleTokenLink] Error creating promo entitlement:', entitlementError.message);
+    }
 
     console.log('[handleTokenLink] Promo token link successful for user:', promoToken.user_id);
 

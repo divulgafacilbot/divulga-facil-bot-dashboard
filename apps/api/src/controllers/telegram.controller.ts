@@ -81,7 +81,7 @@ export class TelegramController {
 
       // Note: botType should be inferred from the bot that's calling this endpoint
       // For now, we'll assume ARTS bot (will be passed as query param or header by bot)
-      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
+      const botType = (req.query.botType as BotType) || BOT_TYPES.PROMOCOES;
 
       // Confirm link
       const result = await telegramLinkService.confirmLink(
@@ -120,7 +120,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
+      const botType = (req.query.botType as BotType) || BOT_TYPES.PROMOCOES;
 
       const link = await telegramLinkService.getLink(userId, botType);
 
@@ -154,7 +154,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
+      const botType = (req.query.botType as BotType) || BOT_TYPES.PROMOCOES;
 
       const success = await telegramLinkService.unlinkAccount(userId, botType);
 
@@ -186,7 +186,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
+      const botType = (req.query.botType as BotType) || BOT_TYPES.PROMOCOES;
       const tokens = await telegramLinkService.listTokens(userId, botType);
 
       return res.status(200).json({
@@ -215,7 +215,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
+      const botType = (req.query.botType as BotType) || BOT_TYPES.PROMOCOES;
       const tokenId = req.params.id;
 
       await telegramLinkService.deleteToken(userId, botType, tokenId);
@@ -239,7 +239,7 @@ export class TelegramController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const botType = (req.query.botType as BotType) || BOT_TYPES.ARTS;
+      const botType = (req.query.botType as BotType) || BOT_TYPES.PROMOCOES;
       const tokenId = req.params.id;
 
       const result = await telegramLinkService.refreshToken(userId, botType, tokenId);

@@ -25,20 +25,20 @@ describe('TelegramLinkGenerationService', () => {
         id: 'test-id',
         token: 'ABCD123456',
         user_id: 'user-123',
-        bot_type: 'ARTS' as BotType,
+        bot_type: 'PROMOCOES' as BotType,
         expires_at: new Date(Date.now() + 10 * 60 * 1000),
         created_at: new Date(),
       };
 
       vi.mocked(prisma.telegram_link_tokens.create).mockResolvedValue(mockToken);
 
-      const result = await TelegramLinkGenerationService.generateLinkToken('user-123', 'ARTS' as BotType);
+      const result = await TelegramLinkGenerationService.generateLinkToken('user-123', 'PROMOCOES' as BotType);
 
       expect(result).toHaveProperty('token');
       expect(result.token).toHaveLength(10);
-      expect(result.botType).toBe('ARTS');
-      expect(result.botName).toBe('Bot de Artes');
-      expect(result.telegramHandle).toBe('@DivulgaFacilArtesBot');
+      expect(result.botType).toBe('PROMOCOES');
+      expect(result.botName).toBe('Bot de Promoções');
+      expect(result.telegramHandle).toBe('@DivulgaFacilPromocoesBot');
       expect(result.instructions).toContain(result.token);
       expect(result.expiresAt).toBeDefined();
     });
@@ -109,14 +109,14 @@ describe('TelegramLinkGenerationService', () => {
         id: 'test-id',
         token: 'TOKEN12345',
         user_id: 'user-123',
-        bot_type: 'ARTS' as BotType,
+        bot_type: 'PROMOCOES' as BotType,
         expires_at: new Date(Date.now() + 10 * 60 * 1000),
         created_at: new Date(),
       };
 
       vi.mocked(prisma.telegram_link_tokens.create).mockResolvedValue(mockToken);
 
-      const result = await TelegramLinkGenerationService.generateLinkToken('user-123', 'ARTS' as BotType);
+      const result = await TelegramLinkGenerationService.generateLinkToken('user-123', 'PROMOCOES' as BotType);
 
       const expiresAt = new Date(result.expiresAt).getTime();
       const expectedExpiry = beforeGeneration + 10 * 60 * 1000;
@@ -132,7 +132,7 @@ describe('TelegramLinkGenerationService', () => {
         id: 'test-id',
         token: 'VALID12345',
         user_id: 'user-123',
-        bot_type: 'ARTS' as BotType,
+        bot_type: 'PROMOCOES' as BotType,
         expires_at: new Date(Date.now() + 5 * 60 * 1000),
         created_at: new Date(),
       };
@@ -144,7 +144,7 @@ describe('TelegramLinkGenerationService', () => {
       expect(result).toEqual({
         valid: true,
         userId: 'user-123',
-        botType: 'ARTS',
+        botType: 'PROMOCOES',
       });
     });
 
@@ -153,7 +153,7 @@ describe('TelegramLinkGenerationService', () => {
         id: 'test-id',
         token: 'EXPIRED123',
         user_id: 'user-123',
-        bot_type: 'ARTS' as BotType,
+        bot_type: 'PROMOCOES' as BotType,
         expires_at: new Date(Date.now() - 1000),
         created_at: new Date(),
       };
@@ -212,7 +212,7 @@ describe('TelegramLinkGenerationService', () => {
           id: 'token-1',
           token: 'TOKEN11111',
           user_id: 'user-123',
-          bot_type: 'ARTS' as BotType,
+          bot_type: 'PROMOCOES' as BotType,
           expires_at: new Date(Date.now() + 5 * 60 * 1000),
           created_at: new Date(),
         },

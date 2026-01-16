@@ -6,6 +6,7 @@ import { telegramLinkService } from '../services/telegram/link-service.js';
 import { usageCountersService } from '../services/usage-counters.service.js';
 import { telemetryService } from '../services/telemetry.service.js';
 import { cleanupTempFile, downloadMediaToFile } from '../utils/media-downloader.js';
+import { checkBotAccess } from './shared/telegram-utils.js';
 
 const TELEGRAM_BOT_DOWNLOAD_TOKEN = process.env.TELEGRAM_BOT_DOWNLOAD_TOKEN;
 
@@ -260,7 +261,19 @@ Exemplo: https://instagram.com/p/ABC123/`
     const url = urlMatch[0];
 
     // Send processing message
-    await ctx.reply('🔍 Processando link...');
+    const processingMsg = await ctx.reply('🔍 Processando link...');
+
+    // Check subscription access using single source of truth
+    const accessResult = await checkBotAccess(telegramUserId, BOT_TYPES.DOWNLOAD);
+    if (!accessResult.hasAccess) {
+      await ctx.api.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        `🔒 *Acesso não autorizado*\n\n${accessResult.reason || 'Sua assinatura expirou ou você não tem acesso a este bot.'}`,
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
 
     try {
       // Scrape media

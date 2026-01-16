@@ -6,7 +6,7 @@
 export const BOT_NAME = "Divulga Fácil";
 
 export const BOT_TYPES = {
-  ARTS: "ARTS",
+  PROMOCOES: "PROMOCOES",
   DOWNLOAD: "DOWNLOAD",
   PINTEREST: "PINTEREST",
   SUGGESTION: "SUGGESTION",

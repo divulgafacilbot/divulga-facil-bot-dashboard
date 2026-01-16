@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { MarketplaceProduct, CreateMarketplaceProductInput, UpdateMarketplaceProductInput } from '@/lib/api/types/marketplace';
 import { marketplaceApi } from '@/lib/api/marketplace';
+import { api } from '@/lib/api';
+import Link from 'next/link';
 
 interface ProductFormProps {
   product?: MarketplaceProduct;
@@ -24,19 +26,18 @@ const CATEGORIES = [
   'Outros',
 ];
 
-const MARKETPLACES = [
-  'SHOPEE',
-  'AMAZON',
-  'MERCADO_LIVRE',
-  'ALIEXPRESS',
-  'MAGALU',
-  'AMERICANAS',
-  'SHEIN',
-];
+interface AvailableMarketplace {
+  value: string;
+  label: string;
+}
 
 export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableMarketplaces, setAvailableMarketplaces] = useState<AvailableMarketplace[]>([]);
+  const [marketplacesLoading, setMarketplacesLoading] = useState(true);
+  const [needsConfiguration, setNeedsConfiguration] = useState(false);
+  const [configurationMessage, setConfigurationMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     source: 'MANUAL' as 'BOT' | 'MANUAL',
@@ -54,6 +55,28 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
     isFeatured: false,
     isHidden: false,
   });
+
+  // Fetch available marketplaces on mount
+  useEffect(() => {
+    const fetchAvailableMarketplaces = async () => {
+      try {
+        setMarketplacesLoading(true);
+        const response = await api.marketplaces.getAvailable();
+        if (response.success) {
+          setAvailableMarketplaces(response.data.marketplaces);
+          setNeedsConfiguration(response.data.needsConfiguration);
+          setConfigurationMessage(response.data.message || null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch available marketplaces:', err);
+        setError('Erro ao carregar marketplaces disponiveis');
+      } finally {
+        setMarketplacesLoading(false);
+      }
+    };
+
+    fetchAvailableMarketplaces();
+  }, []);
 
   useEffect(() => {
     if (product) {
@@ -121,6 +144,43 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
       }));
     }
   };
+
+  // Show configuration warning if needed
+  if (needsConfiguration && !product) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 px-4 py-3 rounded">
+          <div className="flex items-start gap-3">
+            <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="font-semibold">Configuracao necessaria</p>
+              <p className="mt-1 text-sm">{configurationMessage}</p>
+              <Link
+                href="/dashboard/settings/marketplaces"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+              >
+                Configurar marketplaces
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </div>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -222,15 +282,29 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
             value={formData.marketplace}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            disabled={marketplacesLoading || availableMarketplaces.length === 0}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <option value="">Selecione...</option>
-            {MARKETPLACES.map((mkt) => (
-              <option key={mkt} value={mkt}>
-                {mkt}
-              </option>
-            ))}
+            {marketplacesLoading ? (
+              <option value="">Carregando...</option>
+            ) : availableMarketplaces.length === 0 ? (
+              <option value="">Nenhum marketplace disponivel</option>
+            ) : (
+              <>
+                <option value="">Selecione...</option>
+                {availableMarketplaces.map((mkt) => (
+                  <option key={mkt.value} value={mkt.value}>
+                    {mkt.label}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
+          {availableMarketplaces.length > 0 && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {availableMarketplaces.length} marketplace{availableMarketplaces.length !== 1 ? 's' : ''} disponivel{availableMarketplaces.length !== 1 ? 'is' : ''} no seu plano
+            </p>
+          )}
         </div>
       </div>
 

@@ -11,6 +11,8 @@ import templatesRoutes from './templates.routes.js';
 import campaignsRoutes from './campaigns.routes.js';
 import promoTokensRoutes from './promo-tokens.routes.js';
 import promotionalCampaignsRoutes from './promotional-campaigns.routes.js';
+import kiwifyProductsRoutes from './kiwify-products.routes.js';
+import plansRoutes from './plans.routes.js';
 
 const router = Router();
 
@@ -26,5 +28,7 @@ router.use('/templates', templatesRoutes);
 router.use('/campaigns', campaignsRoutes);
 router.use('/promo-tokens', promoTokensRoutes);
 router.use('/promotional-campaigns', promotionalCampaignsRoutes);
+router.use('/kiwify-products', kiwifyProductsRoutes);
+router.use('/plans', plansRoutes);
 
 export default router;

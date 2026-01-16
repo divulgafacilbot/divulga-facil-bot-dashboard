@@ -23,7 +23,7 @@ async function verifyBotTypeEnum() {
     });
 
     // Verify expected values
-    const expectedValues = ['ARTS', 'DOWNLOAD', 'PINTEREST', 'SUGGESTION'];
+    const expectedValues = ['PROMOCOES', 'DOWNLOAD', 'PINTEREST', 'SUGGESTION'];
     const actualValues = enumValues.map(v => v.enum_value);
 
     const allPresent = expectedValues.every(expected => actualValues.includes(expected));

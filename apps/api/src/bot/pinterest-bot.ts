@@ -473,6 +473,22 @@ pinterestBot.on('message:text', async (ctx) => {
     parse_mode: 'Markdown',
   });
 
+  // Check subscription access AND marketplace access using combined check
+  const accessResult = await telegramUtils.checkFullAccess(telegramUserId!, BOT_TYPES.PINTEREST, marketplace);
+  if (!accessResult.hasAccess) {
+    console.log('[Pinterest] ERRO: Acesso negado -', accessResult.reason);
+    const upgradeHint = accessResult.needsUpgrade
+      ? '\n\n💡 *Dica:* Faca upgrade do seu plano para acessar mais marketplaces!'
+      : '';
+    await ctx.api.editMessageText(
+      ctx.chat.id,
+      processingMsg.message_id,
+      `🔒 *Acesso não autorizado*\n\n${accessResult.reason || 'Sua assinatura expirou ou você não tem acesso a este bot.'}${upgradeHint}`,
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
   try {
     console.log('[Pinterest] Obtendo layout preferences para user:', botLink.user_id);
     const layoutPreferences = await layoutPreferencesService.getPreferences(botLink.user_id);

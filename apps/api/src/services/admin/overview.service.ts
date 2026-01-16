@@ -81,7 +81,7 @@ export class AdminOverviewService {
 
     const tokenCounts = activeBotTokens.reduce(
       (acc, item) => {
-        if (item.bot_type === BOT_TYPES.ARTS) {
+        if (item.bot_type === BOT_TYPES.PROMOCOES) {
           acc.arts += item._count._all;
         }
         if (item.bot_type === BOT_TYPES.DOWNLOAD) {
@@ -222,7 +222,7 @@ export class AdminOverviewService {
 
     for (const row of botsSeriesByType) {
       const entry = { date: row.date, count: row.count };
-      if (row.bot_type === 'ARTS') {
+      if (row.bot_type === 'PROMOCOES') {
         botLinksByType.arts.push(entry);
       } else if (row.bot_type === 'DOWNLOAD') {
         botLinksByType.download.push(entry);

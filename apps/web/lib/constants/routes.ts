@@ -31,6 +31,7 @@ export const ROUTES = {
     bots: '/admin/bots',
     usage: '/admin/usage',
     finance: '/admin/finance',
+    kiwifyProducts: '/admin/kiwify-products',
     permissions: '/admin/permissions',
     settings: '/admin/settings',
     login: '/admin/login',

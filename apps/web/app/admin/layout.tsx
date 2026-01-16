@@ -141,6 +141,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Tokens Promocionais', href: ROUTES.admin.promoTokens, permission: AdminPermission.PROMO_TOKENS },
     { name: 'Suporte ao cliente', href: ROUTES.admin.support, permission: AdminPermission.SUPPORT },
     { name: 'Gestão do Financeiro', href: ROUTES.admin.finance, permission: AdminPermission.FINANCE },
+    { name: 'Produtos Kiwify', href: ROUTES.admin.kiwifyProducts, permission: AdminPermission.FINANCE },
     { name: 'Gestão de Colaboradores', href: ROUTES.admin.permissions, permission: AdminPermission.PERMISSIONS },
   ];
 

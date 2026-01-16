@@ -5,6 +5,8 @@ import {
   validateUpdateMarketplaceProduct,
   validateListMarketplaceProductsQuery,
 } from '../services/marketplace/types.js';
+import { EntitlementService } from '../services/billing/entitlement.service.js';
+import { MARKETPLACE_DISPLAY_NAMES, MarketplaceType } from '../constants/enums.js';
 
 /**
  * Marketplace Controller
@@ -23,6 +25,47 @@ export class MarketplaceController {
       }
 
       const validatedData = validateCreateMarketplaceProduct(req.body);
+
+      // Check if user has access to this marketplace
+      const hasAccess = await EntitlementService.hasMarketplaceAccess(
+        userId,
+        validatedData.marketplace
+      );
+
+      if (!hasAccess) {
+        // Get user's available marketplaces for helpful error message
+        const summary = await EntitlementService.getMarketplaceAccessSummary(userId);
+        const marketplaceName =
+          MARKETPLACE_DISPLAY_NAMES[validatedData.marketplace as MarketplaceType] ||
+          validatedData.marketplace;
+
+        if (summary.totalSlots === 0) {
+          return res.status(403).json({
+            success: false,
+            error: 'Sem acesso a marketplaces',
+            message: 'Seu plano não inclui acesso a marketplaces. Faça upgrade para criar produtos.',
+            code: 'NO_MARKETPLACE_SLOTS',
+          });
+        }
+
+        if (summary.usedSlots === 0) {
+          return res.status(403).json({
+            success: false,
+            error: 'Marketplaces não configurados',
+            message: `Você tem ${summary.totalSlots} slot(s) disponível(is), mas ainda não selecionou seus marketplaces. Configure em Configurações > Marketplaces.`,
+            code: 'MARKETPLACES_NOT_CONFIGURED',
+            availableSlots: summary.totalSlots,
+          });
+        }
+
+        return res.status(403).json({
+          success: false,
+          error: `Sem acesso ao ${marketplaceName}`,
+          message: `Você não tem acesso ao marketplace ${marketplaceName}. Seus marketplaces disponíveis são: ${summary.selectedMarketplaces.map((m) => MARKETPLACE_DISPLAY_NAMES[m as MarketplaceType] || m).join(', ')}.`,
+          code: 'MARKETPLACE_NOT_ALLOWED',
+          allowedMarketplaces: summary.selectedMarketplaces,
+        });
+      }
 
       const product = await marketplaceProductService.createProduct({
         ...validatedData,

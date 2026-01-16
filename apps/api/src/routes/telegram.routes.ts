@@ -3,6 +3,8 @@ import { telegramController } from '../controllers/telegram.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { TelegramLinkGenerationService } from '../services/telegram/link-generation.service.js';
 import { promoTokensService } from '../services/admin/promo-tokens.service.js';
+import { EntitlementService } from '../services/billing/entitlement.service.js';
+import { SubscriptionService } from '../services/billing/subscription.service.js';
 import { z } from 'zod';
 
 const router = Router();
@@ -34,31 +36,94 @@ router.delete('/telegram/unlink', authMiddleware, telegramController.unlinkAccou
 
 // Validation schema
 const generateLinkSchema = z.object({
-  botType: z.enum(['ARTS', 'DOWNLOAD', 'PINTEREST', 'SUGGESTION'])
+  botType: z.enum(['PROMOCOES', 'DOWNLOAD', 'PINTEREST', 'SUGGESTION'])
 });
 
 /**
  * POST /api/telegram/generate-link
  * Generate 10-minute temporary token for bot linkage
+ *
+ * Validations:
+ * 1. User must have BOT_ACCESS entitlement for the requested bot
+ * 2. User must have at least one marketplace configured (MARKETPLACE_SLOT with assigned marketplace)
+ * 3. Bot must not already be linked
  */
 router.post('/generate-link', authMiddleware, async (req, res) => {
   try {
     const { botType } = generateLinkSchema.parse(req.body);
     const userId = req.user!.id;
 
-    // Check if already linked
-    const isLinked = await TelegramLinkGenerationService.isLinked(userId, botType as any);
-    if (isLinked) {
-      return res.status(400).json({
-        error: 'Bot already linked',
-        message: 'Este bot já está vinculado à sua conta'
+    // 1. Check if user has access to this bot type
+    const hasAccess = await SubscriptionService.hasAccess(userId, botType);
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: 'Sem acesso ao bot',
+        message: `Voce nao tem acesso ao bot ${botType}. Verifique se sua assinatura esta ativa e inclui este bot.`,
+        code: 'NO_BOT_ACCESS',
       });
     }
 
-    // Generate token
+    // 2. Check marketplace configuration (only for bots that use marketplace tiers)
+    // DOWNLOAD and SUGGESTION are "plano único" - they don't require marketplace configuration
+    const botsRequiringMarketplaceConfig = ['PROMOCOES', 'PINTEREST'];
+    const requiresMarketplaceConfig = botsRequiringMarketplaceConfig.includes(botType);
+
+    let marketplaceSummary = null;
+    if (requiresMarketplaceConfig) {
+      marketplaceSummary = await EntitlementService.getMarketplaceAccessSummary(userId);
+
+      if (marketplaceSummary.totalSlots === 0) {
+        return res.status(403).json({
+          error: 'Sem slots de marketplace',
+          message: 'Seu plano nao inclui acesso a marketplaces. Faca upgrade para usar o bot.',
+          code: 'NO_MARKETPLACE_SLOTS',
+        });
+      }
+
+      if (marketplaceSummary.usedSlots === 0) {
+        return res.status(403).json({
+          error: 'Marketplaces nao configurados',
+          message: `Voce tem ${marketplaceSummary.totalSlots} slot(s) de marketplace, mas ainda nao selecionou quais marketplaces deseja usar. Configure em Configuracoes > Marketplaces.`,
+          code: 'MARKETPLACES_NOT_CONFIGURED',
+          availableSlots: marketplaceSummary.totalSlots,
+        });
+      }
+    }
+
+    // 3. Check if already linked
+    const isLinked = await TelegramLinkGenerationService.isLinked(userId, botType as any);
+    if (isLinked) {
+      return res.status(400).json({
+        error: 'Bot ja vinculado',
+        message: 'Este bot ja esta vinculado a sua conta.',
+        code: 'BOT_ALREADY_LINKED',
+      });
+    }
+
+    // All validations passed - generate token
     const link = await TelegramLinkGenerationService.generateLinkToken(userId, botType as any);
 
-    res.json({ link });
+    // Build response based on bot type
+    const response: {
+      success: boolean;
+      link: typeof link;
+      marketplaces?: string[];
+      message: string;
+    } = {
+      success: true,
+      link,
+      message: 'Token gerado com sucesso!',
+    };
+
+    if (marketplaceSummary) {
+      response.marketplaces = marketplaceSummary.selectedMarketplaces;
+      response.message = `Token gerado! Voce tem acesso aos marketplaces: ${marketplaceSummary.selectedMarketplaces.join(', ')}`;
+    } else {
+      // For DOWNLOAD and SUGGESTION bots (plano único)
+      response.message = 'Token gerado! Este bot nao requer configuracao de marketplace.';
+    }
+
+    res.json(response);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
@@ -102,7 +167,7 @@ router.get('/bot-configs', authMiddleware, async (req, res) => {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const validatePromoTokenSchema = z.object({
-  botType: z.enum(['ARTS', 'DOWNLOAD', 'PINTEREST', 'SUGGESTION']),
+  botType: z.enum(['PROMOCOES', 'DOWNLOAD', 'PINTEREST', 'SUGGESTION']),
   promoToken: z.string().min(1).max(64),
   userId: z.string().uuid().optional(),
 });

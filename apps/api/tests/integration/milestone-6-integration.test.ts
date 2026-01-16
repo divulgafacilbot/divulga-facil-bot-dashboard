@@ -102,7 +102,7 @@ describe('MILESTONE 6 - Download Bot Integration', () => {
   describe('Bot Token Linking Flow', () => {
     it('should verify bot type constant exists', () => {
       expect(BOT_TYPES.DOWNLOAD).toBe('DOWNLOAD');
-      expect(BOT_TYPES.ARTS).toBe('ARTS');
+      expect(BOT_TYPES.ARTS).toBe('PROMOCOES');
     });
 
     it('should handle link record structure', async () => {
@@ -122,7 +122,7 @@ describe('MILESTONE 6 - Download Bot Integration', () => {
     it('should support both ARTS and DOWNLOAD bot types', () => {
       const supportedBotTypes = [BOT_TYPES.ARTS, BOT_TYPES.DOWNLOAD];
 
-      expect(supportedBotTypes).toContain('ARTS');
+      expect(supportedBotTypes).toContain('PROMOCOES');
       expect(supportedBotTypes).toContain('DOWNLOAD');
       expect(supportedBotTypes.length).toBe(2);
     });

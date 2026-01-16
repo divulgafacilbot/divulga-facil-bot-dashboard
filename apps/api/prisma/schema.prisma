@@ -11,7 +11,7 @@ datasource db {
 // ============================================================
 
 enum BotType {
-  ARTS
+  PROMOCOES
   DOWNLOAD
   PINTEREST
   SUGGESTION
@@ -27,6 +27,9 @@ enum Marketplace {
   SHOPEE
   AMAZON
   MAGALU
+  ALIEXPRESS
+  AMERICANAS
+  SHEIN
 }
 
 enum CardStatus {
@@ -60,7 +63,7 @@ enum TicketCategory {
   GENERAL
   BILLING
   TECHNICAL
-  BOT_ARTS
+  BOT_PROMOCOES
   BOT_DOWNLOAD
   BOT_PINTEREST
   BOT_SUGGESTION
@@ -118,6 +121,9 @@ model User {
   card_suggestions            card_suggestions[]
   pinterest_bot_config        pinterest_bot_configs?
   promo_tokens                promo_tokens[]
+  user_entitlements           user_entitlements[]
+  audit_logs                  audit_logs[]
+  email_link_codes            email_link_codes[]
 
   @@index([email], map: "idx_users_email")
   @@index([role], map: "idx_users_role")
@@ -190,29 +196,39 @@ model LoginHistory {
 }
 
 model kiwify_events {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  event_id    String    @unique(map: "idx_kiwify_events_event_id") @db.VarChar(255)
-  event_type  String?   @db.VarChar(100)
-  payload     Json
-  received_at DateTime? @default(now()) @db.Timestamptz(6)
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  event_id          String    @unique(map: "idx_kiwify_events_event_id") @db.VarChar(255)
+  event_type        String?   @db.VarChar(100)
+  payload           Json
+  headers           Json? // Request headers for audit
+  signature         String?   @db.VarChar(255) // Webhook signature
+  received_at       DateTime? @default(now()) @db.Timestamptz(6)
+  processed_at      DateTime? @db.Timestamptz(6) // When event was processed
+  processing_status String?   @default("PENDING") @db.VarChar(50) // PENDING, PROCESSED, ERROR
+  processing_error  String?   @db.Text // Error message if processing failed
 
   @@index([received_at], map: "idx_kiwify_events_received_at")
+  @@index([processing_status], map: "idx_kiwify_events_processing_status")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model plans {
-  id                         String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name                       String          @db.VarChar(100)
-  billing_cycle              String?         @default("MONTHLY") @db.VarChar(50)
-  max_artes_por_dia          Int?            @default(10)
-  max_downloads_por_dia      Int?            @default(10)
-  max_execucoes_simultaneas  Int?            @default(1)
-  cooldown_entre_requisicoes Int?            @default(5)
-  acesso_bot_geracao         Boolean?        @default(false)
-  acesso_bot_download        Boolean?        @default(false)
-  created_at                 DateTime?       @default(now()) @db.Timestamptz(6)
-  updated_at                 DateTime?       @default(now()) @db.Timestamptz(6)
-  subscriptions              subscriptions[]
+  id                           String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                         String            @db.VarChar(100)
+  billing_cycle                String?           @default("MONTHLY") @db.VarChar(50)
+  max_artes_por_dia            Int?              @default(10)
+  max_downloads_por_dia        Int?              @default(10)
+  max_execucoes_simultaneas    Int?              @default(1)
+  cooldown_entre_requisicoes   Int?              @default(5)
+  acesso_bot_geracao           Boolean?          @default(false) // Bot de Promoções (ARTS)
+  acesso_bot_download          Boolean?          @default(false) // Bot de Download
+  acesso_bot_pinterest         Boolean?          @default(false) // Bot de Pins (PINTEREST)
+  acesso_bot_sugestoes         Boolean?          @default(false) // Bot de Sugestões (SUGGESTION)
+  included_marketplaces_count  Int?              @default(0) // Number of marketplace slots included
+  created_at                   DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime?         @default(now()) @db.Timestamptz(6)
+  subscriptions                subscriptions[]
+  kiwify_products              kiwify_products[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -222,6 +238,7 @@ model subscriptions {
   plan_id               String?   @db.Uuid
   status                String?   @default("ACTIVE") @db.VarChar(50)
   expires_at            DateTime? @db.Timestamptz(6)
+  grace_until           DateTime? @db.Timestamptz(6) // Grace period end date
   kiwify_customer_id    String?   @db.VarChar(255)
   kiwify_transaction_id String?   @db.VarChar(255)
   created_at            DateTime? @default(now()) @db.Timestamptz(6)
@@ -232,6 +249,7 @@ model subscriptions {
   @@index([expires_at], map: "idx_subscriptions_expires_at")
   @@index([status], map: "idx_subscriptions_status")
   @@index([user_id], map: "idx_subscriptions_user_id")
+  @@index([grace_until], map: "idx_subscriptions_grace_until")
 }
 
 model telegram_bot_links {
@@ -254,7 +272,7 @@ model telegram_bot_links {
 model telegram_links {
   id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id    String   @map("user_id") @db.Uuid
-  bot_type   BotType  @default(ARTS) @map("bot_type")
+  bot_type   BotType  @default(PROMOCOES) @map("bot_type")
   token      String   @db.VarChar(255)
   expires_at DateTime @map("expires_at") @db.Timestamptz(6)
   status     String   @default("PENDING") @db.VarChar(50)
@@ -483,6 +501,7 @@ model admin_users {
   updated_at        DateTime            @default(now()) @updatedAt @db.Timestamptz(6)
   admin_permissions admin_permissions[]
   promo_tokens      promo_tokens[]
+  audit_logs        audit_logs[]
 
   @@index([email], map: "idx_admin_users_email")
   @@index([is_active], map: "idx_admin_users_is_active")
@@ -912,4 +931,119 @@ model campaign_rotation_state {
   promotional_campaigns promotional_campaigns? @relation(fields: [last_campaign_id], references: [id], onDelete: SetNull)
 
   @@map("campaign_rotation_state")
+}
+
+// ============================================================
+// BILLING SYSTEM - Kiwify Integration & Finance
+// ============================================================
+
+/// Kiwify product kind enum
+enum KiwifyProductKind {
+  SUBSCRIPTION
+  ADDON_MARKETPLACE
+  PROMO_TOKEN_PACK
+}
+
+/// Entitlement type enum
+enum EntitlementType {
+  MARKETPLACE_SLOT
+  PROMO_ACCESS
+  BOT_ACCESS
+}
+
+/// Entitlement source enum
+enum EntitlementSource {
+  PLAN_INCLUDED
+  ADDON_PURCHASED
+  PROMO
+}
+
+/// Entitlement status enum
+enum EntitlementStatus {
+  ACTIVE
+  REVOKED
+}
+
+/// Kiwify products mapping - maps Kiwify product IDs to internal products
+model kiwify_products {
+  id           String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  product_id   String             @unique @db.VarChar(255) // Kiwify product ID
+  product_name String?            @db.VarChar(255) // Kiwify product name (for fallback matching)
+  kind         KiwifyProductKind
+  plan_id      String?            @db.Uuid // FK to plans (for SUBSCRIPTION kind)
+  bot_type     String?            @db.VarChar(50) // For addons/promos
+  quantity     Int                @default(1) // e.g., +1 marketplace, +5 tokens
+  created_at   DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+
+  plan plans? @relation(fields: [plan_id], references: [id], onDelete: SetNull)
+
+  @@index([product_id], map: "idx_kiwify_products_product_id")
+  @@index([product_name], map: "idx_kiwify_products_product_name")
+  @@index([kind], map: "idx_kiwify_products_kind")
+  @@map("kiwify_products")
+}
+
+/// User entitlements - fine-grained access control
+model user_entitlements {
+  id               String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String            @db.Uuid
+  bot_type         String            @db.VarChar(50) // PROMOCOES, DOWNLOAD, PINTEREST, SUGGESTION
+  entitlement_type EntitlementType
+  source           EntitlementSource
+  marketplace      String?           @db.VarChar(50) // For MARKETPLACE_SLOT type
+  expires_at       DateTime?         @db.Timestamptz(6) // For time-limited entitlements
+  status           EntitlementStatus @default(ACTIVE)
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime          @default(now()) @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "idx_user_entitlements_user_id")
+  @@index([bot_type], map: "idx_user_entitlements_bot_type")
+  @@index([status], map: "idx_user_entitlements_status")
+  @@index([expires_at], map: "idx_user_entitlements_expires_at")
+  @@map("user_entitlements")
+}
+
+/// Audit logs - complete audit trail for billing operations
+model audit_logs {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  actor_user_id  String?   @db.Uuid // User who performed action
+  actor_admin_id String?   @db.Uuid // Admin who performed action
+  action         String    @db.VarChar(100) // e.g., SUBSCRIPTION_ACTIVATED, ENTITLEMENT_CREATED
+  entity_type    String    @db.VarChar(100) // e.g., subscription, entitlement, payment
+  entity_id      String    @db.Uuid // ID of affected entity
+  before         Json? // State before change
+  after          Json? // State after change
+  metadata       Json? // Additional context
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+
+  user  User?        @relation(fields: [actor_user_id], references: [id], onDelete: SetNull)
+  admin admin_users? @relation(fields: [actor_admin_id], references: [id], onDelete: SetNull)
+
+  @@index([actor_user_id], map: "idx_audit_logs_actor_user_id")
+  @@index([actor_admin_id], map: "idx_audit_logs_actor_admin_id")
+  @@index([entity_type], map: "idx_audit_logs_entity_type")
+  @@index([entity_id], map: "idx_audit_logs_entity_id")
+  @@index([created_at(sort: Desc)], map: "idx_audit_logs_created_at")
+  @@map("audit_logs")
+}
+
+/// Email link codes - for linking Kiwify purchase email to user account
+model email_link_codes {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String    @db.Uuid
+  email      String    @db.VarChar(255) // Email to link
+  code       String    @db.VarChar(6) // 6-digit code
+  expires_at DateTime  @db.Timestamptz(6)
+  used_at    DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "idx_email_link_codes_user_id")
+  @@index([code], map: "idx_email_link_codes_code")
+  @@index([expires_at], map: "idx_email_link_codes_expires_at")
+  @@map("email_link_codes")
 }

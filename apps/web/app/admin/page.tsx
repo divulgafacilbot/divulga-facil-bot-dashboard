@@ -307,7 +307,7 @@ export default function AdminOverviewPage() {
 
   // Dados para o gráfico de bots ativos
   const botStatsData = [
-    { name: 'Artes', value: kpis?.activeArtsBots || 0, color: '#2D6AEF' },
+    { name: 'Promoções', value: kpis?.activeArtsBots || 0, color: '#2D6AEF' },
     { name: 'Download', value: kpis?.activeDownloadBots || 0, color: '#10B981' },
     { name: 'Pinterest', value: kpis?.activePinterestBots || 0, color: '#F97316' },
     { name: 'Sugestões', value: kpis?.activeSuggestionBots || 0, color: '#8B5CF6' },

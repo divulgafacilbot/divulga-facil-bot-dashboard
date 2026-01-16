@@ -31,23 +31,42 @@ export class UserFinanceService {
   }
 
   /**
-   * Get payment history for user
+   * Get payment history for user with pagination
    */
-  static async getPaymentHistory(userId: string) {
-    return prisma.payments.findMany({
-      where: { user_id: userId },
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        amount: true,
-        currency: true,
-        status: true,
-        transaction_id: true,
-        paid_at: true,
-        created_at: true,
-        provider: true,
+  static async getPaymentHistory(userId: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+
+    const [payments, total] = await Promise.all([
+      prisma.payments.findMany({
+        where: { user_id: userId },
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+          transaction_id: true,
+          paid_at: true,
+          created_at: true,
+          provider: true,
+        },
+      }),
+      prisma.payments.count({
+        where: { user_id: userId },
+      }),
+    ]);
+
+    return {
+      payments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    });
+    };
   }
 
   /**

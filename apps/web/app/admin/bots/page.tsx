@@ -263,7 +263,7 @@ export default function AdminBotsPage() {
         <MultiLineChart
           data={botLinksChartData}
           series={[
-            { key: 'arts', color: '#F53D2D', label: 'Artes' },
+            { key: 'arts', color: '#F53D2D', label: 'Promoções' },
             { key: 'download', color: '#2D6AEF', label: 'Download' },
             { key: 'pinterest', color: '#E60023', label: 'Pinterest' },
             { key: 'suggestion', color: '#A855F7', label: 'Sugestões' },

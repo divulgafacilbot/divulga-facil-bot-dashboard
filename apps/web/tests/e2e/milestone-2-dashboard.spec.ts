@@ -51,11 +51,11 @@ test.describe('Milestone 2: Dashboard de Gerenciamento', () => {
       await expect(page.getByText('@DivulgaFacilSugestaoBot')).toBeVisible();
     });
 
-    test('should generate token for ARTS bot', async ({ page }) => {
+    test('should generate token for PROMOCOES bot', async ({ page }) => {
       await page.click('a[href="/dashboard/meus-bots"]');
       await page.waitForURL('/dashboard/meus-bots');
 
-      // Find ARTS bot section and click generate token
+      // Find PROMOCOES bot section and click generate token
       const artsSection = page.locator('div', {
         has: page.getByText('Bot de Promoções'),
       });
@@ -76,7 +76,7 @@ test.describe('Milestone 2: Dashboard de Gerenciamento', () => {
       await page.click('a[href="/dashboard/meus-bots"]');
       await page.waitForURL('/dashboard/meus-bots');
 
-      // Generate token for ARTS bot
+      // Generate token for PROMOCOES bot
       const artsSection = page.locator('div', {
         has: page.getByText('Bot de Promoções'),
       });

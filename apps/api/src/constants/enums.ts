@@ -17,6 +17,9 @@ export const Marketplace = {
   SHOPEE: 'SHOPEE',
   AMAZON: 'AMAZON',
   MAGALU: 'MAGALU',
+  ALIEXPRESS: 'ALIEXPRESS',
+  AMERICANAS: 'AMERICANAS',
+  SHEIN: 'SHEIN',
 } as const;
 
 export type MarketplaceType = (typeof Marketplace)[keyof typeof Marketplace];
@@ -28,6 +31,9 @@ export const MARKETPLACE_DISPLAY_NAMES: Record<MarketplaceType, string> = {
   SHOPEE: 'Shopee',
   AMAZON: 'Amazon',
   MAGALU: 'Magazine Luiza',
+  ALIEXPRESS: 'AliExpress',
+  AMERICANAS: 'Americanas',
+  SHEIN: 'Shein',
 };
 
 // ============================================================
@@ -114,7 +120,7 @@ export const PRISMA_TO_EVENT_TYPE: Record<string, string> = {
  * Telegram bot types
  */
 export const BotType = {
-  ARTS: 'ARTS',
+  PROMOCOES: 'PROMOCOES',
   DOWNLOAD: 'DOWNLOAD',
   PINTEREST: 'PINTEREST',
   SUGGESTION: 'SUGGESTION',
@@ -125,7 +131,7 @@ export type BotTypeType = (typeof BotType)[keyof typeof BotType];
 export const BOT_TYPE_VALUES = Object.values(BotType);
 
 export const BOT_TYPE_DISPLAY_NAMES: Record<BotTypeType, string> = {
-  ARTS: 'Bot de Artes',
+  PROMOCOES: 'Bot de Promoções',
   DOWNLOAD: 'Bot de Download',
   PINTEREST: 'Bot do Pinterest',
   SUGGESTION: 'Bot de Sugestões',

@@ -54,7 +54,7 @@ function isValidBrazilianDate(value: string): boolean {
 
 export default function CreatePromoTokenModal({ isOpen, onClose, onSuccess }: CreatePromoTokenModalProps) {
   const [formData, setFormData] = useState<CreatePromoTokenInput>({
-    botType: 'ARTS' as BotType,
+    botType: 'PROMOCOES' as BotType,
     userId: '',
     name: '',
     description: '',
@@ -206,7 +206,7 @@ export default function CreatePromoTokenModal({ isOpen, onClose, onSuccess }: Cr
       });
       // Reset form
       setFormData({
-        botType: 'ARTS' as BotType,
+        botType: 'PROMOCOES' as BotType,
         userId: '',
         name: '',
         description: '',
@@ -227,7 +227,7 @@ export default function CreatePromoTokenModal({ isOpen, onClose, onSuccess }: Cr
   const handleClose = () => {
     if (!isSubmitting) {
       setFormData({
-        botType: 'ARTS' as BotType,
+        botType: 'PROMOCOES' as BotType,
         userId: '',
         name: '',
         description: '',
@@ -374,7 +374,7 @@ export default function CreatePromoTokenModal({ isOpen, onClose, onSuccess }: Cr
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]"
               required
             >
-              <option value="ARTS">{BOT_TYPE_LABELS.ARTS}</option>
+              <option value="PROMOCOES">{BOT_TYPE_LABELS.PROMOCOES}</option>
               <option value="DOWNLOAD">{BOT_TYPE_LABELS.DOWNLOAD}</option>
               <option value="PINTEREST">{BOT_TYPE_LABELS.PINTEREST}</option>
               <option value="SUGGESTION">{BOT_TYPE_LABELS.SUGGESTION}</option>

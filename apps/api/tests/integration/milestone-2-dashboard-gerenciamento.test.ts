@@ -75,14 +75,14 @@ describe('Milestone 2: Dashboard de Gerenciamento - Integration Tests', () => {
       const response = await request(app)
         .post('/api/telegram/generate-link')
         .set('Cookie', authCookie)
-        .send({ botType: 'ARTS' })
+        .send({ botType: 'PROMOCOES' })
         .expect(200);
 
       expect(response.body).toHaveProperty('link');
       expect(response.body.link).toHaveProperty('token');
       expect(response.body.link.token).toHaveLength(10);
-      expect(response.body.link.botType).toBe('ARTS');
-      expect(response.body.link.botName).toBe('Bot de Artes');
+      expect(response.body.link.botType).toBe('PROMOCOES');
+      expect(response.body.link.botName).toBe('Bot de Promoções');
       expect(response.body.link.telegramHandle).toBe('@DivulgaFacilArtesBot');
     });
 
@@ -132,7 +132,7 @@ describe('Milestone 2: Dashboard de Gerenciamento - Integration Tests', () => {
     it('should require authentication', async () => {
       await request(app)
         .post('/api/telegram/generate-link')
-        .send({ botType: 'ARTS' })
+        .send({ botType: 'PROMOCOES' })
         .expect(401);
     });
 
@@ -140,13 +140,13 @@ describe('Milestone 2: Dashboard de Gerenciamento - Integration Tests', () => {
       const response1 = await request(app)
         .post('/api/telegram/generate-link')
         .set('Cookie', authCookie)
-        .send({ botType: 'ARTS' })
+        .send({ botType: 'PROMOCOES' })
         .expect(200);
 
       const response2 = await request(app)
         .post('/api/telegram/generate-link')
         .set('Cookie', authCookie)
-        .send({ botType: 'ARTS' })
+        .send({ botType: 'PROMOCOES' })
         .expect(200);
 
       expect(response1.body.link.token).not.toBe(response2.body.link.token);
@@ -167,7 +167,7 @@ describe('Milestone 2: Dashboard de Gerenciamento - Integration Tests', () => {
       // Create telegram bot links
       await prisma.telegram_bot_links.createMany({
         data: [
-          { user_id: testUserId, telegram_user_id: 'tg-123', bot_type: 'ARTS' },
+          { user_id: testUserId, telegram_user_id: 'tg-123', bot_type: 'PROMOCOES' },
           { user_id: testUserId, telegram_user_id: 'tg-456', bot_type: 'PINTEREST' },
         ],
       });
@@ -178,7 +178,7 @@ describe('Milestone 2: Dashboard de Gerenciamento - Integration Tests', () => {
         .expect(200);
 
       expect(response.body.bots).toHaveLength(2);
-      expect(response.body.bots.map((b: any) => b.botType)).toContain('ARTS');
+      expect(response.body.bots.map((b: any) => b.botType)).toContain('PROMOCOES');
       expect(response.body.bots.map((b: any) => b.botType)).toContain('PINTEREST');
 
       // Cleanup
@@ -194,7 +194,7 @@ describe('Milestone 2: Dashboard de Gerenciamento - Integration Tests', () => {
         .expect(200);
 
       expect(response.body.configs).toHaveLength(4);
-      expect(response.body.configs.map((c: any) => c.botType)).toContain('ARTS');
+      expect(response.body.configs.map((c: any) => c.botType)).toContain('PROMOCOES');
       expect(response.body.configs.map((c: any) => c.botType)).toContain('DOWNLOAD');
       expect(response.body.configs.map((c: any) => c.botType)).toContain('PINTEREST');
       expect(response.body.configs.map((c: any) => c.botType)).toContain('SUGGESTION');

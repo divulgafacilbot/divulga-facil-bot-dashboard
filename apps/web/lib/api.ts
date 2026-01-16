@@ -192,4 +192,58 @@ export const api = {
         method: HttpMethod.DELETE,
       }),
   },
+
+  marketplaces: {
+    /**
+     * Get user's marketplace access summary
+     * Returns total slots, used slots, available slots, and selected marketplaces
+     */
+    getSummary: () =>
+      fetchAPI<{
+        success: boolean;
+        data: {
+          totalSlots: number;
+          usedSlots: number;
+          availableSlots: number;
+          selectedMarketplaces: string[];
+          selectedMarketplacesWithNames: Array<{ value: string; label: string }>;
+          availableMarketplaces: Array<{ value: string; label: string; selected: boolean }>;
+          slots: Array<{ id: string; marketplace: string | null; source: string }>;
+        };
+      }>(ApiEndpoint.USER_MARKETPLACES),
+
+    /**
+     * Select/assign marketplaces to user's slots
+     */
+    selectMarketplaces: (marketplaces: string[]) =>
+      fetchAPI<{
+        success: boolean;
+        message: string;
+        data: {
+          totalSlots: number;
+          usedSlots: number;
+          availableSlots: number;
+          selectedMarketplaces: string[];
+          selectedMarketplacesWithNames: Array<{ value: string; label: string }>;
+        };
+      }>(ApiEndpoint.USER_MARKETPLACES, {
+        method: HttpMethod.POST,
+        body: JSON.stringify({ marketplaces }),
+      }),
+
+    /**
+     * Get list of marketplaces the user can use (has selected)
+     * Used for filtering product creation options
+     */
+    getAvailable: () =>
+      fetchAPI<{
+        success: boolean;
+        data: {
+          marketplaces: Array<{ value: string; label: string }>;
+          message?: string;
+          totalSlots?: number;
+          needsConfiguration: boolean;
+        };
+      }>(ApiEndpoint.USER_MARKETPLACES_AVAILABLE),
+  },
 };

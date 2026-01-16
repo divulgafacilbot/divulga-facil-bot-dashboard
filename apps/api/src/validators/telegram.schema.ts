@@ -3,12 +3,12 @@ import { BOT_TYPES } from '../constants/bot-types.js';
 
 // Bot type validation - all bot types supported
 export const botTypeSchema = z.enum([
-  BOT_TYPES.ARTS,
+  BOT_TYPES.PROMOCOES,
   BOT_TYPES.DOWNLOAD,
   BOT_TYPES.PINTEREST,
   BOT_TYPES.SUGGESTION,
 ], {
-  errorMap: () => ({ message: 'Tipo de bot inválido. Valores permitidos: ARTS, DOWNLOAD, PINTEREST, SUGGESTION' }),
+  errorMap: () => ({ message: 'Tipo de bot inválido. Valores permitidos: PROMOCOES, DOWNLOAD, PINTEREST, SUGGESTION' }),
 });
 
 // Link token generation schema

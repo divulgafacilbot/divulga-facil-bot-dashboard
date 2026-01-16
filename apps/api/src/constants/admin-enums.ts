@@ -1,18 +1,21 @@
 import { BOT_TYPES, type BotType } from './bot-types.js';
 
 export const BOT_TYPE_LABELS: Record<BotType, string> = {
-  [BOT_TYPES.ARTS]: 'Artes',
+  [BOT_TYPES.PROMOCOES]: 'Promoções',
   [BOT_TYPES.DOWNLOAD]: 'Download',
   [BOT_TYPES.PINTEREST]: 'Pinterest',
   [BOT_TYPES.SUGGESTION]: 'Sugestões',
 };
 
 export const SUBSCRIPTION_STATUSES = {
+  PENDING_CONFIRMATION: 'PENDING_CONFIRMATION',
   ACTIVE: 'ACTIVE',
+  GRACE: 'GRACE',
   PAST_DUE: 'PAST_DUE',
   CANCELED: 'CANCELED',
   EXPIRED: 'EXPIRED',
   REFUNDED: 'REFUNDED',
+  CHARGEBACK: 'CHARGEBACK',
   NO_SUBSCRIPTION: 'NO_SUBSCRIPTION',
   UNKNOWN: 'UNKNOWN',
 } as const;
@@ -21,14 +24,24 @@ export type SubscriptionStatus =
   (typeof SUBSCRIPTION_STATUSES)[keyof typeof SUBSCRIPTION_STATUSES];
 
 export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
+  PENDING_CONFIRMATION: 'Aguardando confirmação',
   ACTIVE: 'Ativa',
+  GRACE: 'Em período de carência',
   PAST_DUE: 'Em atraso',
   CANCELED: 'Cancelada',
   EXPIRED: 'Expirada',
   REFUNDED: 'Reembolsada',
+  CHARGEBACK: 'Estorno',
   NO_SUBSCRIPTION: 'Sem assinatura',
   UNKNOWN: 'Desconhecido',
+
 };
+
+// Statuses that allow access to the system
+export const ACTIVE_SUBSCRIPTION_STATUSES: SubscriptionStatus[] = [
+  SUBSCRIPTION_STATUSES.ACTIVE,
+  SUBSCRIPTION_STATUSES.GRACE,
+];
 
 export const KIWIFY_EVENT_TYPES = {
   PURCHASE: 'purchase',

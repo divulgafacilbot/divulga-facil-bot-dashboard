@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [resetPasswordValue, setResetPasswordValue] = useState<string | null>(null);
-  const botTypeOptions: BotType[] = ['ARTS', 'DOWNLOAD'];
+  const botTypeOptions: BotType[] = ['PROMOCOES', 'DOWNLOAD'];
 
   useEffect(() => {
     fetchUsers();

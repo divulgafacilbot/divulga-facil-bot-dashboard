@@ -100,6 +100,10 @@ export enum ApiEndpoint {
   USER_REVOKE_SESSIONS = '/api/me/revoke-sessions',
   USER_LOGIN_HISTORY = '/api/me/login-history',
   USER_LOGIN_STATS = '/api/me/login-stats',
+
+  // User marketplace endpoints
+  USER_MARKETPLACES = '/api/user/marketplaces',
+  USER_MARKETPLACES_AVAILABLE = '/api/user/marketplaces/available',
 }
 
 /**

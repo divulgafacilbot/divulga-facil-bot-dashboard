@@ -216,12 +216,12 @@ Verifique se:
   describe('Bot Type Constant', () => {
     it('should use correct bot type for downloads', () => {
       const BOT_TYPES = {
-        ARTS: 'ARTS',
+        PROMOCOES: 'PROMOCOES',
         DOWNLOAD: 'DOWNLOAD',
       };
 
       expect(BOT_TYPES.DOWNLOAD).toBe('DOWNLOAD');
-      expect(BOT_TYPES.ARTS).toBe('ARTS');
+      expect(BOT_TYPES.PROMOCOES).toBe('PROMOCOES');
     });
   });
 });

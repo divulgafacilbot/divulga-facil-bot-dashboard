@@ -54,7 +54,7 @@ artsBot.command('start', async (ctx) => {
   await telegramUtils.sendWelcomeMessage(
     ctx,
     'Bot de Promoções',
-    BOT_TYPES.ARTS,
+    BOT_TYPES.PROMOCOES,
     scraperRouter.getSupportedMarketplaces()
   );
 });
@@ -79,7 +79,7 @@ artsBot.command('codigo', async (ctx) => {
     return;
   }
 
-  const result = await telegramUtils.handleTokenLink(ctx, token, BOT_TYPES.ARTS);
+  const result = await telegramUtils.handleTokenLink(ctx, token, BOT_TYPES.PROMOCOES);
 
   if (!result.success) {
     await ctx.reply(`❌ Falha na vinculação: ${result.error}`);
@@ -161,12 +161,12 @@ artsBot.on('message:text', async (ctx) => {
   let botLink = null;
 
   if (telegramUserId) {
-    botLink = await telegramUtils.getBotLink(telegramUserId, BOT_TYPES.ARTS);
+    botLink = await telegramUtils.getBotLink(telegramUserId, BOT_TYPES.PROMOCOES);
   }
 
   if (!urls || urls.length === 0) {
     if (!botLink) {
-      const result = await telegramUtils.handleTokenLink(ctx, text.trim(), BOT_TYPES.ARTS);
+      const result = await telegramUtils.handleTokenLink(ctx, text.trim(), BOT_TYPES.PROMOCOES);
 
       if (!result.success) {
         await ctx.reply(`❌ Token inválido: ${result.error}`);
@@ -204,6 +204,21 @@ artsBot.on('message:text', async (ctx) => {
 
   if (!botLink) {
     await ctx.reply('🔒 Você precisa vincular sua conta com um token antes de gerar artes.');
+    return;
+  }
+
+  // Check subscription access AND marketplace access using combined check
+  const accessResult = await telegramUtils.checkFullAccess(telegramUserId!, BOT_TYPES.PROMOCOES, marketplace);
+  if (!accessResult.hasAccess) {
+    const upgradeHint = accessResult.needsUpgrade
+      ? '\n\n💡 *Dica:* Faca upgrade do seu plano para acessar mais marketplaces!'
+      : '';
+    await ctx.api.editMessageText(
+      ctx.chat.id,
+      processingMsg.message_id,
+      `🔒 *Acesso nao autorizado*\n\n${accessResult.reason || 'Sua assinatura expirou ou voce nao tem acesso a este bot.'}${upgradeHint}`,
+      { parse_mode: 'Markdown' }
+    );
     return;
   }
 

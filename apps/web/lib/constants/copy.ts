@@ -11,18 +11,18 @@ export const COPY = {
     },
     stats: {
       activeBots: {
-        arts: 'Bots de arte ativos',
+        arts: 'Bots de promoções ativos',
         download: 'Bots de download ativos',
         pinterest: 'Bots de Pinterest ativos',
         suggestion: 'Bots de sugestão ativos',
       },
       emptyState: {
-        arts: 'Nenhum bot de artes configurado ainda',
+        arts: 'Nenhum bot de promoções configurado ainda',
         download: 'Nenhum bot de download configurado ainda',
         pinterest: 'Nenhum bot de Pinterest configurado ainda',
         suggestion: 'Nenhum bot de sugestão configurado ainda',
       },
-      artsGenerated: 'Artes geradas',
+      artsGenerated: 'Promoções geradas',
       downloads: 'Quantidade de downloads',
       thisMonth: 'Neste mês',
       profileViews: 'Visualizações do perfil',
