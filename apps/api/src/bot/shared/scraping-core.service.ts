@@ -100,6 +100,15 @@ export class ScrapingCoreService {
       return null;
     }
 
+    // Verificar se é captcha/block page
+    if (this.isCaptchaOrBlockPage(title, imageUrl)) {
+      console.log('[Preview] Preview de captcha detectado, ignorando:', {
+        title,
+        imageUrl,
+      });
+      return null;
+    }
+
     if (this.isGenericShopeePreview(title, imageUrl, url)) {
       console.log('[Preview] Preview generico detectado, ignorando:', {
         title,
@@ -254,11 +263,16 @@ export class ScrapingCoreService {
     console.log('[Preview] Tentando preview externo (Microlink → Iframely → OpenGraph)...');
     for (const targetUrl of urls) {
       const microlink = await this.fetchFromMicrolink(targetUrl);
-      if (microlink && !this.isGenericShopeePreview(microlink.title || '', microlink.image || '', targetUrl)) {
-        console.log('[Preview] Microlink OK');
-        return microlink;
-      }
       if (microlink) {
+        // Verificar se é captcha/block page
+        if (this.isCaptchaOrBlockPage(microlink.title || '', microlink.image || '')) {
+          console.log('[Preview] Microlink retornou captcha, tentando proximo');
+          continue;
+        }
+        if (!this.isGenericShopeePreview(microlink.title || '', microlink.image || '', targetUrl)) {
+          console.log('[Preview] Microlink OK');
+          return microlink;
+        }
         console.log('[Preview] Microlink generico, tentando proximo:', {
           title: microlink.title,
           image: microlink.image,
@@ -266,11 +280,16 @@ export class ScrapingCoreService {
       }
 
       const iframely = await this.fetchFromIframely(targetUrl);
-      if (iframely && !this.isGenericShopeePreview(iframely.title || '', iframely.image || '', targetUrl)) {
-        console.log('[Preview] Iframely OK');
-        return iframely;
-      }
       if (iframely) {
+        // Verificar se é captcha/block page
+        if (this.isCaptchaOrBlockPage(iframely.title || '', iframely.image || '')) {
+          console.log('[Preview] Iframely retornou captcha, tentando proximo');
+          continue;
+        }
+        if (!this.isGenericShopeePreview(iframely.title || '', iframely.image || '', targetUrl)) {
+          console.log('[Preview] Iframely OK');
+          return iframely;
+        }
         console.log('[Preview] Iframely generico, tentando proximo:', {
           title: iframely.title,
           image: iframely.image,
@@ -278,11 +297,16 @@ export class ScrapingCoreService {
       }
 
       const openGraph = await this.fetchFromOpenGraph(targetUrl);
-      if (openGraph && !this.isGenericShopeePreview(openGraph.title || '', openGraph.image || '', targetUrl)) {
-        console.log('[Preview] OpenGraph.io OK');
-        return openGraph;
-      }
       if (openGraph) {
+        // Verificar se é captcha/block page
+        if (this.isCaptchaOrBlockPage(openGraph.title || '', openGraph.image || '')) {
+          console.log('[Preview] OpenGraph.io retornou captcha, tentando proximo');
+          continue;
+        }
+        if (!this.isGenericShopeePreview(openGraph.title || '', openGraph.image || '', targetUrl)) {
+          console.log('[Preview] OpenGraph.io OK');
+          return openGraph;
+        }
         console.log('[Preview] OpenGraph.io generico, tentando proximo:', {
           title: openGraph.title,
           image: openGraph.image,
@@ -449,6 +473,110 @@ export class ScrapingCoreService {
       .replace(/\s+shopee.*$/i, '')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  /**
+   * Check if preview is a captcha/block page (anti-bot protection)
+   */
+  isCaptchaOrBlockPage(title: string, imageUrl: string): boolean {
+    const normalizedTitle = (title || '').toLowerCase().trim();
+    const normalizedImage = (imageUrl || '').toLowerCase();
+
+    // Padrões de título que indicam captcha/antibot
+    const captchaTitlePatterns = [
+      'captcha',
+      'verificação',
+      'verificacao',
+      'verify',
+      'robot',
+      'robô',
+      'robo',
+      'humano',
+      'human',
+      'security',
+      'check',
+      'challenge',
+      'blocked',
+      'bloqueado',
+      'block page',
+      'block',
+      'acesso negado',
+      'access denied',
+      'denied',
+      'perfdrive',
+      'shieldsquare',
+      'cloudflare',
+      'radware',
+      'incapsula',
+      'imperva',
+      'distil',
+      'datadome',
+      'akamai',
+      'kasada',
+      'bot manager',
+      'bot detection',
+      'protection',
+      'proteção',
+      'aguarde',
+      'wait',
+      'loading',
+      'carregando',
+      'validando',
+      'validating',
+      'just a moment',
+      'checking your browser',
+      'please wait',
+      'attention required',
+      'pardon our interruption',
+      'unusual traffic',
+      'automated',
+      'automático',
+      'suspicious',
+      'suspeito',
+    ];
+
+    for (const pattern of captchaTitlePatterns) {
+      if (normalizedTitle.includes(pattern)) {
+        console.log(`[Preview] ⚠️ Detectado captcha/antibot no título: "${title}"`);
+        return true;
+      }
+    }
+
+    // Padrões de imagem que indicam captcha/antibot/logo genérico
+    const captchaImagePatterns = [
+      'logo',
+      'captcha',
+      'challenge',
+      'cloudflare',
+      'shieldsquare',
+      'perfdrive',
+      'radware',
+      'incapsula',
+      'imperva',
+      'datadome',
+      'akamai',
+      'favicon',
+      'icon',
+      'brand',
+      '/static/',
+      'data:image',
+      'az-request-verify',
+    ];
+
+    for (const pattern of captchaImagePatterns) {
+      if (normalizedImage.includes(pattern)) {
+        console.log(`[Preview] ⚠️ Detectada imagem de captcha/logo: "${imageUrl?.substring(0, 80)}"`);
+        return true;
+      }
+    }
+
+    // Títulos muito curtos provavelmente não são de produto
+    if (normalizedTitle.length > 0 && normalizedTitle.length < 15) {
+      console.log(`[Preview] ⚠️ Título muito curto: "${title}"`);
+      return true;
+    }
+
+    return false;
   }
 
   /**

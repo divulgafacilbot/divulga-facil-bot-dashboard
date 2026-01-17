@@ -10,10 +10,10 @@ export const brandConfigSchema = z.object({
   priceColor: z.string().regex(hexColorRegex, 'Invalid hex color format').optional().nullable(),
   fontFamily: z.string().min(1).max(100).optional(),
   showCoupon: z.boolean().optional(),
-  couponText: z.string().min(1).max(50).optional().nullable(),
-  ctaText: z.string().min(1).max(100).optional().nullable(),
-  customImageUrl: z.string().url('Invalid URL format').max(500).optional().nullable(),
-});
+  couponText: z.string().max(50).optional().nullable(), // Allow empty string
+  ctaText: z.string().max(100).optional().nullable(), // Allow empty string
+  customImageUrl: z.string().url('Invalid URL format').max(500).optional().nullable().or(z.literal('')), // Allow empty string
+}).passthrough(); // Accept extra fields without rejecting
 
 export const brandConfigUpdateSchema = brandConfigSchema.partial();
 

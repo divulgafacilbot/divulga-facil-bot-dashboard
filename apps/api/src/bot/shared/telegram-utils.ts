@@ -149,6 +149,9 @@ export async function checkMarketplaceAccess(
 /**
  * Combined check for bot access AND marketplace access
  * Returns detailed information for proper user messaging
+ *
+ * IMPORTANT: PROMO_ACCESS entitlements have FULL access to all marketplaces
+ * Marketplace restrictions only apply to regular subscription plans
  */
 export async function checkFullAccess(
   telegramUserId: string,
@@ -173,7 +176,18 @@ export async function checkFullAccess(
     };
   }
 
-  // 2. Now check marketplace access
+  // 2. Check if user has PROMO_ACCESS - if so, skip marketplace restrictions (full access)
+  const hasPromoAccess = await EntitlementService.hasValidPromoEntitlement(botAccessResult.userId!, botType);
+  if (hasPromoAccess) {
+    console.log('[checkFullAccess] User has PROMO_ACCESS - granting full marketplace access');
+    return {
+      hasAccess: true,
+      userId: botAccessResult.userId,
+      allowedMarketplaces: ['ALL'], // Promo has access to all marketplaces
+    };
+  }
+
+  // 3. For regular subscriptions, check marketplace access
   const marketplaceResult = await checkMarketplaceAccess(botAccessResult.userId!, marketplace);
 
   if (!marketplaceResult.hasAccess) {

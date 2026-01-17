@@ -14,22 +14,9 @@ import type { BotType } from '../../constants/bot-types.js';
 class PromoTokensService {
   /**
    * Create a new promotional token
-   * Limit: 1 active promo token per bot type per user
+   * No limit - admin can create as many tokens as needed
    */
   async createToken(input: CreatePromoTokenInput): Promise<PromoToken> {
-    // Check if user already has an active promo token for this bot type
-    const existingToken = await prisma.promo_tokens.findFirst({
-      where: {
-        user_id: input.userId,
-        bot_type: input.botType,
-        is_active: true,
-      },
-    });
-
-    if (existingToken) {
-      throw new Error(`Usuário já possui um token promocional ativo para o bot ${input.botType}`);
-    }
-
     // Generate secure 64-character token
     const token = randomBytes(32).toString('hex');
 
