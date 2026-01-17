@@ -3,25 +3,42 @@ import * as cheerio from 'cheerio';
 import { MediaItem, MediaResult, SocialPlatform, SocialScraper } from './types.js';
 import { buildHeaders, resolveFinalUrl } from './utils.js';
 
+// Prioritize high quality video URLs
 const META_SELECTORS = [
-  'meta[property="og:video"]',
-  'meta[property="og:video:url"]',
   'meta[property="og:video:secure_url"]',
-  'meta[name="og:video"]',
-  'meta[name="og:video:url"]',
+  'meta[property="og:video:url"]',
+  'meta[property="og:video"]',
   'meta[name="og:video:secure_url"]',
+  'meta[name="og:video:url"]',
+  'meta[name="og:video"]',
   'meta[property="twitter:player:stream"]',
 ];
 
 function extractVideoFromMeta($: cheerio.Root): string | null {
+  // Log all video-related meta tags for debugging
+  console.log('[Shopee] Scanning video meta tags...');
+
+  // Collect all video URLs found
+  const videoUrls: { selector: string; url: string }[] = [];
+
   for (const selector of META_SELECTORS) {
     const candidate = $('head').find(selector).attr('content') || $('head').find(selector).attr('value');
     const sanitized = sanitizeUrl(candidate);
     if (sanitized) {
-      return sanitized;
+      console.log(`[Shopee] Found video URL via ${selector}: ${sanitized.substring(0, 100)}...`);
+      videoUrls.push({ selector, url: sanitized });
     }
   }
-  return null;
+
+  // Also check for og:video:width and og:video:height
+  const width = $('meta[property="og:video:width"]').attr('content');
+  const height = $('meta[property="og:video:height"]').attr('content');
+  if (width || height) {
+    console.log(`[Shopee] Video dimensions from meta: ${width}x${height}`);
+  }
+
+  // Return the first valid URL found
+  return videoUrls.length > 0 ? videoUrls[0].url : null;
 }
 
 function extractVideoFromJsonLd($: cheerio.Root): string | null {
@@ -166,6 +183,15 @@ export const shopeeScraper: SocialScraper = {
 
       // Remove watermark from video URL to get the clean version
       const cleanVideoUrl = removeWatermarkFromUrl(videoUrl);
+
+      // Log final URL being used
+      console.log('[Shopee] Final video URL:', cleanVideoUrl);
+
+      // Extract video dimensions if available
+      const width = $('meta[property="og:video:width"]').attr('content');
+      const height = $('meta[property="og:video:height"]').attr('content');
+
+      console.log('[Shopee] Video dimensions:', width ? `${width}x${height}` : 'not specified in meta');
 
       const item: MediaItem = {
         mediaType: 'video',

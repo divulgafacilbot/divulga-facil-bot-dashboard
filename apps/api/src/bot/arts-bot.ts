@@ -67,29 +67,12 @@ artsBot.command('vincular', async (ctx) => {
 });
 
 /**
- * /codigo command - Complete account linking
+ * Helper: Check if text looks like a token
  */
-artsBot.command('codigo', async (ctx) => {
-  const token = ctx.match?.trim();
-
-  if (!token) {
-    await ctx.reply('❌ Por favor, forneça o código de vinculação.\n\n💡 Dica: Você pode simplesmente colar o token diretamente no chat!', {
-      parse_mode: 'Markdown',
-    });
-    return;
-  }
-
-  const result = await telegramUtils.handleTokenLink(ctx, token, BOT_TYPES.PROMOCOES);
-
-  if (!result.success) {
-    await ctx.reply(`❌ Falha na vinculação: ${result.error}`);
-    return;
-  }
-
-  await ctx.reply('✅ *Conta vinculada com sucesso!*\n\nAgora você pode enviar links de produtos.', {
-    parse_mode: 'Markdown',
-  });
-});
+function looksLikeToken(text: string): boolean {
+  const trimmed = text.trim();
+  return trimmed.length >= 32 && !trimmed.includes(' ') && !trimmed.includes('://') && /^[a-zA-Z0-9_-]+$/.test(trimmed);
+}
 
 // Removed duplicate helper functions - now using shared scraping-core.service.ts
 
@@ -153,11 +136,26 @@ artsBot.on('message:text', async (ctx) => {
     // Se não é preço válido, continua para processar como URL
   }
 
+  const telegramUserId = ctx.from?.id.toString();
+
+  // Priorizar detecção de token (para vinculação ou promo access)
+  if (looksLikeToken(text)) {
+    const result = await telegramUtils.handleTokenLink(ctx, text.trim(), BOT_TYPES.PROMOCOES);
+
+    if (result.success) {
+      await ctx.reply('✅ *Conta vinculada com sucesso!*\n\nAgora você pode enviar links de produtos.', {
+        parse_mode: 'Markdown',
+      });
+    } else {
+      await ctx.reply(`❌ ${result.error || 'Token inválido ou expirado.'}\n\nGere um novo token no dashboard e tente novamente.`);
+    }
+    return;
+  }
+
   // Check if text contains a URL
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const urls = text.match(urlRegex);
 
-  const telegramUserId = ctx.from?.id.toString();
   let botLink = null;
 
   if (telegramUserId) {
@@ -166,18 +164,10 @@ artsBot.on('message:text', async (ctx) => {
 
   if (!urls || urls.length === 0) {
     if (!botLink) {
-      const result = await telegramUtils.handleTokenLink(ctx, text.trim(), BOT_TYPES.PROMOCOES);
-
-      if (!result.success) {
-        await ctx.reply(`❌ Token inválido: ${result.error}`);
-        return;
-      }
-
-      await ctx.reply('✅ Conta vinculada com sucesso! Agora envie um link de produto.');
-      return;
+      await ctx.reply('❌ Você precisa vincular sua conta primeiro.\n\nCole o token gerado no dashboard ou use /vincular para ver as instruções.');
+    } else {
+      await ctx.reply('👋 Envie um link de produto para eu criar uma arte!\n\nUse /ajuda para mais informações.');
     }
-
-    await ctx.reply('👋 Envie um link de produto para eu criar uma arte!\n\nUse /ajuda para mais informações.');
     return;
   }
 

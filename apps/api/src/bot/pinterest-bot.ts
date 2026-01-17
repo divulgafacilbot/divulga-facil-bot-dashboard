@@ -77,38 +77,12 @@ pinterestBot.command('vincular', async (ctx) => {
 });
 
 /**
- * /codigo command - Complete account linking
+ * Helper: Check if text looks like a token
  */
-pinterestBot.command('codigo', async (ctx) => {
-  const token = ctx.match?.trim();
-
-  if (!token) {
-    await ctx.reply('❌ Por favor, forneça o código de vinculação.\n\n💡 Dica: Você pode simplesmente colar o token diretamente no chat!', {
-      parse_mode: 'Markdown',
-    });
-    return;
-  }
-
-  const result = await telegramUtils.handleTokenLink(ctx, token, BOT_TYPES.PINTEREST);
-
-  if (!result.success) {
-    await ctx.reply(`❌ Falha na vinculação: ${result.error}`);
-    return;
-  }
-
-  // Log telemetry for bot linking
-  await telemetryService.logEvent({
-    eventType: 'PINTEREST_BOT_LINKED',
-    userId: result.userId,
-    telegramUserId: ctx.from?.id,
-    origin: 'pinterest-bot',
-    metadata: { botType: BOT_TYPES.PINTEREST }
-  });
-
-  await ctx.reply('✅ *Conta vinculada com sucesso!*\n\nAgora você pode enviar links de produtos.', {
-    parse_mode: 'Markdown',
-  });
-});
+function looksLikeToken(text: string): boolean {
+  const trimmed = text.trim();
+  return trimmed.length >= 32 && !trimmed.includes(' ') && !trimmed.includes('://') && /^[a-zA-Z0-9_-]+$/.test(trimmed);
+}
 
 /**
  * /status command - Check link status with detailed info
@@ -357,6 +331,31 @@ pinterestBot.on('message:text', async (ctx) => {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Priorizar detecção de token (para vinculação ou promo access)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (looksLikeToken(text)) {
+    console.log('[Pinterest] Texto parece ser um token, tentando vincular...');
+    const result = await telegramUtils.handleTokenLink(ctx, text.trim(), BOT_TYPES.PINTEREST);
+
+    if (result.success) {
+      console.log('[Pinterest] Vinculação via token bem sucedida! User ID:', result.userId);
+      await telemetryService.logEvent({
+        eventType: 'PINTEREST_BOT_LINKED',
+        userId: result.userId,
+        telegramUserId: ctx.from?.id,
+        origin: 'pinterest-bot',
+        metadata: { botType: BOT_TYPES.PINTEREST, method: 'inline' }
+      });
+      await ctx.reply('✅ *Conta vinculada com sucesso!*\n\nAgora você pode enviar links de produtos.', {
+        parse_mode: 'Markdown',
+      });
+    } else {
+      await ctx.reply(`❌ ${result.error || 'Token inválido ou expirado.'}\n\nGere um novo token no dashboard e tente novamente.`);
+    }
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Verificar se há confirmação de preço pendente (Antibot Shopee)
   // ═══════════════════════════════════════════════════════════════════════════
   if (chatId && pendingPriceConfirmations.has(chatId)) {
@@ -408,32 +407,11 @@ pinterestBot.on('message:text', async (ctx) => {
   // No URL found
   if (!urls || urls.length === 0) {
     console.log('[Pinterest] Nenhuma URL encontrada no texto');
-    // If not linked, try to treat text as token
     if (!botLink) {
-      console.log('[Pinterest] Tentando tratar texto como token de vinculação...');
-      const result = await telegramUtils.handleTokenLink(ctx, text.trim(), BOT_TYPES.PINTEREST);
-
-      if (!result.success) {
-        console.log('[Pinterest] Token inválido:', result.error);
-        await ctx.reply(`❌ Token inválido: ${result.error}`);
-        return;
-      }
-
-      console.log('[Pinterest] Vinculação via token inline bem sucedida! User ID:', result.userId);
-      // Log telemetry for bot linking (inline token)
-      await telemetryService.logEvent({
-        eventType: 'PINTEREST_BOT_LINKED',
-        userId: result.userId,
-        telegramUserId: ctx.from?.id,
-        origin: 'pinterest-bot',
-        metadata: { botType: BOT_TYPES.PINTEREST, method: 'inline' }
-      });
-
-      await ctx.reply('✅ Conta vinculada com sucesso! Agora envie um link de produto.');
-      return;
+      await ctx.reply('❌ Você precisa vincular sua conta primeiro.\n\nCole o token gerado no dashboard ou use /vincular para ver as instruções.');
+    } else {
+      await ctx.reply('👋 Envie um link de produto para eu criar um pin!\n\nUse /ajuda para mais informações.');
     }
-
-    await ctx.reply('👋 Envie um link de produto para eu criar um pin!\n\nUse /ajuda para mais informações.');
     return;
   }
 

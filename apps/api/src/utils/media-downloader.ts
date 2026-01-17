@@ -1,7 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import ytdl from '@distube/ytdl-core';
 import ffmpegPath from 'ffmpeg-static';
 
@@ -98,6 +98,77 @@ export function cleanupTempFile(filePath: string): void {
     }
   } catch (error) {
     console.error(`❌ Erro ao remover arquivo temporário ${filePath}:`, error);
+  }
+}
+
+export type VideoMetadata = {
+  width: number;
+  height: number;
+  duration?: number;
+};
+
+/**
+ * Get video dimensions using ffmpeg (more reliable than ffprobe as ffmpeg-static includes it)
+ * Returns null if unable to detect
+ */
+export function getVideoMetadata(filePath: string): VideoMetadata | null {
+  if (!ffmpegPath) {
+    console.error('[getVideoMetadata] ffmpeg not available');
+    return null;
+  }
+
+  try {
+    // Use ffmpeg -i to get video info (outputs to stderr)
+    let output = '';
+    try {
+      // ffmpeg -i always exits with error code when no output specified, but prints info to stderr
+      execSync(`"${ffmpegPath}" -i "${filePath}" 2>&1`, {
+        encoding: 'utf-8',
+        timeout: 10000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    } catch (e: any) {
+      // ffmpeg returns non-zero exit code but still outputs info in the error message
+      output = e.stdout || e.stderr || e.message || String(e) || '';
+    }
+
+    console.log('[getVideoMetadata] ffmpeg output length:', output.length);
+
+    // Parse dimensions from output like "Stream #0:0(und): Video: h264 ..., 720x1280,"
+    // The pattern is usually "WIDTHxHEIGHT" followed by comma or space
+    const dimensionMatch = output.match(/,\s*(\d{2,4})x(\d{2,4})[\s,]/);
+    if (dimensionMatch) {
+      const width = parseInt(dimensionMatch[1], 10);
+      const height = parseInt(dimensionMatch[2], 10);
+
+      // Parse duration from output like "Duration: 00:00:15.00"
+      const durationMatch = output.match(/Duration:\s*(\d+):(\d+):(\d+)/);
+      let duration: number | undefined;
+      if (durationMatch) {
+        const hours = parseInt(durationMatch[1], 10);
+        const minutes = parseInt(durationMatch[2], 10);
+        const seconds = parseInt(durationMatch[3], 10);
+        duration = hours * 3600 + minutes * 60 + seconds;
+      }
+
+      console.log(`[getVideoMetadata] Detected: ${width}x${height}${duration ? `, ${duration}s` : ''}`);
+      return { width, height, duration };
+    }
+
+    // Fallback: try a more generic pattern
+    const fallbackMatch = output.match(/(\d{3,4})x(\d{3,4})/);
+    if (fallbackMatch) {
+      const width = parseInt(fallbackMatch[1], 10);
+      const height = parseInt(fallbackMatch[2], 10);
+      console.log(`[getVideoMetadata] Detected (fallback): ${width}x${height}`);
+      return { width, height };
+    }
+
+    console.log('[getVideoMetadata] Could not parse dimensions. Output sample:', output.substring(0, 500));
+    return null;
+  } catch (error) {
+    console.error('[getVideoMetadata] Failed to get video metadata:', error);
+    return null;
   }
 }
 

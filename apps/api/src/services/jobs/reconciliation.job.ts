@@ -10,6 +10,8 @@ export interface ReconciliationJobResult {
 
 export class ReconciliationJob {
   private readonly JOB_NAME = 'reconciliation';
+  // Fixed UUID for this job (used in audit logs, which require UUID entity_id)
+  private readonly JOB_UUID = '00000000-0000-0000-0000-000000000002';
   private readonly LOCK_MINUTES = 15;
   private readonly DEFAULT_DAYS = 7;
 
@@ -49,8 +51,9 @@ export class ReconciliationJob {
       await AuditService.logAction({
         action: AuditAction.JOB_EXECUTED,
         entity_type: 'job',
-        entity_id: this.JOB_NAME,
+        entity_id: this.JOB_UUID,
         metadata: {
+          jobName: this.JOB_NAME,
           totalDiscrepancies: report.totalDiscrepancies,
           periodDays: days,
           duration,
@@ -72,8 +75,8 @@ export class ReconciliationJob {
       await AuditService.logAction({
         action: AuditAction.JOB_FAILED,
         entity_type: 'job',
-        entity_id: this.JOB_NAME,
-        metadata: { error: errorMessage },
+        entity_id: this.JOB_UUID,
+        metadata: { jobName: this.JOB_NAME, error: errorMessage },
       });
 
       throw error;

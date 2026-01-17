@@ -77,43 +77,12 @@ suggestionBot.command('vincular', async (ctx) => {
 });
 
 /**
- * /codigo command - Complete account linking with token
+ * Helper: Check if text looks like a token
  */
-suggestionBot.command('codigo', async (ctx) => {
-  const token = ctx.match?.trim();
-
-  if (!token) {
-    await ctx.reply(
-      '❌ Por favor, forneça o código de vinculação.\n\n' +
-      '💡 Dica: Você pode simplesmente colar o token diretamente no chat!',
-      { parse_mode: 'Markdown' }
-    );
-    return;
-  }
-
-  const result = await telegramUtils.handleTokenLink(ctx, token, BOT_TYPES.SUGGESTION);
-
-  if (!result.success) {
-    await ctx.reply(`❌ Falha na vinculação: ${result.error}`);
-    return;
-  }
-
-  // Log telemetry for bot linking
-  await telemetryService.logEvent({
-    eventType: 'SUGGESTION_BOT_LINKED',
-    userId: result.userId,
-    telegramUserId: ctx.from?.id,
-    origin: 'suggestion-bot',
-    metadata: { botType: BOT_TYPES.SUGGESTION }
-  });
-
-  await ctx.reply(
-    '✅ *Conta vinculada com sucesso!*\n\n' +
-    'Agora você pode usar o bot de sugestões.\n' +
-    'Use /start para ver os marketplaces disponíveis.',
-    { parse_mode: 'Markdown' }
-  );
-});
+function looksLikeToken(text: string): boolean {
+  const trimmed = text.trim();
+  return trimmed.length >= 32 && !trimmed.includes(' ') && !trimmed.includes('://') && /^[a-zA-Z0-9_-]+$/.test(trimmed);
+}
 
 /**
  * /status command - Check link status
@@ -530,15 +499,11 @@ suggestionBot.on('message:text', async (ctx) => {
   const telegramUserId = ctx.from?.id.toString();
   if (!telegramUserId) return;
 
-  // Check if user is already linked
-  const isLinked = await telegramUtils.isUserLinked(telegramUserId, BOT_TYPES.SUGGESTION);
-
-  if (!isLinked) {
-    // Try to treat the text as a token
+  // Priorizar detecção de token (para vinculação ou promo access)
+  if (looksLikeToken(text)) {
     const result = await telegramUtils.handleTokenLink(ctx, text.trim(), BOT_TYPES.SUGGESTION);
 
     if (result.success) {
-      // Log telemetry for bot linking (inline token)
       await telemetryService.logEvent({
         eventType: 'SUGGESTION_BOT_LINKED',
         userId: result.userId,
@@ -554,10 +519,21 @@ suggestionBot.on('message:text', async (ctx) => {
       );
     } else {
       await ctx.reply(
-        `❌ Token inválido: ${result.error}\n\n` +
-        'Use /vincular para ver como gerar um token válido.'
+        `❌ ${result.error || 'Token inválido ou expirado.'}\n\n` +
+        'Gere um novo token no dashboard e tente novamente.'
       );
     }
+    return;
+  }
+
+  // Check if user is linked
+  const isLinked = await telegramUtils.isUserLinked(telegramUserId, BOT_TYPES.SUGGESTION);
+
+  if (!isLinked) {
+    await ctx.reply(
+      '❌ Você precisa vincular sua conta primeiro.\n\n' +
+      'Cole o token gerado no dashboard ou use /vincular para ver as instruções.'
+    );
     return;
   }
 

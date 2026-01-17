@@ -2,10 +2,9 @@ import { Bot, InputFile } from 'grammy';
 import { BOT_TYPES } from '../constants/bot-types.js';
 import { prisma } from '../db/prisma.js';
 import { scrapeMedia } from '../scraping/social/index.js';
-import { telegramLinkService } from '../services/telegram/link-service.js';
 import { usageCountersService } from '../services/usage-counters.service.js';
 import { telemetryService } from '../services/telemetry.service.js';
-import { cleanupTempFile, downloadMediaToFile } from '../utils/media-downloader.js';
+import { cleanupTempFile, downloadMediaToFile, getVideoMetadata } from '../utils/media-downloader.js';
 import { checkBotAccess } from './shared/telegram-utils.js';
 
 const TELEGRAM_BOT_DOWNLOAD_TOKEN = process.env.TELEGRAM_BOT_DOWNLOAD_TOKEN;
@@ -75,30 +74,11 @@ O token expira em 10 minutos.`;
   });
 
   /**
-   * /codigo command
+   * Helper function to handle token linking (supports both regular and promo tokens)
    */
-  downloadBot.command('codigo', async (ctx) => {
-    const token = ctx.match?.trim();
-
-    if (!token) {
-      await ctx.reply('❌ Uso correto: `/codigo SEU_TOKEN`', { parse_mode: 'Markdown' });
-      return;
-    }
-
-    const telegramUserId = ctx.from?.id.toString();
-    const chatId = ctx.chat?.id.toString();
-
-    if (!telegramUserId || !chatId) {
-      await ctx.reply('❌ Erro ao obter suas informações do Telegram.');
-      return;
-    }
-
-    const result = await telegramLinkService.confirmLink(
-      token,
-      telegramUserId,
-      chatId,
-      BOT_TYPES.DOWNLOAD
-    );
+  async function tryLinkToken(ctx: any, token: string): Promise<boolean> {
+    const { handleTokenLink } = await import('./shared/telegram-utils.js');
+    const result = await handleTokenLink(ctx, token.trim(), BOT_TYPES.DOWNLOAD);
 
     if (result.success) {
       await ctx.reply(
@@ -114,14 +94,24 @@ Agora você pode enviar links de:
 Use /ajuda para ver todos os comandos.`,
         { parse_mode: 'Markdown' }
       );
+      return true;
     } else {
       await ctx.reply(
-        `❌ Token inválido ou expirado.
+        `❌ ${result.error || 'Token inválido ou expirado.'}
 
 Gere um novo token no dashboard e tente novamente.`
       );
+      return false;
     }
-  });
+  }
+
+  /**
+   * Check if a string looks like a token (hex string, 32+ chars, no spaces/URLs)
+   */
+  function looksLikeToken(text: string): boolean {
+    const trimmed = text.trim();
+    return trimmed.length >= 32 && !trimmed.includes(' ') && !trimmed.includes('://') && /^[a-zA-Z0-9_-]+$/.test(trimmed);
+  }
 
   /**
    * /status command
@@ -176,7 +166,7 @@ Use /vincular para conectar sua conta.`
   });
 
   /**
-   * Message handler for URLs
+   * Message handler for URLs and tokens
    */
   downloadBot.on('message:text', async (ctx) => {
     const message = ctx.message.text;
@@ -193,6 +183,12 @@ Use /vincular para conectar sua conta.`
       return;
     }
 
+    // Check if message looks like a token (priority over URL detection)
+    if (looksLikeToken(message)) {
+      await tryLinkToken(ctx, message);
+      return;
+    }
+
     // Check if user is linked
     const link = await prisma.telegram_bot_links.findFirst({
       where: {
@@ -205,39 +201,11 @@ Use /vincular para conectar sua conta.`
     });
 
     if (!link) {
-      // If not linked, allow pasting a raw token to link (supports both regular and promo tokens)
-      if (message.length > 10 && !message.includes(' ')) {
-        const { handleTokenLink } = await import('./shared/telegram-utils.js');
-        const result = await handleTokenLink(ctx, message.trim(), BOT_TYPES.DOWNLOAD);
+      await ctx.reply(
+        `❌ Você precisa vincular sua conta primeiro.
 
-        if (result.success) {
-          await ctx.reply(
-            `✅ *Conta vinculada com sucesso!*
-
-Agora você pode enviar links de:
-• Instagram
-• TikTok
-• Pinterest
-• YouTube
-• Shopee
-
-Use /ajuda para ver todos os comandos.`,
-            { parse_mode: 'Markdown' }
-          );
-        } else {
-          await ctx.reply(
-            `❌ ${result.error || 'Token inválido ou expirado.'}
-
-Gere um novo token no dashboard e tente novamente.`
-          );
-        }
-      } else {
-        await ctx.reply(
-          `❌ Você precisa vincular sua conta primeiro.
-
-Use /vincular para ver as instruções.`
-        );
-      }
+Cole o token gerado no dashboard ou use /vincular para ver as instruções.`
+      );
       return;
     }
 
@@ -299,7 +267,14 @@ Exemplo: https://instagram.com/p/ABC123/`
 
           // Send to Telegram
           if (item.mediaType === 'video') {
-            await ctx.replyWithVideo(new InputFile(tempFile));
+            // Get video dimensions to ensure correct display on all devices
+            const metadata = getVideoMetadata(tempFile);
+            await ctx.replyWithVideo(new InputFile(tempFile), {
+              width: metadata?.width,
+              height: metadata?.height,
+              duration: metadata?.duration,
+              supports_streaming: true,
+            });
           } else {
             await ctx.replyWithPhoto(new InputFile(tempFile));
           }

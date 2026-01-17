@@ -10,6 +10,8 @@ export interface EventProcessorResult {
 
 export class EventProcessorJob {
   private readonly JOB_NAME = 'event-processor';
+  // Fixed UUID for this job (used in audit logs, which require UUID entity_id)
+  private readonly JOB_UUID = '00000000-0000-0000-0000-000000000001';
   private readonly LOCK_MINUTES = 5;
 
   /**
@@ -52,8 +54,9 @@ export class EventProcessorJob {
       await AuditService.logAction({
         action: AuditAction.JOB_EXECUTED,
         entity_type: 'job',
-        entity_id: this.JOB_NAME,
+        entity_id: this.JOB_UUID,
         metadata: {
+          jobName: this.JOB_NAME,
           processedCount: processed,
           duration,
         },
@@ -69,8 +72,8 @@ export class EventProcessorJob {
       await AuditService.logAction({
         action: AuditAction.JOB_FAILED,
         entity_type: 'job',
-        entity_id: this.JOB_NAME,
-        metadata: { error: errorMessage },
+        entity_id: this.JOB_UUID,
+        metadata: { jobName: this.JOB_NAME, error: errorMessage },
       });
 
       throw error;

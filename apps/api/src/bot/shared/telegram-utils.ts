@@ -281,11 +281,17 @@ export async function handleTokenLink(
       },
     });
 
+    // If linked to a different user, delete the old link first (promo token takes precedence)
     if (existingLink && existingLink.user_id !== promoToken.user_id) {
-      return {
-        success: false,
-        error: 'Esta conta do Telegram já está vinculada a outro usuário.',
-      };
+      console.log('[handleTokenLink] Telegram already linked to different user, replacing link. Old userId:', existingLink.user_id, 'New userId:', promoToken.user_id);
+      await prisma.telegram_bot_links.delete({
+        where: {
+          user_id_bot_type: {
+            user_id: existingLink.user_id,
+            bot_type: botType,
+          },
+        },
+      });
     }
 
     // Create or update the telegram bot link
@@ -316,15 +322,24 @@ export async function handleTokenLink(
 
     // CRITICAL: Create the promo access entitlement so user can actually use the bot
     try {
-      await EntitlementService.addPromoAccess(
+      const entitlement = await EntitlementService.addPromoAccess(
         promoToken.user_id,
         botType,
         promoToken.expires_at
       );
-      console.log('[handleTokenLink] Promo access entitlement created for user:', promoToken.user_id, 'botType:', botType);
+      console.log('[handleTokenLink] Promo access entitlement created/found for user:', promoToken.user_id, 'botType:', botType, 'entitlementId:', entitlement.id);
     } catch (entitlementError: any) {
-      // Log error but don't fail the link - user might already have entitlement
-      console.error('[handleTokenLink] Error creating promo entitlement:', entitlementError.message);
+      console.error('[handleTokenLink] CRITICAL: Error creating promo entitlement:', entitlementError.message);
+      // Rollback the telegram link since entitlement failed
+      await prisma.telegram_bot_links.delete({
+        where: {
+          user_id_bot_type: {
+            user_id: promoToken.user_id,
+            bot_type: botType,
+          },
+        },
+      }).catch(() => {}); // Ignore rollback errors
+      return { success: false, error: 'Erro ao criar acesso. Entre em contato com o suporte.' };
     }
 
     console.log('[handleTokenLink] Promo token link successful for user:', promoToken.user_id);
@@ -457,8 +472,7 @@ ${supportedMarketplaces.map((m) => `• ${m}`).join('\n')}
 
 *Comandos:*
 /start - Mensagem de boas-vindas
-/vincular - Vincular sua conta
-/codigo - Completar vinculação com código
+/vincular - Vincular sua conta (cole o token diretamente)
 /status - Ver status da conta
 /config - Ver configurações
 /ajuda - Esta mensagem
